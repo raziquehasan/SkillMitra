@@ -72,3 +72,6 @@ Desktop.ini
 *.swo
 *.bak
 *.tmp
+
+# Database
+pgdata/

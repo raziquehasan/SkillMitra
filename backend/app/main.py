@@ -28,8 +28,19 @@ app.add_middleware(
 
 
 # ─────────────────────────────────────────────
-# Health Check
+# Health Check & Root
 # ─────────────────────────────────────────────
+@app.get("/", tags=["Root"])
+async def root_endpoint() -> dict:
+    """
+    Root endpoint.
+    """
+    return {
+        "message": "Welcome to SkillMitra API",
+        "docs_url": "/docs",
+        "health_url": "/health"
+    }
+
 @app.get("/health", tags=["Health"])
 async def health_check() -> dict:
     """
