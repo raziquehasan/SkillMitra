@@ -85,6 +85,7 @@ class Skill(Base):
     aliases: Mapped[list["SkillAlias"]] = relationship(
         "SkillAlias", back_populates="skill", cascade="all, delete-orphan"
     )
+
     job_role_skills: Mapped[list["JobRoleSkill"]] = relationship(
         "JobRoleSkill", back_populates="skill"
     )

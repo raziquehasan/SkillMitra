@@ -48,6 +48,9 @@ class JobRole(Base):
     candidate_interests: Mapped[list["CandidateCareerInterest"]] = relationship(
         "CandidateCareerInterest", back_populates="job_role"
     )
+    job_postings: Mapped[list["JobPosting"]] = relationship(
+        "JobPosting", back_populates="job_role"
+    )
 
     __table_args__ = (
         Index("ix_job_roles_is_active", "is_active"),
@@ -220,6 +223,9 @@ class CourseEnrollment(Base):
         "CandidateProfile", back_populates="enrollments"
     )
     course: Mapped["Course"] = relationship("Course", back_populates="enrollments")
+    placement: Mapped["Placement | None"] = relationship(
+        "Placement", back_populates="enrollment", uselist=False
+    )
 
     __table_args__ = (
         CheckConstraint(

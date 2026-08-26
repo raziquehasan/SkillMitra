@@ -24,6 +24,7 @@ from app.models.identity import (                         # noqa: F401
     CandidateProfile,
     CandidateEducationHistory,
     CandidateCareerInterest,
+    Employer,
 )
 from app.models.career import (                           # noqa: F401
     JobRole,
@@ -31,6 +32,25 @@ from app.models.career import (                           # noqa: F401
     Course,
     CourseSkill,
     CourseEnrollment,
+)
+from app.models.market import (
+    JobPosting,
+    JobPostingSkill,
+    Application,
+    Placement,
+)
+from app.models.auth import (
+    Role,
+    UserRole,
+    RefreshToken,
+)
+from app.models.demand import (
+    IndustrySector,
+    DataSource,
+    EmployerSurvey,
+    EmployerSurveyResponse,
+    DemandSignal,
+    IndustryDemand,
 )
 
 __all__ = [
@@ -51,4 +71,18 @@ __all__ = [
     "Course",
     "CourseSkill",
     "CourseEnrollment",
+    "Employer",
+    "JobPosting",
+    "JobPostingSkill",
+    "Application",
+    "Placement",
+    "IndustrySector",
+    "DataSource",
+    "EmployerSurvey",
+    "EmployerSurveyResponse",
+    "DemandSignal",
+    "IndustryDemand",
+    "Role",
+    "UserRole",
+    "RefreshToken",
 ]

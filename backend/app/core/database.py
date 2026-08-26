@@ -66,3 +66,12 @@ def verify_connection() -> bool:
         return True
     except Exception as exc:
         raise RuntimeError(f"Database connection failed: {exc}") from exc
+
+
+def get_db():
+    """FastAPI dependency yielding a database session (alias for get_session)."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

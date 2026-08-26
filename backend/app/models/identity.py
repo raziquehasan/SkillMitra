@@ -34,10 +34,21 @@ class User(TimestampMixin, Base):
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     candidate_profile: Mapped["CandidateProfile | None"] = relationship(
         "CandidateProfile", back_populates="user", uselist=False
+    )
+    employer_profile: Mapped["Employer | None"] = relationship(
+        "Employer", back_populates="user", uselist=False
+    )
+    user_roles: Mapped[list["UserRole"]] = relationship(
+        "UserRole", back_populates="user", cascade="all, delete-orphan"
+    )
+    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
+        "RefreshToken", back_populates="user", cascade="all, delete-orphan"
     )
 
 
@@ -75,6 +86,12 @@ class CandidateProfile(TimestampMixin, Base):
     )
     enrollments: Mapped[list["CourseEnrollment"]] = relationship(
         "CourseEnrollment", back_populates="candidate"
+    )
+    applications: Mapped[list["Application"]] = relationship(
+        "Application", back_populates="candidate"
+    )
+    placements: Mapped[list["Placement"]] = relationship(
+        "Placement", back_populates="candidate"
     )
 
     __table_args__ = (
@@ -149,4 +166,42 @@ class CandidateCareerInterest(Base):
     __table_args__ = (
         Index("ix_candidate_career_interests_candidate_id", "candidate_id"),
         Index("ix_candidate_career_interests_job_role_id", "target_job_role_id"),
+    )
+
+class Employer(TimestampMixin, Base):
+    __tablename__ = "employers"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    industry_sector_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("industry_sectors.id", ondelete="RESTRICT"), nullable=False
+    )
+    district_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("districts.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    company_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    website: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    size_category: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="employer_profile")
+    district: Mapped["District | None"] = relationship("District")
+    industry_sector: Mapped["IndustrySector"] = relationship("IndustrySector", back_populates="employers")
+    job_postings: Mapped[list["JobPosting"]] = relationship(
+        "JobPosting", back_populates="employer"
+    )
+
+    __table_args__ = (
+        Index("ix_employers_user_id", "user_id"),
+        Index("ix_employers_district_id", "district_id"),
     )

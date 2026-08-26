@@ -14,18 +14,27 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = False
 
-    # Database — required for Phase 2A onwards
-    # Format: postgresql+psycopg://user:password@host:port/dbname
-    # Example: postgresql+psycopg://skillmitra:secret@localhost:5432/skillmitra
+    # Database
     DATABASE_URL: str = ""
 
-    # Supabase (optional in Phase 2A — kept for future compatibility)
+    # Supabase (optional - kept for future cloud migration)
     SUPABASE_URL: str = ""
     SUPABASE_ANON_KEY: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
 
-    # Auth (future)
-    JWT_SECRET: str = ""
+    # Auth - Phase 2D
+    JWT_SECRET_KEY: str = "CHANGE_ME_IN_PRODUCTION"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+    # Cookie settings
+    COOKIE_SECURE: bool = False          # True in production (HTTPS)
+    COOKIE_HTTPONLY: bool = True
+    COOKIE_SAMESITE: str = "lax"
+
+    # Password policy
+    PASSWORD_MIN_LENGTH: int = 8
 
     class Config:
         env_file = ".env"
