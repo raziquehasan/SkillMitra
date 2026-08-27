@@ -1,5 +1,5 @@
 """Deterministic Phase 5 labour-market and training-supply analytics."""
-from datetime import date
+from datetime import date, datetime, timezone
 import uuid
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -165,3 +165,25 @@ class IntelligenceService:
         self.db.commit()
         self.db.refresh(plan)
         return plan, items
+
+    def demand_trend(self, district_id: uuid.UUID, skill_id: uuid.UUID,
+                     current_start: date, current_end: date,
+                     previous_start: date, previous_end: date):
+        current = self.db.scalar(select(func.coalesce(func.sum(IndustryDemand.aggregate_demand_score), 0)).where(
+            IndustryDemand.district_id == district_id, IndustryDemand.skill_id == skill_id,
+            IndustryDemand.period_start <= current_end, IndustryDemand.period_end >= current_start,
+        )) or 0
+        previous = self.db.scalar(select(func.coalesce(func.sum(IndustryDemand.aggregate_demand_score), 0)).where(
+            IndustryDemand.district_id == district_id, IndustryDemand.skill_id == skill_id,
+            IndustryDemand.period_start <= previous_end, IndustryDemand.period_end >= previous_start,
+        )) or 0
+        change = current - previous
+        return {
+            "district_id": district_id, "skill_id": skill_id,
+            "current_period": {"start": current_start, "end": current_end, "demand_value": current},
+            "previous_period": {"start": previous_start, "end": previous_end, "demand_value": previous},
+            "absolute_change": change,
+            "percentage_change": change / previous * 100 if previous > 0 else None,
+            "status": "INSUFFICIENT_DATA" if previous <= 0 else "GROWING" if change > 0 else "DECLINING" if change < 0 else "STABLE",
+            "formula": "current demand minus previous demand; percentage only when previous demand is greater than zero",
+        }

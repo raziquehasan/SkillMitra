@@ -1,7 +1,7 @@
 """Phase 5 deterministic intelligence APIs."""
 import uuid
 from datetime import date
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.core.auth import require_roles
@@ -126,3 +126,21 @@ def generate_district_plan(
                       "status": plan.status}, "items": items,
             "generation_status": "SUPPORTED_BY_CURRENT_DATA" if items else "NOT_YET_AVAILABLE",
             "evidence": "Persisted industry_demand rows and active course offering capacity"}
+
+
+@router.get("/demand-trends")
+def demand_trends(
+    district_id: uuid.UUID,
+    skill_id: uuid.UUID,
+    current_start: date,
+    current_end: date,
+    previous_start: date,
+    previous_end: date,
+    current_user: User = Depends(require_roles("government_admin")),
+    db: Session = Depends(get_db),
+):
+    if current_start > current_end or previous_start > previous_end:
+        raise HTTPException(status_code=422, detail="period start must be on or before period end")
+    return IntelligenceService(db).demand_trend(
+        district_id, skill_id, current_start, current_end, previous_start, previous_end,
+    )

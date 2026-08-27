@@ -15,7 +15,7 @@ from datetime import date, datetime
 
 from sqlalchemy import (
     Boolean, CheckConstraint, Date, DateTime, Float,
-    ForeignKey, Integer, String, Text, Index, UniqueConstraint,
+    ForeignKey, Integer, String, Text, Index, UniqueConstraint, text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -47,6 +47,9 @@ class DataSource(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     source_category: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    organization: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="active", server_default=text("'active'"))
 
     # Relationships
     job_postings: Mapped[list["JobPosting"]] = relationship("JobPosting", back_populates="data_source")

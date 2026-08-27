@@ -65,6 +65,14 @@ from app.models.phase4 import (  # noqa: F401
     DistrictTrainingPlan,
     DistrictTrainingPlanItem,
 )
+from app.models.phase6 import (  # noqa: F401
+    DataIngestionRun,
+    RawJobPosting,
+    IngestionRejectedRecord,
+    JobRoleAlias,
+    IndustryConsultation,
+    EmployerCurriculumValidation,
+)
 
 __all__ = [
     "Base",
