@@ -11,6 +11,7 @@ ROLES = [
     {"name": "employer",           "description": "Employer posting jobs and validating skills."},
     {"name": "training_provider",  "description": "Training institute offering courses."},
     {"name": "government_admin",   "description": "Maharashtra government administrator. Privileged — not self-assignable."},
+    {"name": "government_official", "description": "Registered government official awaiting/holding approval. Dashboard access granted only after admin approval."},
 ]
 
 

@@ -68,9 +68,15 @@ class TrainingProvider(TimestampMixin, Base):
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
     district_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("districts.id", ondelete="RESTRICT"), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    contact_person: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    provider_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     registration_number: Mapped[str | None] = mapped_column(String(100), nullable=True, unique=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
-    __table_args__ = (CheckConstraint("status IN ('active', 'inactive', 'suspended')", name="ck_training_providers_status"),)
+    __table_args__ = (
+        CheckConstraint("status IN ('active', 'inactive', 'suspended')", name="ck_training_providers_status"),
+        CheckConstraint("provider_type IS NULL OR provider_type IN ('government', 'private', 'ngo', 'ppp')", name="ck_training_providers_provider_type"),
+    )
 
 
 class CourseOffering(TimestampMixin, Base):
@@ -163,4 +169,13 @@ class DistrictTrainingPlanItem(Base):
     demand_value: Mapped[float | None] = mapped_column(nullable=True)
     supply_value: Mapped[float | None] = mapped_column(nullable=True)
     gap_value: Mapped[float | None] = mapped_column(nullable=True)
-    __table_args__ = (Index("ix_district_plan_items_plan_id", "plan_id"), Index("ix_district_plan_items_skill_id", "skill_id"))
+    recommended_action: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    rationale: Mapped[str | None] = mapped_column(Text, nullable=True)
+    __table_args__ = (
+        CheckConstraint(
+            "recommended_action IS NULL OR recommended_action IN ('increase_capacity', 'maintain_capacity', 'reduce_capacity', 'new_course', 'curriculum_update', 'trainer_upskilling', 'equipment_upgrade')",
+            name="ck_district_plan_items_recommended_action",
+        ),
+        Index("ix_district_plan_items_plan_id", "plan_id"),
+        Index("ix_district_plan_items_skill_id", "skill_id"),
+    )

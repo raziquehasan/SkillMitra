@@ -1,18 +1,35 @@
 """
 Authentication routes:
+  POST /api/v1/auth/register/candidate
+  POST /api/v1/auth/register/employer
+  POST /api/v1/auth/register/training-provider
+  POST /api/v1/auth/register/government-official   (-> PENDING_VERIFICATION)
   POST /api/v1/auth/login
   POST /api/v1/auth/refresh
   POST /api/v1/auth/logout
   GET  /api/v1/auth/me
 """
 
-from fastapi import APIRouter, Depends, Request, Response, status
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
-from app.core.auth import get_current_active_user
+from app.core.auth import get_current_active_user, require_roles
 from app.core.config import settings
 from app.core.database import get_db
-from app.schemas.auth import AuthResponse, LoginRequest, UserPublic
+from app.schemas.auth import (
+    AuthResponse,
+    CandidateRegistrationRequest,
+    EmployerRegistrationRequest,
+    GovernmentOfficialOut,
+    GovernmentOfficialRegistrationRequest,
+    GovernmentOfficialReviewRequest,
+    LoginRequest,
+    RegistrationResponse,
+    TrainingProviderRegistrationRequest,
+    UserPublic,
+)
 from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
@@ -96,3 +113,84 @@ def me(current_user=Depends(get_current_active_user)) -> UserPublic:
         is_active=current_user.is_active,
         roles=roles,
     )
+
+
+# ── Registration (role-specific forms, one common entry point family) ────
+
+@router.post("/register/candidate", response_model=RegistrationResponse,
+             status_code=status.HTTP_201_CREATED)
+def register_candidate(body: CandidateRegistrationRequest,
+                       db: Session = Depends(get_db)) -> RegistrationResponse:
+    user = AuthService(db).register_candidate(body)
+    return RegistrationResponse(
+        user=AuthService(db)._build_user_public(user),
+        message="Candidate registered successfully. You can now log in.",
+    )
+
+
+@router.post("/register/employer", response_model=RegistrationResponse,
+             status_code=status.HTTP_201_CREATED)
+def register_employer(body: EmployerRegistrationRequest,
+                      db: Session = Depends(get_db)) -> RegistrationResponse:
+    user = AuthService(db).register_employer(body)
+    return RegistrationResponse(
+        user=AuthService(db)._build_user_public(user),
+        message="Employer registered successfully. You can now log in.",
+    )
+
+
+@router.post("/register/training-provider", response_model=RegistrationResponse,
+             status_code=status.HTTP_201_CREATED)
+def register_training_provider(body: TrainingProviderRegistrationRequest,
+                               db: Session = Depends(get_db)) -> RegistrationResponse:
+    user = AuthService(db).register_training_provider(body)
+    return RegistrationResponse(
+        user=AuthService(db)._build_user_public(user),
+        message="Training provider registered successfully. You can now log in.",
+    )
+
+
+@router.post("/register/government-official", response_model=RegistrationResponse,
+             status_code=status.HTTP_201_CREATED)
+def register_government_official(body: GovernmentOfficialRegistrationRequest,
+                                 db: Session = Depends(get_db)) -> RegistrationResponse:
+    """
+    Officials self-register but receive NO dashboard access until an
+    existing government admin approves the registration.
+    """
+    svc = AuthService(db)
+    user = svc.register_government_official(body)
+    return RegistrationResponse(
+        user=svc._build_user_public(user),
+        message="Registration submitted. Your account is pending verification by an administrator.",
+        verification_status="pending_verification",
+    )
+
+
+# ── Government official approval (admin-only) ────────────────────────────
+
+@router.get("/government-officials/pending",
+            response_model=list[GovernmentOfficialOut])
+def list_pending_officials(
+    current_user=Depends(require_roles("government_admin")),
+    db: Session = Depends(get_db),
+):
+    return AuthService(db).list_pending_officials()
+
+
+@router.post("/government-officials/{official_id}/review",
+             response_model=GovernmentOfficialOut)
+def review_government_official(
+    official_id: uuid.UUID,
+    body: GovernmentOfficialReviewRequest,
+    current_user=Depends(require_roles("government_admin")),
+    db: Session = Depends(get_db),
+):
+    """PENDING_VERIFICATION -> APPROVED (grants dashboard role) | REJECTED."""
+    official = AuthService(db).review_government_official(
+        official_id=official_id,
+        decision=body.decision,
+        reviewer=current_user,
+        review_notes=body.review_notes,
+    )
+    return official

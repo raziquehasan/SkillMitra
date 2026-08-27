@@ -150,18 +150,37 @@ class IntelligenceService:
         for demand in demand_rows:
             available = supply.get(demand.skill_id, 0)
             gap = demand.aggregate_demand_score - available
-            action = "EXPAND_EXISTING_CAPACITY" if gap > 0 else "COLLECT_MORE_DATA"
+            # Actions must satisfy ck_district_plan_items_recommended_action.
+            # Each action is explainable from the demand/supply numbers.
+            if gap > 0 and available <= 0:
+                action = "new_course"
+                rationale = (
+                    f"Demand score {demand.aggregate_demand_score} with no active training "
+                    f"capacity covering this skill in the district; a new course is required."
+                )
+            elif gap > 0:
+                action = "increase_capacity"
+                rationale = (
+                    f"Demand score {demand.aggregate_demand_score} exceeds available capacity "
+                    f"{available} by {gap}; expand seats in existing offerings."
+                )
+            else:
+                action = "maintain_capacity"
+                rationale = (
+                    f"Available capacity {available} meets or exceeds demand score "
+                    f"{demand.aggregate_demand_score}; maintain current capacity."
+                )
             item = DistrictTrainingPlanItem(
                 plan_id=plan.id, skill_id=demand.skill_id, job_role_id=demand.job_role_id,
                 proficiency_level_id=demand.proficiency_level_id,
                 demand_value=demand.aggregate_demand_score, supply_value=available,
-                gap_value=gap,
+                gap_value=gap, recommended_action=action, rationale=rationale,
             )
             self.db.add(item)
             items.append({"skill_id": demand.skill_id, "job_role_id": demand.job_role_id,
                           "demand_value": demand.aggregate_demand_score,
                           "available_capacity": available, "capacity_gap": gap,
-                          "recommended_action": action})
+                          "recommended_action": action, "rationale": rationale})
         self.db.commit()
         self.db.refresh(plan)
         return plan, items

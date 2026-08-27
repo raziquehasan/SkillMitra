@@ -3,9 +3,9 @@ from app.models.career import Course, CourseSkill
 """
 Career Guidance — deterministic, database-backed, no ML.
 
-Compares candidate career interests with job role required skills.
-Candidate skills (candidate_skills table) is a FUTURE DATABASE PHASE dependency.
-Currently shows full missing list with no matched skills until that phase lands.
+Compares candidate career interests with job role required skills,
+using the candidate_skills table (Phase 4) for real matched/missing
+skill computation via skill_proficiency_levels.rank_score.
 """
 import uuid
 from fastapi import APIRouter, Depends
@@ -15,6 +15,8 @@ from app.core.database import get_db
 from app.core.auth import get_current_active_user
 from app.models.identity import User, CandidateProfile, CandidateCareerInterest
 from app.models.career import JobRole, JobRoleSkill
+from app.models.phase4 import CandidateSkill
+from app.models.skills import SkillProficiencyLevel
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/v1/career-guidance", tags=["Career Guidance"])
@@ -45,12 +47,8 @@ def get_career_guidance(
     """
     Returns deterministic career guidance:
     - Reads candidate career interests (if set)
-    - Compares against job role required skills
+    - Compares against job role required skills using candidate_skills
     - NO ML, NO AI scoring
-
-    NOTE: Candidate skill matching requires the candidate_skills table
-    (DEPENDENCY - FUTURE DATABASE PHASE). Until then, all required skills
-    are listed as missing and matched skills is empty.
     """
     profile = db.scalar(
         select(CandidateProfile)
@@ -72,6 +70,28 @@ def get_career_guidance(
             continue
 
         required_ids = [str(jrs.skill_id) for jrs in role.job_role_skills]
+
+        # Real candidate skill matching via candidate_skills + rank_score
+        candidate_skills = db.scalars(
+            select(CandidateSkill).where(CandidateSkill.candidate_id == profile.id)
+        ).all()
+        candidate_by_skill = {cs.skill_id: cs for cs in candidate_skills}
+        prof_ids = {jrs.proficiency_level_id for jrs in role.job_role_skills}
+        prof_ids.update(cs.proficiency_level_id for cs in candidate_skills)
+        prof_rows = db.scalars(
+            select(SkillProficiencyLevel).where(SkillProficiencyLevel.id.in_(prof_ids))
+        ).all() if prof_ids else []
+        ranks = {row.id: row.rank_score for row in prof_rows}
+
+        matched, missing = [], []
+        for jrs in role.job_role_skills:
+            cs = candidate_by_skill.get(jrs.skill_id)
+            if cs is None:
+                missing.append(str(jrs.skill_id))
+            elif ranks.get(cs.proficiency_level_id, 0) >= ranks.get(jrs.proficiency_level_id, 0):
+                matched.append(str(jrs.skill_id))
+            else:
+                missing.append(str(jrs.skill_id))
         demand_stmt = select(IndustryDemand.id).where(IndustryDemand.job_role_id == role.id)
         if profile.district_id:
             demand_stmt = demand_stmt.where(IndustryDemand.district_id == profile.district_id)
@@ -93,17 +113,14 @@ def get_career_guidance(
         else:
             reasons.append("No available course is mapped to this role's required skills")
 
-        # candidate_skills not yet in schema — documented as future dependency
         results.append(CareerOption(
             job_role_id=role.id,
             job_role_title=role.title,
             source="candidate_career_interest",
             required_skill_ids=required_ids,
-            matched_skill_ids=[],
-            missing_skill_ids=required_ids,
-            candidate_skills_status=(
-                "NOT_YET_AVAILABLE — candidate_skills table requires Phase 4 assessment schema"
-            ),
+            matched_skill_ids=matched,
+            missing_skill_ids=missing,
+            candidate_skills_status="SUPPORTED_BY_CURRENT_DATA",
             demand_signal_count=demand_signal_count,
             relevant_course_count=relevant_course_count,
             reasons=reasons,

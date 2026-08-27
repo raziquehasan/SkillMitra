@@ -96,11 +96,12 @@ def gov_demand(
 class PlacementAnalyticsOut(BaseModel):
     enrolled: int
     completed: int
+    dropped: int
     applied: int
     placed: int
-    placement_rate: None = None
+    placement_rate: float | None = None
     placement_rate_status: str = "NOT_YET_AVAILABLE"
-    placement_rate_reason: str = "No shared denominator is defined across enrollment, application, and placement records"
+    placement_rate_reason: str = "No completed enrollments match the requested filters"
 
 
 @router.get("/placement-analytics", response_model=PlacementAnalyticsOut)
@@ -129,9 +130,17 @@ def gov_placement_analytics(
         placement_stmt = placement_stmt.join(CourseEnrollment, Placement.enrollment_id == CourseEnrollment.id).where(CourseEnrollment.course_id == course_id)
     enrolled = db.scalar(enrollment_stmt) or 0
     completed = db.scalar(enrollment_stmt.where(CourseEnrollment.status == "completed")) or 0
+    dropped = db.scalar(enrollment_stmt.where(CourseEnrollment.status == "dropped")) or 0
     applied = db.scalar(application_stmt) or 0
     placed = db.scalar(placement_stmt) or 0
-    return PlacementAnalyticsOut(enrolled=enrolled, completed=completed, applied=applied, placed=placed)
+    # Placement rate = placements linked to completed enrollments / completed enrollments.
+    rate = (placed / completed) if completed else None
+    return PlacementAnalyticsOut(
+        enrolled=enrolled, completed=completed, dropped=dropped,
+        applied=applied, placed=placed,
+        placement_rate=rate,
+        placement_rate_status="SUPPORTED_BY_CURRENT_DATA" if completed else "NOT_YET_AVAILABLE",
+    )
 
 @router.get("/training-supply")
 def gov_training_supply(

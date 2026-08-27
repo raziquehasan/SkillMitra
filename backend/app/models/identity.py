@@ -70,6 +70,7 @@ class CandidateProfile(TimestampMixin, Base):
         nullable=True,
     )
     date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)
+    gender: Mapped[str | None] = mapped_column(String(20), nullable=True)
     education_level: Mapped[str | None] = mapped_column(String(100), nullable=True)
     current_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
@@ -189,6 +190,9 @@ class Employer(TimestampMixin, Base):
         nullable=True,
     )
     company_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    contact_person: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    organization_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     website: Mapped[str | None] = mapped_column(String(255), nullable=True)
     size_category: Mapped[str | None] = mapped_column(String(50), nullable=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

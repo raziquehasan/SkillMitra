@@ -73,6 +73,12 @@ from app.models.phase6 import (  # noqa: F401
     IndustryConsultation,
     EmployerCurriculumValidation,
 )
+from app.models.phase8 import (  # noqa: F401
+    GovernmentOfficial,
+    EmergingTechnology,
+    TechnologySkill,
+    CourseHealthScore,
+)
 
 __all__ = [
     "Base",
@@ -106,4 +112,8 @@ __all__ = [
     "Role",
     "UserRole",
     "RefreshToken",
+    "GovernmentOfficial",
+    "EmergingTechnology",
+    "TechnologySkill",
+    "CourseHealthScore",
 ]

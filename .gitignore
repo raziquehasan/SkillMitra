@@ -75,3 +75,22 @@ Desktop.ini
 
 # Database
 pgdata/
+
+# ─────────────────────────────────────────────
+# Security / Secrets
+# ─────────────────────────────────────────────
+check_connections.py
+
+# ─────────────────────────────────────────────
+# Demo / Test / Audit / Verification scripts
+# ─────────────────────────────────────────────
+backend/test_*.py
+backend/audit_*.py
+backend/verify_*.py
+backend/app/seeds/demo_*.py
+
+# ─────────────────────────────────────────────
+# Generated docs
+# ─────────────────────────────────────────────
+backend/docs/
+docs/database/

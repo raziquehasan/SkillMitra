@@ -19,6 +19,12 @@ from app.core.security import (
 )
 from app.repositories.auth_repository import AuthRepository
 from app.schemas.auth import AuthResponse, UserPublic
+from app.models.auth import Role, UserRole
+from app.models.identity import (
+    User, CandidateProfile, Employer,
+)
+from app.models.phase4 import TrainingProvider
+from app.models.phase8 import GovernmentOfficial
 
 
 class AuthService:
@@ -135,3 +141,168 @@ class AuthService:
         if rt and rt.revoked_at is None:
             self.repo.revoke_refresh_token(rt)
             self.db.commit()
+
+    # ── Registration (Phase 8 — SIH PS) ──────────────────────────────
+
+    def _get_role(self, name: str) -> Role:
+        role = self.db.query(Role).filter(Role.name == name).first()
+        if not role:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"System role '{name}' is missing. Run role seed.",
+            )
+        return role
+
+    def _create_user_with_role(self, *, full_name: str, email: str,
+                               phone: str | None, password: str,
+                               role_name: str) -> User:
+        """Common identity creation + role assignment. Rolls back on dup email."""
+        existing = self.repo.get_user_by_email(email)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="An account with this email already exists.",
+            )
+        validate_password_policy(password)
+        user = User(
+            full_name=full_name,
+            email=email,
+            phone=phone,
+            hashed_password=hash_password(password),
+            is_active=True,
+        )
+        self.db.add(user)
+        self.db.flush()
+        self.db.add(UserRole(user_id=user.id, role_id=self._get_role(role_name).id))
+        return user
+
+    def register_candidate(self, data) -> User:
+        user = self._create_user_with_role(
+            full_name=data.full_name, email=data.email, phone=data.phone,
+            password=data.password, role_name="candidate",
+        )
+        profile = CandidateProfile(
+            user_id=user.id,
+            district_id=data.district_id,
+            date_of_birth=data.date_of_birth,
+            gender=data.gender,
+            education_level=data.education_level,
+        )
+        self.db.add(profile)
+        self.db.flush()
+        if data.stream_specialization or data.education_level:
+            from app.models.identity import CandidateEducationHistory
+            self.db.add(CandidateEducationHistory(
+                candidate_id=profile.id,
+                education_level=data.education_level or "not_specified",
+                stream_specialization=data.stream_specialization,
+            ))
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
+    def register_employer(self, data) -> User:
+        user = self._create_user_with_role(
+            full_name=data.full_name, email=data.email, phone=data.phone,
+            password=data.password, role_name="employer",
+        )
+        self.db.add(Employer(
+            user_id=user.id,
+            company_name=data.company_name,
+            contact_person=data.contact_person or data.full_name,
+            phone=data.phone,
+            industry_sector_id=data.industry_sector_id,
+            district_id=data.district_id,
+            organization_type=data.organization_type,
+            website=data.website,
+            size_category=data.size_category,
+            is_verified=False,
+        ))
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
+    def register_training_provider(self, data) -> User:
+        user = self._create_user_with_role(
+            full_name=data.full_name, email=data.email, phone=data.phone,
+            password=data.password, role_name="training_provider",
+        )
+        self.db.add(TrainingProvider(
+            user_id=user.id,
+            name=data.institute_name,
+            contact_person=data.full_name,
+            phone=data.phone,
+            provider_type=data.provider_type,
+            district_id=data.district_id,
+            registration_number=data.registration_number,
+            status="active",
+        ))
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
+    def register_government_official(self, data) -> User:
+        """
+        Officials self-register but get NO dashboard role. They land in
+        PENDING_VERIFICATION; the government_admin role is granted only
+        after an existing admin approves them.
+        """
+        user = self._create_user_with_role(
+            full_name=data.full_name, email=data.email, phone=data.phone,
+            password=data.password, role_name="government_official",
+        )
+        self.db.add(GovernmentOfficial(
+            user_id=user.id,
+            department=data.department,
+            designation=data.designation,
+            district_id=data.district_id,
+            employee_code=data.employee_code,
+            verification_status="pending_verification",
+        ))
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
+    def list_pending_officials(self) -> list[GovernmentOfficial]:
+        return (
+            self.db.query(GovernmentOfficial)
+            .filter(GovernmentOfficial.verification_status == "pending_verification")
+            .order_by(GovernmentOfficial.created_at)
+            .all()
+        )
+
+    def review_government_official(self, *, official_id: uuid.UUID,
+                                   decision: str, reviewer: User,
+                                   review_notes: str | None = None) -> GovernmentOfficial:
+        """
+        Admin approval flow:
+            PENDING_VERIFICATION -> APPROVED -> grant government_admin role
+                                 -> REJECTED
+        """
+        official = self.db.query(GovernmentOfficial).filter(
+            GovernmentOfficial.id == official_id
+        ).first()
+        if not official:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="Government official registration not found.")
+        if official.verification_status != "pending_verification":
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                                detail="This registration has already been reviewed.")
+
+        official.verification_status = decision
+        official.reviewed_by_user_id = reviewer.id
+        official.reviewed_at = datetime.now(timezone.utc)
+        official.review_notes = review_notes
+
+        if decision == "approved":
+            admin_role = self._get_role("government_admin")
+            already = self.db.query(UserRole).filter(
+                UserRole.user_id == official.user_id,
+                UserRole.role_id == admin_role.id,
+            ).first()
+            if not already:
+                self.db.add(UserRole(user_id=official.user_id, role_id=admin_role.id))
+
+        self.db.commit()
+        self.db.refresh(official)
+        return official

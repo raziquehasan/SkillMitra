@@ -16,7 +16,9 @@ class JobPostingSkillResponse(BaseModel):
 class JobPostingSkillCreate(BaseModel):
     skill_id: uuid.UUID
     proficiency_level_id: uuid.UUID
-    importance: str = "REQUIRED"
+    # Must satisfy ck_job_posting_skills_importance:
+    # ('mandatory', 'preferred', 'nice_to_have')
+    importance: str = "mandatory"
 
 
 class JobResponse(BaseModel):
@@ -38,4 +40,5 @@ class JobCreate(BaseModel):
     job_role_id: uuid.UUID
     title: str
     district_id: uuid.UUID
-    status: str = "DRAFT"
+    # Canonical lowercase status; JobRepository filters on status == "open".
+    status: str = "open"
