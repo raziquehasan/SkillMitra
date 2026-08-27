@@ -1,44 +1,36 @@
-"""
-SkillMitra Backend - FastAPI Application Entry Point
-SIH 2026 - Problem Statement 26134
-"""
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from app.api.routes.auth import router as auth_router
+from app.api.routes import auth, candidates, skills, courses, jobs, employers, applications, placements, career_guidance, demand, government, industry, training_providers
 
 app = FastAPI(
     title="SkillMitra API",
-    description=(
-        "Labour Market Intelligence and Curriculum Alignment Platform. "
-        "SIH 2026 - Problem Statement 26134."
-    ),
-    version="0.1.0",
+    version="1.0.0",
+    description="Maharashtra Government Skill Development Platform - Phase 3 Business APIs"
 )
 
-# CORS Middleware — tightened: no wildcard with credentials
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Routers
-app.include_router(auth_router)
-
-
-@app.get("/", tags=["Root"])
-async def root_endpoint() -> dict:
-    return {
-        "message": "Welcome to SkillMitra API",
-        "docs_url": "/docs",
-        "health_url": "/health",
-    }
-
-
-@app.get("/health", tags=["Health"])
-async def health_check() -> dict:
+@app.get("/health")
+def health_check():
     return {"status": "ok", "service": "skillmitra-backend"}
+
+# Register Routers
+app.include_router(auth.router)
+app.include_router(candidates.router)
+app.include_router(skills.router)
+app.include_router(courses.router)
+app.include_router(jobs.router)
+app.include_router(employers.router)
+app.include_router(applications.router)
+app.include_router(placements.router)
+app.include_router(career_guidance.router)
+app.include_router(demand.router)
+app.include_router(government.router)
+app.include_router(industry.router)
+app.include_router(training_providers.router)
