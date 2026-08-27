@@ -15,10 +15,11 @@ NOT in Phase 2A: job_postings, applications, placements,
 
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     Boolean, CheckConstraint, Date, DateTime,
-    ForeignKey, Integer, String, Text, Index, UniqueConstraint,
+    ForeignKey, Integer, Numeric, String, Text, Index, UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -126,6 +127,24 @@ class Course(TimestampMixin, Base):
     duration_hours: Mapped[int | None] = mapped_column(Integer, nullable=True)
     training_level: Mapped[str | None] = mapped_column(String(50), nullable=True)
     delivery_mode: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    source_course_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    qualification: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cost_category: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    rate_per_hour: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+    nsqf_level: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    nqr_code: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    source_version: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    industry_sector_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("industry_sectors.id", ondelete="RESTRICT"), nullable=True
+    )
+    data_source_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("data_sources.id", ondelete="RESTRICT"), nullable=True
+    )
+    ingestion_run_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("data_ingestion_runs.id", ondelete="RESTRICT"), nullable=True
+    )
+    source_record_identifier: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    source_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     district: Mapped["District | None"] = relationship(
@@ -147,8 +166,15 @@ class Course(TimestampMixin, Base):
             "delivery_mode IS NULL OR delivery_mode IN ('in_person', 'online', 'hybrid')",
             name="ck_courses_delivery_mode",
         ),
+        CheckConstraint("nsqf_level IS NULL OR nsqf_level >= 0", name="ck_courses_nsqf_level_nonnegative"),
+        CheckConstraint("rate_per_hour IS NULL OR rate_per_hour >= 0", name="ck_courses_rate_nonnegative"),
+        UniqueConstraint("data_source_id", "source_course_code", name="uq_courses_source_course_code"),
+        UniqueConstraint("data_source_id", "nqr_code", "source_version", name="uq_courses_source_nqr_version"),
         Index("ix_courses_district_id", "district_id"),
         Index("ix_courses_status", "status"),
+        Index("ix_courses_source_course_code", "source_course_code"),
+        Index("ix_courses_data_source_id", "data_source_id"),
+        Index("ix_courses_ingestion_run_id", "ingestion_run_id"),
     )
 
 
