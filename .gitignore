@@ -88,9 +88,20 @@ backend/test_*.py
 backend/audit_*.py
 backend/verify_*.py
 backend/app/seeds/demo_*.py
+backend/check_*.py
+backend/create_*.py
+backend/cleanup_*.py
+backend/debug_*.py
 
 # ─────────────────────────────────────────────
 # Generated docs
 # ─────────────────────────────────────────────
 backend/docs/
 docs/database/
+
+# ─────────────────────────────────────────────
+# Local data files (CSV / PDF datasets)
+# ─────────────────────────────────────────────
+data/*.csv*
+data/*.pdf
+data/*.xls*
