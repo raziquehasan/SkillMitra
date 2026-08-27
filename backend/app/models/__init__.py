@@ -5,8 +5,7 @@ Import all model modules here so that:
 1. Alembic env.py can import Base.metadata and see all tables.
 2. Relationship resolution works across modules.
 
-Only Phase 2A models are imported here.
-Future phases will add imports as new model files are created.
+All model modules are imported here so Alembic sees the complete metadata.
 """
 
 from app.models.base import Base, TimestampMixin  # noqa: F401
@@ -51,6 +50,20 @@ from app.models.demand import (
     EmployerSurveyResponse,
     DemandSignal,
     IndustryDemand,
+)
+from app.models.phase4 import (  # noqa: F401
+    CandidateSkill,
+    Curriculum,
+    CurriculumVersion,
+    CurriculumSkill,
+    TrainingProvider,
+    CourseOffering,
+    Trainer,
+    TrainerSkill,
+    Equipment,
+    CourseEquipmentRequirement,
+    DistrictTrainingPlan,
+    DistrictTrainingPlanItem,
 )
 
 __all__ = [

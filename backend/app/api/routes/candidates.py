@@ -9,7 +9,7 @@ from app.schemas.candidates import (
     CandidateProfileResponse, CandidateProfileUpdate,
     CandidateEducationResponse, CandidateEducationCreate,
     CandidateInterestResponse, CandidateInterestCreate,
-    SkillGapResponse,
+    SkillGapResponse, CandidateSkillResponse, CandidateSkillCreate, CandidateSkillUpdate,
 )
 from app.schemas.common import MessageResponse
 from app.services.candidate_service import CandidateService
@@ -106,3 +106,44 @@ def get_my_skill_gaps(
     db: Session = Depends(get_db),
 ):
     return CandidateService(db).get_skill_gaps(current_user.id, job_role_id)
+
+
+@router.get("/me/skills", response_model=list[CandidateSkillResponse],
+            summary="List my skills")
+def get_my_skills(
+    current_user: User = Depends(require_roles("candidate")),
+    db: Session = Depends(get_db),
+):
+    return CandidateService(db).list_skills(current_user.id)
+
+
+@router.post("/me/skills", response_model=CandidateSkillResponse, status_code=201,
+             summary="Add a skill to my profile")
+def add_my_skill(
+    data: CandidateSkillCreate,
+    current_user: User = Depends(require_roles("candidate")),
+    db: Session = Depends(get_db),
+):
+    return CandidateService(db).add_skill(current_user.id, data)
+
+
+@router.patch("/me/skills/{skill_id}", response_model=CandidateSkillResponse,
+              summary="Update my skill")
+def update_my_skill(
+    skill_id: uuid.UUID,
+    data: CandidateSkillUpdate,
+    current_user: User = Depends(require_roles("candidate")),
+    db: Session = Depends(get_db),
+):
+    return CandidateService(db).update_skill(current_user.id, skill_id, data)
+
+
+@router.delete("/me/skills/{skill_id}", response_model=MessageResponse,
+               summary="Remove my skill")
+def delete_my_skill(
+    skill_id: uuid.UUID,
+    current_user: User = Depends(require_roles("candidate")),
+    db: Session = Depends(get_db),
+):
+    CandidateService(db).delete_skill(current_user.id, skill_id)
+    return {"message": "Deleted successfully"}

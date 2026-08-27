@@ -67,10 +67,34 @@ class CandidateProfileResponse(CandidateProfileBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CandidateSkillCreate(BaseModel):
+    skill_id: uuid.UUID
+    proficiency_level_id: uuid.UUID
+    source: str = "candidate_claim"
+    verification_status: str = "unverified"
+    last_assessed_date: date | None = None
+    evidence_reference: str | None = None
+
+
+class CandidateSkillUpdate(BaseModel):
+    proficiency_level_id: uuid.UUID | None = None
+    source: str | None = None
+    verification_status: str | None = None
+    last_assessed_date: date | None = None
+    evidence_reference: str | None = None
+
+
+class CandidateSkillResponse(CandidateSkillCreate):
+    id: uuid.UUID
+    candidate_id: uuid.UUID
+    model_config = ConfigDict(from_attributes=True)
+
+
 class SkillGapItem(BaseModel):
     skill_id: str
     required_proficiency: str | None = None
     candidate_proficiency: str | None = None
+    importance: str | None = None
 
 
 class SkillGapResponse(BaseModel):

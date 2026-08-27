@@ -1,3 +1,5 @@
+from app.models.demand import IndustryDemand
+from app.models.career import Course, CourseSkill
 """
 Career Guidance — deterministic, database-backed, no ML.
 
@@ -25,6 +27,9 @@ class CareerOption(BaseModel):
     required_skill_ids: list[str]
     matched_skill_ids: list[str]
     missing_skill_ids: list[str]
+    demand_signal_count: int
+    relevant_course_count: int
+    reasons: list[str]
     candidate_skills_status: str
 
 
@@ -67,6 +72,26 @@ def get_career_guidance(
             continue
 
         required_ids = [str(jrs.skill_id) for jrs in role.job_role_skills]
+        demand_stmt = select(IndustryDemand.id).where(IndustryDemand.job_role_id == role.id)
+        if profile.district_id:
+            demand_stmt = demand_stmt.where(IndustryDemand.district_id == profile.district_id)
+        demand_signal_count = len(db.scalars(demand_stmt).all())
+        course_stmt = (
+            select(Course.id)
+            .join(CourseSkill)
+            .where(CourseSkill.skill_id.in_([jrs.skill_id for jrs in role.job_role_skills]))
+            .distinct()
+        ) if required_ids else select(Course.id).where(False)
+        relevant_course_count = len(db.scalars(course_stmt).all())
+        reasons = ["Matches your selected interest"]
+        if demand_signal_count:
+            reasons.append("Persisted demand exists for this role in your district")
+        else:
+            reasons.append("No persisted district demand record is available for this role")
+        if relevant_course_count:
+            reasons.append("At least one available course covers a required skill")
+        else:
+            reasons.append("No available course is mapped to this role's required skills")
 
         # candidate_skills not yet in schema — documented as future dependency
         results.append(CareerOption(
@@ -79,6 +104,9 @@ def get_career_guidance(
             candidate_skills_status=(
                 "NOT_YET_AVAILABLE — candidate_skills table requires Phase 4 assessment schema"
             ),
+            demand_signal_count=demand_signal_count,
+            relevant_course_count=relevant_course_count,
+            reasons=reasons,
         ))
 
     return results

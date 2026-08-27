@@ -1,12 +1,15 @@
 """Government analytics endpoints - RBAC: government_admin."""
 import uuid
+from datetime import date
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.auth import require_roles
 from app.models.identity import User
 from app.models.market import Placement
+from app.models.market import Application, Placement
+from app.models.career import CourseEnrollment
 from app.models.demand import IndustryDemand
 from app.api.deps import get_pagination
 from pydantic import BaseModel, ConfigDict
@@ -34,6 +37,11 @@ class IndustryDemandOut(BaseModel):
 @router.get("/placements", response_model=list[PlacementOut])
 def gov_placements(
     district_id: uuid.UUID | None = None,
+    job_role_id: uuid.UUID | None = None,
+    employer_id: uuid.UUID | None = None,
+    outcome_type: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     pagination: dict = Depends(get_pagination),
     current_user: User = Depends(require_roles("government_admin")),
     db: Session = Depends(get_db),
@@ -41,12 +49,27 @@ def gov_placements(
     stmt = select(Placement)
     if district_id:
         stmt = stmt.where(Placement.district_id == district_id)
+    if job_role_id:
+        stmt = stmt.where(Placement.job_role_id == job_role_id)
+    if employer_id:
+        stmt = stmt.where(Placement.employer_id == employer_id)
+    if outcome_type:
+        stmt = stmt.where(Placement.outcome_status == outcome_type)
+    if date_from:
+        stmt = stmt.where(Placement.placement_date >= date_from)
+    if date_to:
+        stmt = stmt.where(Placement.placement_date <= date_to)
     return db.scalars(stmt.offset(pagination["skip"]).limit(pagination["limit"])).all()
 
 @router.get("/demand", response_model=list[IndustryDemandOut])
 def gov_demand(
     district_id: uuid.UUID | None = None,
     industry_sector_id: uuid.UUID | None = None,
+    job_role_id: uuid.UUID | None = None,
+    skill_id: uuid.UUID | None = None,
+    proficiency_level_id: uuid.UUID | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     pagination: dict = Depends(get_pagination),
     current_user: User = Depends(require_roles("government_admin")),
     db: Session = Depends(get_db),
@@ -56,7 +79,58 @@ def gov_demand(
         stmt = stmt.where(IndustryDemand.district_id == district_id)
     if industry_sector_id:
         stmt = stmt.where(IndustryDemand.industry_sector_id == industry_sector_id)
+    if job_role_id:
+        stmt = stmt.where(IndustryDemand.job_role_id == job_role_id)
+    if skill_id:
+        stmt = stmt.where(IndustryDemand.skill_id == skill_id)
+    if proficiency_level_id:
+        stmt = stmt.where(IndustryDemand.proficiency_level_id == proficiency_level_id)
+    if date_from:
+        stmt = stmt.where(IndustryDemand.period_end >= date_from)
+    if date_to:
+        stmt = stmt.where(IndustryDemand.period_start <= date_to)
     return db.scalars(stmt.offset(pagination["skip"]).limit(pagination["limit"])).all()
+
+
+class PlacementAnalyticsOut(BaseModel):
+    enrolled: int
+    completed: int
+    applied: int
+    placed: int
+    placement_rate: None = None
+    placement_rate_status: str = "NOT_YET_AVAILABLE"
+    placement_rate_reason: str = "No shared denominator is defined across enrollment, application, and placement records"
+
+
+@router.get("/placement-analytics", response_model=PlacementAnalyticsOut)
+def gov_placement_analytics(
+    district_id: uuid.UUID | None = None,
+    job_role_id: uuid.UUID | None = None,
+    employer_id: uuid.UUID | None = None,
+    course_id: uuid.UUID | None = None,
+    outcome_type: str | None = None,
+    current_user: User = Depends(require_roles("government_admin")),
+    db: Session = Depends(get_db),
+):
+    enrollment_stmt = select(func.count()).select_from(CourseEnrollment)
+    application_stmt = select(func.count()).select_from(Application)
+    placement_stmt = select(func.count()).select_from(Placement)
+    if district_id:
+        placement_stmt = placement_stmt.where(Placement.district_id == district_id)
+    if job_role_id:
+        placement_stmt = placement_stmt.where(Placement.job_role_id == job_role_id)
+    if employer_id:
+        placement_stmt = placement_stmt.where(Placement.employer_id == employer_id)
+    if outcome_type:
+        placement_stmt = placement_stmt.where(Placement.outcome_status == outcome_type)
+    if course_id:
+        enrollment_stmt = enrollment_stmt.where(CourseEnrollment.course_id == course_id)
+        placement_stmt = placement_stmt.join(CourseEnrollment, Placement.enrollment_id == CourseEnrollment.id).where(CourseEnrollment.course_id == course_id)
+    enrolled = db.scalar(enrollment_stmt) or 0
+    completed = db.scalar(enrollment_stmt.where(CourseEnrollment.status == "completed")) or 0
+    applied = db.scalar(application_stmt) or 0
+    placed = db.scalar(placement_stmt) or 0
+    return PlacementAnalyticsOut(enrolled=enrolled, completed=completed, applied=applied, placed=placed)
 
 @router.get("/training-supply")
 def gov_training_supply(current_user: User = Depends(require_roles("government_admin"))):

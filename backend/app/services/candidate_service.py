@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session, selectinload
 from app.repositories.candidate_repository import CandidateRepository
 from app.schemas.candidates import CandidateProfileUpdate, CandidateEducationCreate, CandidateInterestCreate
 from app.models.career import JobRole, JobRoleSkill
+from app.models.phase4 import CandidateSkill
+from app.models.skills import SkillProficiencyLevel
 
 
 class CandidateService:
@@ -61,7 +63,10 @@ class CandidateService:
         if not profile:
             return []
 
-        cand_skill_ids = {cs.skill_id for cs in getattr(profile, "candidate_skills", [])}
+        candidate_skills = self.db.scalars(
+            select(CandidateSkill).where(CandidateSkill.candidate_id == profile.id)
+        ).all()
+        candidate_by_skill = {candidate_skill.skill_id: candidate_skill for candidate_skill in candidate_skills}
         roles_to_check = [job_role_id] if job_role_id else [i.target_job_role_id for i in profile.career_interests]
 
         if not roles_to_check:
@@ -76,13 +81,71 @@ class CandidateService:
             )
             if not role:
                 continue
-            matched = [str(jrs.skill_id) for jrs in role.job_role_skills if jrs.skill_id in cand_skill_ids]
-            missing = [str(jrs.skill_id) for jrs in role.job_role_skills if jrs.skill_id not in cand_skill_ids]
+            proficiency_ids = {jrs.proficiency_level_id for jrs in role.job_role_skills}
+            proficiency_ids.update(cs.proficiency_level_id for cs in candidate_skills)
+            proficiency_rows = self.db.scalars(
+                select(SkillProficiencyLevel).where(SkillProficiencyLevel.id.in_(proficiency_ids))
+            ).all()
+            ranks = {row.id: row.rank_score for row in proficiency_rows}
+            names = {row.id: row.name for row in proficiency_rows}
+            matched = []
+            missing = []
+            proficiency_gaps = []
+            for requirement in role.job_role_skills:
+                candidate_skill = candidate_by_skill.get(requirement.skill_id)
+                if candidate_skill is None:
+                    missing.append(str(requirement.skill_id))
+                    proficiency_gaps.append({
+                        "skill_id": str(requirement.skill_id),
+                        "required_proficiency": names.get(requirement.proficiency_level_id),
+                        "candidate_proficiency": None,
+                        "importance": requirement.importance,
+                    })
+                elif ranks.get(candidate_skill.proficiency_level_id, 0) >= ranks.get(requirement.proficiency_level_id, 0):
+                    matched.append(str(requirement.skill_id))
+                else:
+                    proficiency_gaps.append({
+                        "skill_id": str(requirement.skill_id),
+                        "required_proficiency": names.get(requirement.proficiency_level_id),
+                        "candidate_proficiency": names.get(candidate_skill.proficiency_level_id),
+                        "importance": requirement.importance,
+                    })
             results.append(SkillGapResponse(
                 job_role_id=role.id,
                 job_role_title=role.title,
                 matched_skill_ids=matched,
                 missing_skill_ids=missing,
-                proficiency_gaps=[],
+                proficiency_gaps=proficiency_gaps,
             ))
         return results
+
+    def list_skills(self, user_id: uuid.UUID):
+        profile = self.get_or_create_profile(user_id)
+        return self.db.scalars(select(CandidateSkill).where(CandidateSkill.candidate_id == profile.id)).all()
+
+    def add_skill(self, user_id: uuid.UUID, data):
+        profile = self.get_or_create_profile(user_id)
+        skill = CandidateSkill(candidate_id=profile.id, **data.model_dump())
+        self.db.add(skill)
+        self.db.commit()
+        self.db.refresh(skill)
+        return skill
+
+    def update_skill(self, user_id: uuid.UUID, skill_id: uuid.UUID, data):
+        profile = self.get_or_create_profile(user_id)
+        skill = self.db.scalar(select(CandidateSkill).where(CandidateSkill.id == skill_id, CandidateSkill.candidate_id == profile.id))
+        if not skill:
+            raise HTTPException(status_code=404, detail="Candidate skill not found")
+        for key, value in data.model_dump(exclude_unset=True).items():
+            setattr(skill, key, value)
+        self.db.commit()
+        self.db.refresh(skill)
+        return skill
+
+    def delete_skill(self, user_id: uuid.UUID, skill_id: uuid.UUID):
+        profile = self.get_or_create_profile(user_id)
+        skill = self.db.scalar(select(CandidateSkill).where(CandidateSkill.id == skill_id, CandidateSkill.candidate_id == profile.id))
+        if not skill:
+            raise HTTPException(status_code=404, detail="Candidate skill not found")
+        self.db.delete(skill)
+        self.db.commit()
