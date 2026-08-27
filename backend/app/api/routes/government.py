@@ -10,6 +10,7 @@ from app.models.identity import User
 from app.models.market import Placement
 from app.models.market import Application, Placement
 from app.models.career import CourseEnrollment
+from app.models.phase4 import CourseOffering
 from app.models.demand import IndustryDemand
 from app.api.deps import get_pagination
 from pydantic import BaseModel, ConfigDict
@@ -133,9 +134,22 @@ def gov_placement_analytics(
     return PlacementAnalyticsOut(enrolled=enrolled, completed=completed, applied=applied, placed=placed)
 
 @router.get("/training-supply")
-def gov_training_supply(current_user: User = Depends(require_roles("government_admin"))):
-    return {
-        "status": "NOT_YET_AVAILABLE",
-        "message": "Training capacity requires Phase 4 trainer/equipment schema.",
-        "capabilities_pending": ["trainer_capacity", "equipment_inventory", "district_training_plans"],
-    }
+def gov_training_supply(
+    district_id: uuid.UUID | None = None,
+    course_id: uuid.UUID | None = None,
+    pagination: dict = Depends(get_pagination),
+    current_user: User = Depends(require_roles("government_admin")),
+    db: Session = Depends(get_db),
+):
+    stmt = select(CourseOffering)
+    if district_id:
+        stmt = stmt.where(CourseOffering.district_id == district_id)
+    if course_id:
+        stmt = stmt.where(CourseOffering.course_id == course_id)
+    rows = db.scalars(stmt.offset(pagination["skip"]).limit(pagination["limit"])).all()
+    if not rows:
+        return {
+            "status": "NOT_YET_AVAILABLE",
+            "message": "No persisted course offering capacity matches the requested filters.",
+        }
+    return [{**row.__dict__, "available_seats": max(row.active_seats - row.utilized_seats, 0)} for row in rows]

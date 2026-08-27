@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import auth, candidates, skills, courses, jobs, employers, applications, placements, career_guidance, demand, government, industry, training_providers, phase4
+from app.api.routes import auth, candidates, skills, courses, jobs, employers, applications, placements, career_guidance, demand, government, industry, training_providers, phase4, phase5
 
 app = FastAPI(
     title="SkillMitra API",
@@ -35,3 +35,4 @@ app.include_router(government.router)
 app.include_router(industry.router)
 app.include_router(training_providers.router)
 app.include_router(phase4.router)
+app.include_router(phase5.router)
