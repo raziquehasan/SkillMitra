@@ -13,6 +13,13 @@ This script follows the existing ingestion architecture:
     - DataIngestionRun tracking
     - IngestionRejectedRecord for failures
     - Idempotent re-runs
+
+For improved skill taxonomy (new skills, aliases, categories) and
+re-processing of review rows, use:
+    python -m app.scripts.improve_skill_taxonomy
+
+Training programs without canonical course matches preserve source text
+in district training plan item rationales.
 """
 from __future__ import annotations
 
