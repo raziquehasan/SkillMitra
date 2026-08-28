@@ -12,6 +12,7 @@ from app.models.market import Application, Placement
 from app.models.career import CourseEnrollment
 from app.models.phase4 import CourseOffering
 from app.models.demand import IndustryDemand
+from app.services.training_alignment_service import DistrictRecommendationService, TrainingProviderReferenceService
 from app.api.deps import get_pagination
 from pydantic import BaseModel, ConfigDict
 
@@ -162,3 +163,67 @@ def gov_training_supply(
             "message": "No persisted course offering capacity matches the requested filters.",
         }
     return [{**row.__dict__, "available_seats": max(row.active_seats - row.utilized_seats, 0)} for row in rows]
+
+
+class DistrictRecommendationOut(BaseModel):
+    district_id: str
+    district_name: str
+    plan_id: str | None = None
+    plan_status: str | None = None
+    total_recommendations: int
+    recommendations: list[dict]
+
+
+@router.get("/district-recommendations/{district_id}", response_model=DistrictRecommendationOut)
+def get_district_recommendations(
+    district_id: uuid.UUID,
+    current_user: User = Depends(require_roles("government_admin")),
+    db: Session = Depends(get_db),
+):
+    svc = DistrictRecommendationService(db)
+    result = svc.get_district_recommendations(str(district_id))
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+class SkillGapSummaryOut(BaseModel):
+    district_id: str
+    total_demands: int
+    unmatched_count: int
+    unmatched_skills: list[dict]
+
+
+@router.get("/skill-gap-summary/{district_id}", response_model=SkillGapSummaryOut)
+def get_skill_gap_summary(
+    district_id: uuid.UUID,
+    current_user: User = Depends(require_roles("government_admin")),
+    db: Session = Depends(get_db),
+):
+    svc = DistrictRecommendationService(db)
+    result = svc.get_skill_gap_summary(str(district_id))
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+class ProviderAvailabilityOut(BaseModel):
+    plan_item_id: str
+    skill_id: str
+    job_role_id: str | None
+    source_availability_text: str | None
+    course_id: str | None
+    recommended_action: str | None
+    verification_status: str
+
+
+@router.get("/provider-availability/{district_id}", response_model=list[ProviderAvailabilityOut])
+def get_provider_availability(
+    district_id: uuid.UUID,
+    job_role_id: uuid.UUID | None = None,
+    current_user: User = Depends(require_roles("government_admin")),
+    db: Session = Depends(get_db),
+):
+    svc = TrainingProviderReferenceService(db)
+    result = svc.get_source_availability(str(district_id), str(job_role_id) if job_role_id else None)
+    return result
