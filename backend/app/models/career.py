@@ -145,6 +145,12 @@ class Course(TimestampMixin, Base):
     )
     source_record_identifier: Mapped[str | None] = mapped_column(String(255), nullable=True)
     source_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source_file_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    source_file_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    retrieved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    transformation_version: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    mapping_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    validation_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
 
     # Relationships
     district: Mapped["District | None"] = relationship(
@@ -168,7 +174,7 @@ class Course(TimestampMixin, Base):
         ),
         CheckConstraint("nsqf_level IS NULL OR nsqf_level >= 0", name="ck_courses_nsqf_level_nonnegative"),
         CheckConstraint("rate_per_hour IS NULL OR rate_per_hour >= 0", name="ck_courses_rate_nonnegative"),
-        UniqueConstraint("data_source_id", "source_course_code", name="uq_courses_source_course_code"),
+        UniqueConstraint("data_source_id", "source_course_code", "source_version", name="uq_courses_source_identity"),
         UniqueConstraint("data_source_id", "nqr_code", "source_version", name="uq_courses_source_nqr_version"),
         Index("ix_courses_district_id", "district_id"),
         Index("ix_courses_status", "status"),

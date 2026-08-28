@@ -78,6 +78,13 @@ class TrainingProvider(TimestampMixin, Base):
     reviewed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     review_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # --- Phase 6.4 Source Fields ---
+    source_scheme: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    source_city: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    source_address: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    source_sector: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # --- End Phase 6.4 Source Fields ---
     __table_args__ = (
         CheckConstraint("status IN ('active', 'inactive', 'suspended')", name="ck_training_providers_status"),
         CheckConstraint("provider_type IS NULL OR provider_type IN ('government', 'private', 'ngo', 'ppp')", name="ck_training_providers_provider_type"),
