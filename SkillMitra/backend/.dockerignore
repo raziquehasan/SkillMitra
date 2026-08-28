@@ -1,55 +1,34 @@
 # ─────────────────────────────────────────────
-# Environment files
-# ─────────────────────────────────────────────
-.env
-.env.local
-.env.*.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# ─────────────────────────────────────────────
-# Node / Next.js
-# ─────────────────────────────────────────────
-node_modules/
-.next/
-out/
-dist/
-build/
-.turbo/
-
-# ─────────────────────────────────────────────
 # Python
 # ─────────────────────────────────────────────
-__pycache__/
+__pycache__
 *.py[cod]
 *.pyo
 *.pyd
-.venv/
-venv/
-env/
-.env/
-*.egg-info/
-dist/
-.eggs/
-site-packages/
+.venv
+venv
+env
+*.egg-info
+dist
+.eggs
+site-packages
 
 # ─────────────────────────────────────────────
 # Testing
 # ─────────────────────────────────────────────
-.pytest_cache/
+.pytest_cache
 .coverage
-htmlcov/
-.tox/
+htmlcov
+.tox
 *.coveragerc
 coverage.xml
 *.log
 
 # ─────────────────────────────────────────────
-# IDEs & Editors
+# IDE / Editor
 # ─────────────────────────────────────────────
-.vscode/
-.idea/
+.vscode
+.idea
 *.sublime-project
 *.sublime-workspace
 
@@ -61,56 +40,36 @@ Thumbs.db
 Desktop.ini
 
 # ─────────────────────────────────────────────
-# Docker
+# Git
 # ─────────────────────────────────────────────
-.docker/
+.git
+.gitignore
 
 # ─────────────────────────────────────────────
-# Misc
+# Environment
+# ─────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─────────────────────────────────────────────
+# Database
+# ─────────────────────────────────────────────
+pgdata/
+
+# ─────────────────────────────────────────────
+# Misc / Temp
 # ─────────────────────────────────────────────
 *.swp
 *.swo
 *.bak
 *.tmp
-
-# Database
-pgdata/
-*.db
-*.sqlite
-
-# ─────────────────────────────────────────────
-# Security / Secrets
-# ─────────────────────────────────────────────
 check_connections.py
 
 # ─────────────────────────────────────────────
-# Demo / Test / Audit / Verification scripts
+# Generated docs / local data
 # ─────────────────────────────────────────────
-backend/test_*.py
-backend/audit_*.py
-backend/verify_*.py
-backend/app/seeds/demo_*.py
-backend/check_*.py
-backend/create_*.py
-backend/cleanup_*.py
-backend/debug_*.py
-
-# ─────────────────────────────────────────────
-# Generated docs
-# ─────────────────────────────────────────────
-backend/docs/
-docs/database/
-
-# ─────────────────────────────────────────────
-# Local data files (CSV / PDF datasets)
-# ─────────────────────────────────────────────
+docs/
 data/*.csv*
 data/*.pdf
 data/*.xls*
-database/*.csv
-database/*.xls
-database/*.pdf
-
-# SkillMitra specific
-backend/.env
-frontend/.env.local
