@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.api.deps import get_pagination
-from app.models.demand import DemandSignal, IndustryDemand
+from app.models.demand import DemandSignal, IndustryDemand, DataSource
 from app.models.career import Course, CourseSkill
 from pydantic import BaseModel, ConfigDict
 
@@ -90,6 +90,7 @@ def get_demand_by_industry(
     job_role_id: uuid.UUID | None = None,
     skill_id: uuid.UUID | None = None,
     proficiency_level_id: uuid.UUID | None = None,
+    source_type: str | None = None,
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
     pagination: dict = Depends(get_pagination),
@@ -108,6 +109,8 @@ def get_demand_by_industry(
         stmt = stmt.where(IndustryDemand.skill_id == skill_id)
     if proficiency_level_id:
         stmt = stmt.where(IndustryDemand.proficiency_level_id == proficiency_level_id)
+    if source_type:
+        stmt = stmt.join(DataSource, IndustryDemand.data_source_id == DataSource.id).where(DataSource.source_category == source_type)
     if date_from:
         stmt = stmt.where(IndustryDemand.period_end >= date_from)
     if date_to:

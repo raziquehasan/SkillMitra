@@ -79,6 +79,10 @@ from app.models.phase8 import (  # noqa: F401
     TechnologySkill,
     CourseHealthScore,
 )
+from app.models.phase9 import (  # noqa: F401
+    CurriculumProposal,
+    AuditLog,
+)
 
 __all__ = [
     "Base",
@@ -112,8 +116,28 @@ __all__ = [
     "Role",
     "UserRole",
     "RefreshToken",
+    "CandidateSkill",
+    "Curriculum",
+    "CurriculumVersion",
+    "CurriculumSkill",
+    "TrainingProvider",
+    "CourseOffering",
+    "Trainer",
+    "TrainerSkill",
+    "Equipment",
+    "CourseEquipmentRequirement",
+    "DistrictTrainingPlan",
+    "DistrictTrainingPlanItem",
+    "DataIngestionRun",
+    "RawJobPosting",
+    "IngestionRejectedRecord",
+    "JobRoleAlias",
+    "IndustryConsultation",
+    "EmployerCurriculumValidation",
     "GovernmentOfficial",
     "EmergingTechnology",
     "TechnologySkill",
     "CourseHealthScore",
+    "CurriculumProposal",
+    "AuditLog",
 ]

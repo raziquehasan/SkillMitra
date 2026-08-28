@@ -154,6 +154,9 @@ class IndustryDemand(TimestampMixin, Base):
     proficiency_level_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("skill_proficiency_levels.id", ondelete="CASCADE"), nullable=False
     )
+    data_source_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("data_sources.id", ondelete="SET NULL"), nullable=True
+    )
     aggregate_demand_score: Mapped[float] = mapped_column(Float, nullable=False)
     period_start: Mapped[date] = mapped_column(Date, nullable=False)
     period_end: Mapped[date] = mapped_column(Date, nullable=False)
@@ -165,10 +168,12 @@ class IndustryDemand(TimestampMixin, Base):
     industry_sector: Mapped["IndustrySector"] = relationship("IndustrySector", back_populates="industry_demands")
     district: Mapped["District"] = relationship("District")
     proficiency_level: Mapped["SkillProficiencyLevel"] = relationship("SkillProficiencyLevel")
+    data_source: Mapped["DataSource | None"] = relationship("DataSource")
 
     __table_args__ = (
         Index("ix_industry_demand_skill_id", "skill_id"),
         Index("ix_industry_demand_job_role_id", "job_role_id"),
         Index("ix_industry_demand_sector_id", "industry_sector_id"),
         Index("ix_industry_demand_district_id", "district_id"),
+        Index("ix_industry_demand_data_source_id", "data_source_id"),
     )

@@ -14,9 +14,36 @@ from app.models.phase4 import (
     CourseEquipmentRequirement, CourseOffering, Curriculum, CurriculumSkill,
     CurriculumVersion, Equipment, Trainer, TrainerSkill, TrainingProvider,
 )
+from app.models.phase9 import CurriculumProposal
 from app.models.skills import SkillProficiencyLevel
+from app.services.training_alignment_service import CurriculumProposalService, AuditService
+from pydantic import BaseModel, ConfigDict
 
 router = APIRouter(prefix="/api/v1", tags=["Phase 4 Training Supply"])
+
+
+class CurriculumProposalIn(BaseModel):
+    curriculum_version_id: uuid.UUID
+    course_id: uuid.UUID
+    proposed_changes: dict | None = None
+    reason: str | None = None
+
+
+class CurriculumProposalOut(BaseModel):
+    proposal_id: str
+    curriculum_version_id: str
+    course_id: str
+    status: str
+    reason: str | None = None
+    review_notes: str | None = None
+    employer_validated: bool
+    implemented_at: str | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CurriculumProposalReviewIn(BaseModel):
+    status: str
+    review_notes: str | None = None
 
 
 class ProviderCreate(BaseModel):
@@ -191,3 +218,71 @@ def government_training_supply(
         stmt = stmt.where(CourseOffering.course_id == course_id)
     rows = db.scalars(stmt.offset(pagination["skip"]).limit(pagination["limit"])).all()
     return [OfferingOut.model_validate({**row.__dict__, "available_seats": row.active_seats - row.utilized_seats}) for row in rows]
+
+
+@router.post("/curriculum/proposals", response_model=CurriculumProposalOut, status_code=201)
+def create_curriculum_proposal(
+    data: CurriculumProposalIn,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    svc = CurriculumProposalService(db)
+    result = svc.create_proposal(
+        curriculum_version_id=str(data.curriculum_version_id),
+        course_id=str(data.course_id),
+        proposed_by_user_id=str(current_user.id),
+        proposed_changes=data.proposed_changes,
+        reason=data.reason,
+    )
+    proposal = db.get(CurriculumProposal, result["proposal_id"])
+    return CurriculumProposalOut(
+        proposal_id=str(proposal.id),
+        curriculum_version_id=str(proposal.curriculum_version_id),
+        course_id=str(proposal.course_id),
+        status=proposal.status,
+        reason=proposal.reason,
+        review_notes=proposal.review_notes,
+        employer_validated=proposal.employer_validated,
+        implemented_at=proposal.implemented_at.isoformat() if proposal.implemented_at else None,
+    )
+
+
+@router.get("/curriculum/proposals/{proposal_id}", response_model=CurriculumProposalOut)
+def get_curriculum_proposal(
+    proposal_id: uuid.UUID,
+    db: Session = Depends(get_db),
+):
+    svc = CurriculumProposalService(db)
+    result = svc.get_proposal(str(proposal_id))
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    proposal = db.get(CurriculumProposal, proposal_id)
+    return CurriculumProposalOut(
+        proposal_id=str(proposal.id),
+        curriculum_version_id=str(proposal.curriculum_version_id),
+        course_id=str(proposal.course_id),
+        status=proposal.status,
+        reason=proposal.reason,
+        review_notes=proposal.review_notes,
+        employer_validated=proposal.employer_validated,
+        implemented_at=proposal.implemented_at.isoformat() if proposal.implemented_at else None,
+    )
+
+
+@router.post("/curriculum/proposals/{proposal_id}/review")
+def review_curriculum_proposal(
+    proposal_id: uuid.UUID,
+    data: CurriculumProposalReviewIn,
+    current_user: User = Depends(require_roles("government_admin")),
+    db: Session = Depends(get_db),
+):
+    svc = CurriculumProposalService(db)
+    result = svc.update_proposal_status(
+        proposal_id=str(proposal_id),
+        new_status=data.status,
+        reviewed_by_user_id=str(current_user.id),
+        review_notes=data.review_notes,
+    )
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result

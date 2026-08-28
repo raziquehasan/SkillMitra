@@ -73,9 +73,15 @@ class TrainingProvider(TimestampMixin, Base):
     provider_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     registration_number: Mapped[str | None] = mapped_column(String(100), nullable=True, unique=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
+    verification_status: Mapped[str] = mapped_column(String(30), nullable=False, default="unverified")
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reviewed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     __table_args__ = (
         CheckConstraint("status IN ('active', 'inactive', 'suspended')", name="ck_training_providers_status"),
         CheckConstraint("provider_type IS NULL OR provider_type IN ('government', 'private', 'ngo', 'ppp')", name="ck_training_providers_provider_type"),
+        CheckConstraint("verification_status IN ('unverified', 'pending_verification', 'verified', 'rejected')", name="ck_training_providers_verification_status"),
     )
 
 
@@ -171,10 +177,16 @@ class DistrictTrainingPlanItem(Base):
     gap_value: Mapped[float | None] = mapped_column(nullable=True)
     recommended_action: Mapped[str | None] = mapped_column(String(40), nullable=True)
     rationale: Mapped[str | None] = mapped_column(Text, nullable=True)
+    review_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    review_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     __table_args__ = (
         CheckConstraint(
             "recommended_action IS NULL OR recommended_action IN ('increase_capacity', 'maintain_capacity', 'reduce_capacity', 'new_course', 'curriculum_update', 'trainer_upskilling', 'equipment_upgrade')",
             name="ck_district_plan_items_recommended_action",
+        ),
+        CheckConstraint(
+            "review_status IS NULL OR review_status IN ('pending_review', 'approved', 'rejected', 'needs_more_evidence')",
+            name="ck_district_plan_items_review_status",
         ),
         Index("ix_district_plan_items_plan_id", "plan_id"),
         Index("ix_district_plan_items_skill_id", "skill_id"),
