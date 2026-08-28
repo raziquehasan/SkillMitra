@@ -9,8 +9,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: skillmitra-backend
-    ports:
-      - "8000:8000"
+    network_mode: "host"
     volumes:
       - ./backend:/app
     env_file:

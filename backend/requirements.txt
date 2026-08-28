@@ -8,7 +8,14 @@ uvicorn[standard]
 # Validation & settings
 pydantic
 pydantic-settings
+pydantic[email]
 python-dotenv
+
+# Authentication — Phase 2D
+python-jose[cryptography]
+passlib[bcrypt]
+pwdlib
+argon2-cffi
 
 # Database — Phase 2A
 sqlalchemy>=2.0
