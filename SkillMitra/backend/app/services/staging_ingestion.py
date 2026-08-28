@@ -56,14 +56,14 @@ class VerifiedDatasetIngestion:
     ) -> dict[str, Any]:
         sha256 = compute_sha256(csv_path)
         artifact = self._create_source_artifact(csv_path, sha256, dataset_label, artifact_metadata or {}, artifact_type="csv")
-        run_id = self._create_ingestion_run(artifact.id, dataset_label) # Get the run_id
+        ingestion_run = self._create_ingestion_run(artifact.id, dataset_label)
         rows = self._extract_csv_rows(csv_path, dataset_label)
-        raw_courses, raw_providers, raw_skills, raw_job_roles = self._load_raw_records(run_id, artifact.id, rows, dataset_label) # Pass run_id
-        staged = self._create_staging_records(raw_courses, raw_providers, raw_skills, raw_job_roles, run_id)
+        raw_courses, raw_providers, raw_skills, raw_job_roles = self._load_raw_records(ingestion_run.id, artifact.id, rows, dataset_label)
+        staged = self._create_staging_records(raw_courses, raw_providers, raw_skills, raw_job_roles, ingestion_run.id, ingestion_run.source_id)
         return {
             "dataset_label": dataset_label,
             "source_artifact_id": str(artifact.id),
-            "ingestion_run_id": str(run_id), # Use the run_id
+            "ingestion_run_id": str(ingestion_run.id),
             "sha256": sha256,
             "rows_extracted": len(rows),
             "raw_courses": len(raw_courses),
@@ -185,7 +185,6 @@ class VerifiedDatasetIngestion:
         with open(csv_path, newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
             for idx, row in enumerate(reader, start=1):
-                # Normalize keys to remove leading/trailing whitespace which might occur during CSV parsing
                 normalized_row = {k.strip(): v for k, v in row.items()}
                 normalized_row["_dataset_label"] = dataset_label
                 normalized_row["_source_file"] = csv_path.name
@@ -223,7 +222,7 @@ class VerifiedDatasetIngestion:
                 row_number=idx,
                 raw_data=row,
                 source_course_code=row.get("Course ID") or row.get("Course_ID") or row.get("Course Code"),
-                source_version=None,  # As per Phase 6.8 findings
+                source_version=None,
                 validation_status="pending",
                 validation_errors=None,
                 dataset_label=dataset_label,
@@ -281,7 +280,7 @@ class VerifiedDatasetIngestion:
                 source_version=None,
                 title=course_data.get("Course Name"),
                 qualification=course_data.get("Eligibility"),
-                duration_hours=self._parse_duration(course_data.get("Duration_Months") or course_data.get("Duration")),  # Match CSV/PDF headers
+                duration_hours=self._parse_duration(course_data.get("Duration_Months") or course_data.get("Duration")),
                 dataset_label=raw_course.dataset_label,
                 data_source_id=data_source_id,
                 ingestion_run_id=run_id,
@@ -299,7 +298,6 @@ class VerifiedDatasetIngestion:
                 validation_status="pending",
                 review_status="pending",
             )
-            # Skills are comma-separated in "Skills" or "Skills_Modules" column
             skill_names_str = skill_data.get("Skills") or skill_data.get("Skills_Modules") or skill_data.get("Skills Modules")
             skill_names = [s.strip() for s in skill_names_str.split(",") if s.strip()] if skill_names_str else []
             staged_skills_list = []
@@ -307,7 +305,7 @@ class VerifiedDatasetIngestion:
                 staged_skill = StagingSkill(
                     raw_id=raw_skill.id,
                     source_skill_name=skill_name,
-                    mapping_status="REVIEW_REQUIRED",  # As per Phase 6.8 findings for skills
+                    mapping_status="REVIEW_REQUIRED",
                     dataset_label=raw_skill.dataset_label,
                     review_status="pending",
                 )
@@ -315,7 +313,7 @@ class VerifiedDatasetIngestion:
 
             staged_role = StagingJobRole(
                 raw_id=raw_job_role.id,
-                source_role_name=role_data.get("Job_Role") or role_data.get("Job Role"),  # Match CSV/PDF headers
+                source_role_name=role_data.get("Job_Role") or role_data.get("Job Role"),
                 mapping_status="REVIEW_REQUIRED",
                 dataset_label=raw_job_role.dataset_label,
                 review_status="pending",
