@@ -9,6 +9,7 @@ from app.schemas.common import PaginatedResponse
 from app.services.course_service import CourseService
 from pydantic import BaseModel, ConfigDict
 from app.services.training_alignment_service import CourseAlignmentService
+from app.services.course_health_service import CourseHealthScoreService
 
 router = APIRouter(prefix="/api/v1/courses", tags=["Courses"])
 
@@ -62,6 +63,40 @@ def get_skill_gap_analysis(
 ):
     svc = CourseAlignmentService(db)
     result = svc.get_skill_gap_analysis(str(job_role_id))
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+class CourseHealthOut(BaseModel):
+    course_id: str
+    course_title: str
+    demand_score: float | None = None
+    skill_alignment_score: float | None = None
+    placement_score: float | None = None
+    employer_validation_score: float | None = None
+    technology_relevance_score: float | None = None
+    supply_demand_score: float | None = None
+    overall_score: float | None = None
+    status: str
+    recommended_status: str
+    review_status: str
+    final_status: str | None = None
+    explanation: str
+    data_completeness: dict
+    period_start: str | None = None
+    period_end: str | None = None
+    calculated_at: str | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+@router.get("/health/{course_id}", response_model=CourseHealthOut)
+def get_course_health(
+    course_id: uuid.UUID,
+    db: Session = Depends(get_db),
+):
+    svc = CourseHealthScoreService(db)
+    result = svc.calculate_course_health(str(course_id))
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
     return result
