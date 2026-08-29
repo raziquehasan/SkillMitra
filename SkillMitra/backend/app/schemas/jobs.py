@@ -2,7 +2,7 @@
 import uuid
 from datetime import date
 from pydantic import BaseModel, ConfigDict
-from app.schemas.skills import SkillResponse
+from app.schemas.skills import SkillResponse, SkillCategoryResponse
 
 
 class JobPostingSkillResponse(BaseModel):
@@ -24,12 +24,48 @@ class JobPostingSkillCreate(BaseModel):
 class JobResponse(BaseModel):
     id: uuid.UUID
     employer_id: uuid.UUID
+    employer_name: str | None = None
     job_role_id: uuid.UUID
     district_id: uuid.UUID | None = None
     title: str
     status: str
     posted_date: date | None = None
+    job_posting_skills: list[JobPostingSkillResponse] = []
     model_config = ConfigDict(from_attributes=True)
+
+    @classmethod
+    def from_orm_with_relations(cls, job_posting):
+        data = {
+            "id": job_posting.id,
+            "employer_id": job_posting.employer_id,
+            "employer_name": job_posting.employer.company_name if job_posting.employer else None,
+            "job_role_id": job_posting.job_role_id,
+            "district_id": job_posting.district_id,
+            "title": job_posting.title,
+            "status": job_posting.status,
+            "posted_date": job_posting.posted_date,
+            "job_posting_skills": [
+                JobPostingSkillResponse(
+                    skill_id=s.skill_id,
+                    proficiency_level_id=s.proficiency_level_id,
+                    importance=s.importance,
+                    skill=SkillResponse(
+                        id=s.skill.id,
+                        category_id=s.skill.category_id,
+                        name=s.skill.name,
+                        description=s.skill.description,
+                        is_active=s.skill.is_active,
+                        category=SkillCategoryResponse(
+                            id=s.skill.category.id,
+                            name=s.skill.category.name,
+                            description=s.skill.category.description,
+                        ) if s.skill.category else None,
+                    ) if s.skill else None,
+                )
+                for s in job_posting.job_posting_skills
+            ],
+        }
+        return cls(**data)
 
 
 class JobDetailResponse(JobResponse):

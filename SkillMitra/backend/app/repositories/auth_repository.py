@@ -87,3 +87,11 @@ class AuthRepository:
         if replaced_by_id:
             rt.replaced_by_token_id = replaced_by_id
         self.db.flush()
+
+    def get_user_by_reset_token(self, token_hash: str) -> User | None:
+        stmt = (
+            select(User)
+            .where(User.reset_token == token_hash)
+            .options(selectinload(User.user_roles).selectinload(UserRole.role))
+        )
+        return self.db.execute(stmt).scalar_one_or_none()
