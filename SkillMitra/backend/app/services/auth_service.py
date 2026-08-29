@@ -306,3 +306,40 @@ class AuthService:
         self.db.commit()
         self.db.refresh(official)
         return official
+
+    def forgot_password(self, email: str) -> dict:
+        user = self.repo.get_user_by_email(email)
+        if not user:
+            return {"message": "If an account with that email exists, a password reset link has been sent."}
+
+        raw_token = generate_refresh_token()
+        token_hash = hash_refresh_token(raw_token)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+
+        user.reset_token = token_hash
+        user.reset_token_expires_at = expires_at
+        self.db.commit()
+
+        return {
+            "message": "If an account with that email exists, a password reset link has been sent.",
+            "reset_token": raw_token,
+            "user_id": user.id,
+        }
+
+    def reset_password(self, token: str, new_password: str) -> dict:
+        token_hash = hash_refresh_token(token)
+        user = self.repo.get_user_by_reset_token(token_hash)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token.")
+
+        now = datetime.now(timezone.utc)
+        if user.reset_token_expires_at is None or user.reset_token_expires_at.replace(tzinfo=timezone.utc) < now:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Reset token has expired.")
+
+        validate_password_policy(new_password)
+        user.hashed_password = hash_password(new_password)
+        user.reset_token = None
+        user.reset_token_expires_at = None
+        self.db.commit()
+
+        return {"message": "Password has been reset successfully. You can now log in."}

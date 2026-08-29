@@ -21,12 +21,15 @@ from app.core.database import get_db
 from app.schemas.auth import (
     AuthResponse,
     CandidateRegistrationRequest,
+    ForgotPasswordRequest,
     EmployerRegistrationRequest,
     GovernmentOfficialOut,
     GovernmentOfficialRegistrationRequest,
     GovernmentOfficialReviewRequest,
     LoginRequest,
     RegistrationResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
     TrainingProviderRegistrationRequest,
     UserPublic,
 )
@@ -194,3 +197,26 @@ def review_government_official(
         review_notes=body.review_notes,
     )
     return official
+
+
+# ── Password reset ────────────────────────────────────────────────────────
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+def forgot_password(
+    body: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+):
+    svc = AuthService(db)
+    result = svc.forgot_password(body.email)
+    return result
+
+
+@router.post("/reset-password", response_model=ResetPasswordResponse,
+             status_code=status.HTTP_200_OK)
+def reset_password(
+    body: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+):
+    svc = AuthService(db)
+    result = svc.reset_password(body.token, body.new_password)
+    return result
