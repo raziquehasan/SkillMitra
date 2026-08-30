@@ -29,6 +29,20 @@ export type Skill = {
   is_active: boolean;
 };
 
+export type JobRole = {
+  id: string;
+  title: string;
+  description: string | null;
+  is_active: boolean;
+  industry_sector_id: string | null;
+  industry_sector: {
+    id: string;
+    name: string;
+    code: string | null;
+    description: string | null;
+  } | null;
+};
+
 export type Course = {
   id: string;
   title: string;
@@ -115,6 +129,50 @@ export const api = {
     apiFetch<{ course_id: string; course_title: string; coverage_status: string }[]>(
       `/api/v1/demand/courses?district_id=${encodeURIComponent(districtId)}&page=1&page_size=20`,
     ),
+  jobRoles: (sectorId?: string) =>
+    apiFetch<JobRole[]>(
+      `/api/v1/job-roles${sectorId ? `?industry_sector_id=${encodeURIComponent(sectorId)}` : ""}`,
+    ),
+  careerRecommendation: (params: {
+    district_id?: string;
+    industry_sector_id?: string;
+    job_role_id: string;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params.district_id) qs.set("district_id", params.district_id);
+    if (params.industry_sector_id) qs.set("industry_sector_id", params.industry_sector_id);
+    qs.set("job_role_id", params.job_role_id);
+    return apiFetch<{
+      demand: {
+        district_id: string | null;
+        district_name: string | null;
+        industry_sector_id: string | null;
+        industry_sector_name: string | null;
+        job_role_id: string | null;
+        job_role_title: string | null;
+        demand_score: number | null;
+        demand_signals_count: number;
+        relevant_job_postings_count: number;
+        demand_trend: string | null;
+      } | null;
+      required_skills: Array<{ id: string; name: string; description: string | null }>;
+      candidate_skills: Array<{ id: string; name: string; description: string | null }>;
+      skill_match_percentage: number;
+      matched_skill_count: number;
+      total_required_skills: number;
+      missing_skills: Array<{ id: string; name: string; description: string | null }>;
+      recommended_courses: Array<{
+        id: string;
+        title: string;
+        description: string | null;
+        covers: string[];
+        why: string;
+      }>;
+      job_readiness_percentage: number;
+      candidate_authenticated: boolean;
+      message: string | null;
+    }>(`/api/v1/career-guidance/recommendation?${qs.toString()}`);
+  },
   // Auth endpoints
   me: () => apiFetch<AuthUser>("/api/v1/auth/me"),
   login: (email: string, password: string) =>
