@@ -111,3 +111,28 @@ def require_roles(*role_names: str):
 def require_any_role(*role_names: str):
     """Alias for require_roles — requires any one of the listed roles."""
     return require_roles(*role_names)
+
+
+def require_government_user(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+) -> User:
+    """
+    Require user to be a government official (has government_officials record).
+    Used for endpoints where government users can access their own data/profile
+    without requiring government_admin role (which is only assigned after approval).
+    """
+    from sqlalchemy import select
+    from app.models.phase8 import GovernmentOfficial
+    
+    gov_official = db.scalar(
+        select(GovernmentOfficial).where(GovernmentOfficial.user_id == current_user.id)
+    )
+    
+    if not gov_official:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Government official account required.",
+        )
+    
+    return current_user
