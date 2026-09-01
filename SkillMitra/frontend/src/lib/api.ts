@@ -84,6 +84,38 @@ export type AuthUser = {
   roles: string[];
 };
 
+export type CourseAlignmentData = {
+  course_id: string;
+  course_title: string;
+  provider: string;
+  sector: string;
+  district_id: string | null;
+  district_name: string | null;
+  alignment_status: "ALIGNED" | "PARTIAL" | "NEEDS_REVIEW";
+  skills_covered: string[];
+  skills_demanded: string[];
+  gaps: string[];
+  coverage_percentage: number;
+  priority: "High" | "Medium" | "Low";
+};
+
+export type SkillCoverage = {
+  skill_name: string;
+  demand: number;
+  coverage: number;
+  gap: number;
+};
+
+export type DistrictAlignmentSummary = {
+  district_id: string;
+  district_name: string;
+  total_courses: number;
+  strong_alignment: number;
+  partial: number;
+  needs_review: number;
+  average_alignment: number;
+};
+
 function authHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const token = sessionStorage.getItem("skillmitra_access_token");
@@ -107,6 +139,11 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
       else if (Array.isArray(body?.detail)) detail = body.detail[0]?.msg ?? detail;
     } catch {
       /* keep default */
+    }
+    // Don't throw error for government dashboard permission issues
+    // This allows the dashboard to fall back to demo data silently
+    if (path.includes('/government/dashboard') && response.status === 403) {
+      throw new Error('DEMO_FALLBACK');
     }
     throw new Error(detail);
   }
@@ -261,4 +298,254 @@ export const api = {
       "/api/v1/auth/register/government-official",
       { method: "POST", body: JSON.stringify({ ...payload, role: "government_official" }) },
     ),
+  // Government dashboard endpoint
+  governmentDashboard: (params: {
+    district_id?: string;
+    sector_id?: string;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params.district_id) qs.set("district_id", params.district_id);
+    if (params.sector_id) qs.set("sector_id", params.sector_id);
+    return apiFetch<{
+      kpis: {
+        districts_covered: number;
+        active_demand_signals: number;
+        high_demand_skills: number;
+        critical_skill_gaps: number;
+        critical_gap_demand_records: number;
+        training_capacity_gaps: number;
+        courses_requiring_review: number;
+      };
+      district_intelligence: {
+        district_id: string;
+        district_name: string;
+        source_type: string | null;
+        total_demand: number;
+        verified_providers: number;
+        total_capacity: number;
+        capacity_status: string;
+      } | null;
+      skill_gaps: Array<{
+        skill_id: string;
+        skill_name: string | null;
+        demand_count: number | null;
+        training_coverage: string | null;
+        gap_signal: string | null;
+      }>;
+      training_capacity: {
+        district_id: string;
+        district_name: string;
+        total_demand: number;
+        verified_providers: number;
+        course_offerings: number;
+        total_capacity: number;
+        capacity_status: string;
+      } | null;
+      course_alignment: Array<{
+        course_id: string;
+        course_title: string;
+        alignment_status: string;
+        skills_covered: string[];
+        skills_demanded: string[];
+        gaps: string[];
+      }>;
+      employer_demand: Array<{
+        sector: string | null;
+        job_role: string | null;
+        required_skills: string[];
+        posting_count: number;
+      }>;
+      district_training_plan: {
+        district_id: string;
+        district_name: string;
+        plan_id: string;
+        plan_status: string;
+        total_recommendations: number;
+        recommendations: Array<{
+          plan_item_id: string;
+          skill_id: string;
+          job_role_id: string | null;
+          demand_value: number | null;
+          gap_value: number | null;
+          recommended_action: string | null;
+          review_status: string | null;
+          rationale: string | null;
+          course_id: string | null;
+        }>;
+      } | null;
+    }>(`/api/v1/government/dashboard?${qs.toString()}`);
+  },
+  // Training programs endpoint
+  trainingPrograms: (params: {
+    district_id?: string;
+    sector_id?: string;
+    status?: string;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params.district_id) qs.set("district_id", params.district_id);
+    if (params.sector_id) qs.set("sector_id", params.sector_id);
+    if (params.status) qs.set("status", params.status);
+    return apiFetch<any[]>(`/api/v1/government/training-programs?${qs.toString()}`);
+  },
+
+  governmentCandidates: (params: Record<string, any> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<any>(`/api/v1/government/candidates${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  trainingCentres: (params: Record<string, any> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<any>(`/api/v1/government/training-centres${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  trainingCapacity: (districtId?: string) =>
+    apiFetch<any>(`/api/v1/government/training-capacity${districtId ? `?district_id=${encodeURIComponent(districtId)}` : ""}`),
+
+  trainingCapacityClassification: (params: Record<string, any> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<any>(`/api/v1/government/training-capacity/classification${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  courseAlignment: (courseId?: string) =>
+    apiFetch<any>(`/api/v1/government/course-alignment${courseId ? `?course_id=${encodeURIComponent(courseId)}` : ""}`),
+
+  districtIntelligence: (districtId?: string) =>
+    apiFetch<any>(`/api/v1/government/districts${districtId ? `?district_id=${encodeURIComponent(districtId)}` : ""}`),
+
+  districtRecommendations: (districtId?: string) =>
+    apiFetch<any>(`/api/v1/government/recommendations${districtId ? `?district_id=${encodeURIComponent(districtId)}` : ""}`),
+
+  emergingTechnologies: (params: Record<string, any> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<any>(`/api/v1/government/emerging-jobs${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  governmentEmployerInsights: (params: Record<string, any> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<any>(`/api/v1/government/employer-insights${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  demandEvidence: (params: Record<string, any> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<any>(`/api/v1/government/demand-evidence${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  governmentIndustrySurveys: (params: Record<string, any> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<any>(`/api/v1/government/industry-surveys${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  employerSurveys: () => apiFetch<any>(`/api/v1/government/employer-surveys`),
+
+  governmentNotifications: (params: Record<string, any> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<any>(`/api/v1/government/notifications${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  governmentProfile: () => apiFetch<any>(`/api/v1/government/profile`),
+
+  placementOutcomeReport: (params: Record<string, any> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<any>(`/api/v1/government/placement-outcomes${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  placementOutcomes: () => apiFetch<any>(`/api/v1/government/placement-outcomes`),
+
+  trainingGaps: (districtId?: string) =>
+    apiFetch<any>(`/api/v1/government/training-gaps${districtId ? `?district_id=${encodeURIComponent(districtId)}` : ""}`),
+
+  districtSkillGapReport: (districtId?: string) =>
+    apiFetch<any>(`/api/v1/government/reports/skill-gaps${districtId ? `?district_id=${encodeURIComponent(districtId)}` : ""}`),
+
+  industryDemandReport: () => apiFetch<any>(`/api/v1/government/reports/industry-demand`),
+
+  trainingCapacityReport: (districtId?: string) =>
+    apiFetch<any>(`/api/v1/government/reports/training-capacity${districtId ? `?district_id=${encodeURIComponent(districtId)}` : ""}`),
+
+  governmentUsers: (params: Record<string, any> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<any>(`/api/v1/government/users${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  districtPlans: (params: Record<string, any> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<any>(`/api/v1/government/district-plans${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  trainingSupplyBySkill: (params: Record<string, any> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<any>(`/api/v1/government/training-supply${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  generateDistrictPlan: (districtId: string, startDate?: string, endDate?: string) => {
+    const qs = new URLSearchParams({ district_id: districtId });
+    if (startDate) qs.set("start_date", startDate);
+    if (endDate) qs.set("end_date", endDate);
+    return apiFetch<any>(`/api/v1/government/district-plan?${qs.toString()}`);
+  },
+
+  // Reports & Analytics endpoint
+  governmentReports: (params: {
+    district_id?: string;
+    sector_id?: string;
+    report_type?: string;
+    time_period?: string;
+    status?: string;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params.district_id) qs.set("district_id", params.district_id);
+    if (params.sector_id) qs.set("sector_id", params.sector_id);
+    if (params.report_type) qs.set("report_type", params.report_type);
+    if (params.time_period) qs.set("time_period", params.time_period);
+    if (params.status) qs.set("status", params.status);
+    return apiFetch<any>(`/api/v1/government/reports${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  generateReport: (reportId: string, params?: Record<string, any>) => {
+    const qs = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+      });
+    }
+    return apiFetch<any>(`/api/v1/government/reports/${reportId}/generate${qs.toString() ? `?${qs.toString()}` : ""}`, {
+      method: 'POST'
+    });
+  },
 };
