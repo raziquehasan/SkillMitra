@@ -73,6 +73,19 @@ class GovernmentOfficial(TimestampMixin, Base):
     )
     review_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Relationships
+    user: Mapped["User"] = relationship(
+        "User",
+        back_populates="government_official",
+        foreign_keys="[GovernmentOfficial.user_id]",
+    )
+    reviewed_by_user: Mapped["User | None"] = relationship(
+        "User",
+        foreign_keys="[GovernmentOfficial.reviewed_by_user_id]",
+        back_populates="reviewed_government_officials",
+    )
+    district: Mapped["District | None"] = relationship("District", back_populates="government_officials")
+
     __table_args__ = (
         CheckConstraint(
             "verification_status IN ('pending_verification', 'approved', 'rejected')",

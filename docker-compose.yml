@@ -9,12 +9,13 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: skillmitra-backend
-    network_mode: "host"
+    ports:
+      - "8080:8080"
     volumes:
       - ./backend:/app
     env_file:
       - .env
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
     restart: unless-stopped
 
   # ──────────────────────────────────────────
@@ -22,37 +23,21 @@ services:
   # ──────────────────────────────────────────
   frontend:
     build:
-      context: ./frontend
+      context: ./SkillMitra/frontend
       dockerfile: Dockerfile
     container_name: skillmitra-frontend
     ports:
       - "3000:3000"
     volumes:
-      - ./frontend:/app
+      - ./SkillMitra/frontend:/app
       - /app/node_modules
     env_file:
       - .env
     environment:
       - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
     depends_on:
       - backend
     restart: unless-stopped
 
-  # ──────────────────────────────────────────
-  # Database — PostgreSQL
-  # ──────────────────────────────────────────
-  db:
-    image: postgres:15-alpine
-    container_name: skillmitra-db
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: skillmitra
-      POSTGRES_PASSWORD: secretpassword
-      POSTGRES_DB: skillmitra
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
 
-volumes:
-  postgres_data:

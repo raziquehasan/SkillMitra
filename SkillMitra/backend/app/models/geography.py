@@ -46,6 +46,9 @@ class District(Base):
     candidate_profiles: Mapped[list["CandidateProfile"]] = relationship(
         "CandidateProfile", back_populates="district"
     )
+    government_officials: Mapped[list["GovernmentOfficial"]] = relationship(
+        "GovernmentOfficial", back_populates="district"
+    )
     courses: Mapped[list["Course"]] = relationship(
         "Course", back_populates="district"
     )

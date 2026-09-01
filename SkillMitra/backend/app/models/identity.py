@@ -46,6 +46,17 @@ class User(TimestampMixin, Base):
     employer_profile: Mapped["Employer | None"] = relationship(
         "Employer", back_populates="user", uselist=False
     )
+    government_official: Mapped["GovernmentOfficial | None"] = relationship(
+        "GovernmentOfficial",
+        back_populates="user",
+        uselist=False,
+        foreign_keys="[GovernmentOfficial.user_id]",
+    )
+    reviewed_government_officials: Mapped[list["GovernmentOfficial"]] = relationship(
+        "GovernmentOfficial",
+        back_populates="reviewed_by_user",
+        foreign_keys="[GovernmentOfficial.reviewed_by_user_id]",
+    )
     user_roles: Mapped[list["UserRole"]] = relationship(
         "UserRole", back_populates="user", cascade="all, delete-orphan"
     )
