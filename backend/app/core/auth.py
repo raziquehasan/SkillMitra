@@ -67,6 +67,29 @@ def get_current_active_user(
     return current_user
 
 
+def get_current_user_optional(
+    token: str | None = Depends(_extract_token),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Optionally validate JWT and return the corresponding User, or None."""
+    if not token:
+        return None
+    try:
+        payload = decode_access_token(token)
+        user_id_str: str = payload.get("sub", "")
+        if not user_id_str:
+            return None
+        user_id = uuid.UUID(user_id_str)
+    except (JWTError, ValueError):
+        return None
+
+    repo = AuthRepository(db)
+    user = repo.get_user_by_id(user_id)
+    if not user or not user.is_active:
+        return None
+    return user
+
+
 def require_roles(*role_names: str):
     """
     Dependency factory: require at least one of the specified roles.
@@ -88,3 +111,28 @@ def require_roles(*role_names: str):
 def require_any_role(*role_names: str):
     """Alias for require_roles — requires any one of the listed roles."""
     return require_roles(*role_names)
+
+
+def require_government_user(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+) -> User:
+    """
+    Require user to be a government official (has government_officials record).
+    Used for endpoints where government users can access their own data/profile
+    without requiring government_admin role (which is only assigned after approval).
+    """
+    from sqlalchemy import select
+    from app.models.phase8 import GovernmentOfficial
+    
+    gov_official = db.scalar(
+        select(GovernmentOfficial).where(GovernmentOfficial.user_id == current_user.id)
+    )
+    
+    if not gov_official:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Government official account required.",
+        )
+    
+    return current_user
