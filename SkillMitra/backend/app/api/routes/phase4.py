@@ -1,6 +1,6 @@
 """Phase 4 training supply and curriculum APIs."""
 import uuid
-from datetime import date
+from datetime import date, datetime
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
@@ -52,10 +52,29 @@ class ProviderCreate(BaseModel):
     registration_number: str | None = None
 
 
+class ProviderUpdate(BaseModel):
+    name: str | None = None
+    contact_person: str | None = None
+    phone: str | None = None
+    source_email: str | None = None
+    source_address: str | None = None
+    source_city: str | None = None
+
+
 class ProviderOut(ProviderCreate):
     id: uuid.UUID
     user_id: uuid.UUID
+    contact_person: str | None = None
+    phone: str | None = None
+    provider_type: str | None = None
     status: str
+    verification_status: str
+    submitted_at: datetime | None = None
+    source_scheme: str | None = None
+    source_city: str | None = None
+    source_address: str | None = None
+    source_email: str | None = None
+    source_sector: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -128,6 +147,20 @@ def _provider(db: Session, user_id: uuid.UUID) -> TrainingProvider:
 @router.get("/training-providers/me", response_model=ProviderOut)
 def get_provider_me(current_user: User = Depends(require_roles("training_provider")), db: Session = Depends(get_db)):
     return _provider(db, current_user.id)
+
+
+@router.patch("/training-providers/me", response_model=ProviderOut)
+def update_provider_me(
+    data: ProviderUpdate,
+    current_user: User = Depends(require_roles("training_provider")),
+    db: Session = Depends(get_db),
+):
+    provider = _provider(db, current_user.id)
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(provider, field, value)
+    db.commit()
+    db.refresh(provider)
+    return provider
 
 
 @router.post("/training-providers/me", response_model=ProviderOut, status_code=201)

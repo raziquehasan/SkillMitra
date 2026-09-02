@@ -66,7 +66,7 @@
   "chatbot": {
     "title": "SkillMitra AI",
     "subtitle": "Ask about skills, jobs, courses and future demand",
-    "welcome": "Namaste! I'm SkillMitra AI. I can help you understand current skill demand, future demand, skill gaps, courses, careers, jobs and training opportunities in Maharashtra.",
+    "welcome": "Namaste! I'm SkillMitra AI. I can help you understand current and future skill demand, skill gaps, courses, careers, jobs and training opportunities in Maharashtra.",
     "quickQuestions": {
       "skillsHighDemand": "What skills are in high demand now?",
       "skillsFutureDemand": "Which skills will be in demand in the future?",

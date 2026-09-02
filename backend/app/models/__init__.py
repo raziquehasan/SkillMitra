@@ -51,6 +51,9 @@ from app.models.demand import (
     DemandSignal,
     IndustryDemand,
 )
+from app.models.future_demand import (
+    FutureDemandForecast,
+)
 from app.models.phase4 import (  # noqa: F401
     CandidateSkill,
     Curriculum,
@@ -113,6 +116,7 @@ __all__ = [
     "EmployerSurveyResponse",
     "DemandSignal",
     "IndustryDemand",
+    "FutureDemandForecast",
     "Role",
     "UserRole",
     "RefreshToken",

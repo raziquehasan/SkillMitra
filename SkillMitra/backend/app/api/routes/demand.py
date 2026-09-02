@@ -1,13 +1,15 @@
 """Demand Intelligence API backed by raw signals and persisted rollups."""
+import time
 import uuid
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.api.deps import get_pagination
-from app.models.demand import DemandSignal, IndustryDemand, DataSource
+from app.models.demand import DemandSignal, IndustryDemand, DataSource, FutureDemandForecast
 from app.models.career import Course, CourseSkill
+from app.services.future_demand_service import FutureDemandService
 from pydantic import BaseModel, ConfigDict
 
 router = APIRouter(prefix="/api/v1/demand", tags=["Demand Intelligence"])
@@ -224,3 +226,87 @@ def get_demand_by_job_role(params=Depends(_aggregate_query_params), db: Session 
 @router.get("/skills", response_model=list[IndustryDemandOut], summary="Demand by skill")
 def get_demand_by_skill(params=Depends(_aggregate_query_params), db: Session = Depends(get_db)):
     return _get_aggregate_view(db, *params)
+
+
+# Future Demand Forecast endpoints
+
+class FutureDemandForecastOut(BaseModel):
+    id: uuid.UUID
+    skill_id: uuid.UUID
+    job_role_id: uuid.UUID | None = None
+    industry_sector_id: uuid.UUID
+    district_id: uuid.UUID
+    proficiency_level_id: uuid.UUID
+    current_demand_score: float
+    current_demand_level: str
+    trend_score: float
+    growth_indicator: str
+    forecast_level: str
+    confidence_score: float
+    confidence_level: str
+    forecast_horizon_months: int
+    forecast_horizon_start: date
+    forecast_horizon_end: date
+    evidence_summary: str | None = None
+    algorithm_version: str
+    data_points_used: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+@router.get("/future", response_model=list[FutureDemandForecastOut], summary="Future demand forecasts")
+def get_future_demand_forecasts(
+    district_id: uuid.UUID | None = Query(None, description="Filter by district"),
+    skill_id: uuid.UUID | None = Query(None, description="Filter by skill"),
+    job_role_id: uuid.UUID | None = Query(None, description="Filter by job role"),
+    forecast_level: str | None = Query(None, description="Filter by forecast level (very_high, high, growing, stable, declining)"),
+    limit: int = Query(100, ge=1, le=500, description="Maximum number of results"),
+    db: Session = Depends(get_db),
+):
+    """Get future demand forecasts based on historical demand analysis and trend signals."""
+    service = FutureDemandService(db)
+    forecasts = service.get_forecasts(
+        district_id=district_id,
+        skill_id=skill_id,
+        job_role_id=job_role_id,
+        forecast_level=forecast_level,
+        limit=limit
+    )
+    return [FutureDemandForecastOut.model_validate(forecast) for forecast in forecasts]
+
+
+@router.post("/future/generate", summary="Generate future demand forecasts")
+def generate_future_demand_forecasts(
+    forecast_horizon_months: int = Query(12, ge=6, le=36, description="Forecast horizon in months"),
+    regenerate_existing: bool = Query(False, description="Whether to update existing forecasts"),
+    max_combinations: int | None = Query(None, ge=1, le=10000, description="Maximum combinations to process"),
+    db: Session = Depends(get_db),
+):
+    """Generate future demand forecasts using existing SkillMitra data.
+    
+    This endpoint analyzes:
+    - Current demand from IndustryDemand table
+    - Historical trends from demand over time
+    - Real-time signals from job postings
+    
+    Returns the number of forecasts generated.
+    """
+    service = FutureDemandService(db)
+    started_at = time.perf_counter()
+    result = service.generate_forecasts(
+        forecast_horizon_months=forecast_horizon_months,
+        regenerate_existing=regenerate_existing,
+        max_combinations=max_combinations,
+    )
+
+    return {
+        "status": "success",
+        "message": f"Generated {result['generated']} future demand forecasts",
+        "forecasts_generated": result["generated"],
+        "generated": result["generated"],
+        "updated": result["updated"],
+        "processed": result["processed"],
+        "insufficient_data": result["insufficient_data"],
+        "execution_time_seconds": round(time.perf_counter() - started_at, 3),
+        "forecast_horizon_months": forecast_horizon_months,
+        "algorithm_version": service.algorithm_version
+    }
