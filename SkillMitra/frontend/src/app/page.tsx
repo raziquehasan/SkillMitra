@@ -17,6 +17,15 @@ import {
   LineChart,
   Map,
   Route,
+  Filter,
+  MapPin,
+  Building2,
+  Briefcase,
+  AlertTriangle,
+  Users2,
+  BarChart3,
+  Lightbulb,
+  ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -58,6 +67,39 @@ const SECTION_INDEX: Record<string, string> = {
   outcomes: "10",
   roles: "11",
 };
+
+function CategoryButton({ 
+  label, 
+  icon, 
+  isActive, 
+  onClick 
+}: { 
+  label: string; 
+  icon: React.ReactNode;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all relative ${
+        isActive 
+          ? 'border-[#123b68] bg-[#123b68]/10 text-[#123b68]' 
+          : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+      }`}
+    >
+      {isActive && (
+        <div className="absolute -top-1 -right-1 bg-[#123b68] text-white rounded-full p-0.5">
+          <ChevronRightIcon className="h-3 w-3" />
+        </div>
+      )}
+      <div className={isActive ? 'text-[#123b68]' : 'text-slate-500'}>
+        {icon}
+      </div>
+      <span className="text-xs font-medium text-center leading-tight">{label}</span>
+    </button>
+  );
+}
 
 const DEMO_DISTRICTS: District[] = [
   { id: "pune", name: "Pune", code: "MH12", state_code: "MH" },
@@ -203,6 +245,7 @@ export default function Home() {
   const [dataStatus, setDataStatus] = useState<"loading" | "ready" | "unavailable">("loading");
 
   const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [districtDemand, setDistrictDemand] = useState<IndustryDemand[]>([]);
   const [districtCourses, setDistrictCourses] = useState<{ course_title: string }[]>([]);
   const [districtLoading, setDistrictLoading] = useState(false);
@@ -333,6 +376,11 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
+  }, [selectedDistrict]);
+
+  // Reset selected category when district changes
+  useEffect(() => {
+    setSelectedCategory(null);
   }, [selectedDistrict]);
 
   // Load job roles when sector changes
@@ -1671,23 +1719,71 @@ export default function Home() {
               </p>
             ) : null}
 
-            <ol className="mt-8 grid gap-3 md:grid-cols-4 lg:grid-cols-7">
-              {[
-                "District",
-                "Priority Industries",
-                "High-Demand Roles",
-                "Skill Gaps",
-                "Existing Training Capacity",
-                "Capacity Gap",
-                "Recommended Training Action",
-              ].map((step) => (
-                <li key={step} className="border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-[#123b68]">
-                  {step}
-                </li>
-              ))}
-            </ol>
+            {/* Category Selectors - Only show when district is selected */}
+            {selectedDistrict && (
+              <div className="mt-8 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <Filter className="h-4 w-4 text-[#123b68]" />
+                  <span className="text-sm font-semibold text-slate-700">Planning Dimensions</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                  <CategoryButton
+                    label="District"
+                    icon={<MapPin className="h-4 w-4" />}
+                    isActive={selectedCategory === "district"}
+                    onClick={() => setSelectedCategory("district")}
+                  />
+                  <CategoryButton
+                    label="Priority Industries"
+                    icon={<Building2 className="h-4 w-4" />}
+                    isActive={selectedCategory === "priority_industries"}
+                    onClick={() => setSelectedCategory("priority_industries")}
+                  />
+                  <CategoryButton
+                    label="High-Demand Roles"
+                    icon={<Briefcase className="h-4 w-4" />}
+                    isActive={selectedCategory === "high_demand_roles"}
+                    onClick={() => setSelectedCategory("high_demand_roles")}
+                  />
+                  <CategoryButton
+                    label="Skill Gaps"
+                    icon={<AlertTriangle className="h-4 w-4" />}
+                    isActive={selectedCategory === "skill_gaps"}
+                    onClick={() => setSelectedCategory("skill_gaps")}
+                  />
+                  <CategoryButton
+                    label="Training Capacity"
+                    icon={<Users2 className="h-4 w-4" />}
+                    isActive={selectedCategory === "training_capacity"}
+                    onClick={() => setSelectedCategory("training_capacity")}
+                  />
+                  <CategoryButton
+                    label="Capacity Gap"
+                    icon={<BarChart3 className="h-4 w-4" />}
+                    isActive={selectedCategory === "capacity_gap"}
+                    onClick={() => setSelectedCategory("capacity_gap")}
+                  />
+                  <CategoryButton
+                    label="Recommended Action"
+                    icon={<Lightbulb className="h-4 w-4" />}
+                    isActive={selectedCategory === "recommended_action"}
+                    onClick={() => setSelectedCategory("recommended_action")}
+                  />
+                </div>
+              </div>
+            )}
 
-            {selectedDistrict ? (
+            {/* Instruction message when no category is selected */}
+            {selectedDistrict && !selectedCategory && (
+              <div className="mt-8 rounded-lg border border-slate-200 bg-white p-6 shadow-sm text-center">
+                <Filter className="h-8 w-8 mx-auto mb-3 text-slate-400" />
+                <p className="text-sm text-slate-600">
+                  Select a planning dimension above to view {selectedDistrictName}-specific insights.
+                </p>
+              </div>
+            )}
+
+            {selectedDistrict && selectedCategory && (
               <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {districtError === "DEMO_MODE" && DEMO_DISTRICT_DATA[selectedDistrict] ? (
                   <>
@@ -1696,82 +1792,110 @@ export default function Home() {
                         Illustrative district intelligence (demo mode - API unavailable)
                       </p>
                     </div>
-                    <DemandList title="District" items={[selectedDistrictName || selectedDistrict]} />
-                    <DemandList
-                      title="Priority Industries"
-                      items={DEMO_DISTRICT_DATA[selectedDistrict].industries}
-                    />
-                    <DemandList
-                      title="High-Demand Roles"
-                      items={DEMO_DISTRICT_DATA[selectedDistrict].roles}
-                    />
-                    <DemandList
-                      title="Skill Gaps"
-                      items={DEMO_DISTRICT_DATA[selectedDistrict].skills}
-                    />
-                    <DemandList
-                      title="Existing Training Capacity"
-                      items={[DEMO_DISTRICT_DATA[selectedDistrict].capacity]}
-                    />
-                    <DemandList
-                      title="Capacity Gap"
-                      items={[DEMO_DISTRICT_DATA[selectedDistrict].gap]}
-                    />
-                    <DemandList
-                      title="Recommended Training Action"
-                      items={[DEMO_DISTRICT_DATA[selectedDistrict].action]}
-                    />
+                    {selectedCategory === "district" && (
+                      <DemandList title="District" items={[selectedDistrictName || selectedDistrict]} />
+                    )}
+                    {selectedCategory === "priority_industries" && (
+                      <DemandList
+                        title="Priority Industries"
+                        items={DEMO_DISTRICT_DATA[selectedDistrict].industries}
+                      />
+                    )}
+                    {selectedCategory === "high_demand_roles" && (
+                      <DemandList
+                        title="High-Demand Roles"
+                        items={DEMO_DISTRICT_DATA[selectedDistrict].roles}
+                      />
+                    )}
+                    {selectedCategory === "skill_gaps" && (
+                      <DemandList
+                        title="Skill Gaps"
+                        items={DEMO_DISTRICT_DATA[selectedDistrict].skills}
+                      />
+                    )}
+                    {selectedCategory === "training_capacity" && (
+                      <DemandList
+                        title="Existing Training Capacity"
+                        items={[DEMO_DISTRICT_DATA[selectedDistrict].capacity]}
+                      />
+                    )}
+                    {selectedCategory === "capacity_gap" && (
+                      <DemandList
+                        title="Capacity Gap"
+                        items={[DEMO_DISTRICT_DATA[selectedDistrict].gap]}
+                      />
+                    )}
+                    {selectedCategory === "recommended_action" && (
+                      <DemandList
+                        title="Recommended Training Action"
+                        items={[DEMO_DISTRICT_DATA[selectedDistrict].action]}
+                      />
+                    )}
                   </>
                 ) : (
                   <>
-                    <DemandList title="District" items={[selectedDistrictName || selectedDistrict]} />
-                    <DemandList
-                      title="Priority Industries"
-                      items={priorityIndustries}
-                      empty="No industry demand records are currently published for this district."
-                    />
-                    <DemandList
-                      title="High-Demand Roles"
-                      items={
-                        roleRecordCount
-                          ? [`${roleRecordCount} job-role demand record${roleRecordCount === 1 ? "" : "s"} in current data`]
-                          : []
-                      }
-                      empty="Role titles are held in authorised district intelligence views. No public role demand records are shown here unless present in the demand API."
-                    />
-                    <DemandList
-                      title="Skill Gaps"
-                      items={highDemandSkills}
-                      empty="No skill demand records with catalogue names are currently available for this district."
-                    />
-                    <DemandList
-                      title="Existing Training Capacity"
-                      items={
-                        localCourses.length
-                          ? localCourses.map((course) => course.title)
-                          : activeDistrictCourses.map((course) => course.course_title)
-                      }
-                      empty="No course coverage records are currently published for this district."
-                    />
-                    <DemandList
-                      title="Capacity Gap"
-                      items={capacityGapItems}
-                      empty="Select a district to view the qualitative capacity-gap note from published records."
-                    />
-                    <DemandList
-                      title="Recommended Training Action"
-                      items={[
-                        activeDemand.length && !publishedCoverage
-                          ? "Review capacity: demand is recorded without published course coverage."
-                          : activeDemand.length
-                            ? "Review course alignment, trainer capability and equipment against recorded demand."
-                            : "No public demand record is available yet; use authorised district plans after login.",
-                      ]}
-                    />
+                    {selectedCategory === "district" && (
+                      <DemandList title="District" items={[selectedDistrictName || selectedDistrict]} />
+                    )}
+                    {selectedCategory === "priority_industries" && (
+                      <DemandList
+                        title="Priority Industries"
+                        items={priorityIndustries}
+                        empty="No industry demand records are currently published for this district."
+                      />
+                    )}
+                    {selectedCategory === "high_demand_roles" && (
+                      <DemandList
+                        title="High-Demand Roles"
+                        items={
+                          roleRecordCount
+                            ? [`${roleRecordCount} job-role demand record${roleRecordCount === 1 ? "" : "s"} in current data`]
+                            : []
+                        }
+                        empty="Role titles are held in authorised district intelligence views. No public role demand records are shown here unless present in the demand API."
+                      />
+                    )}
+                    {selectedCategory === "skill_gaps" && (
+                      <DemandList
+                        title="Skill Gaps"
+                        items={highDemandSkills}
+                        empty="No skill demand records with catalogue names are currently available for this district."
+                      />
+                    )}
+                    {selectedCategory === "training_capacity" && (
+                      <DemandList
+                        title="Existing Training Capacity"
+                        items={
+                          localCourses.length
+                            ? localCourses.map((course) => course.title)
+                            : activeDistrictCourses.map((course) => course.course_title)
+                        }
+                        empty="No course coverage records are currently published for this district."
+                      />
+                    )}
+                    {selectedCategory === "capacity_gap" && (
+                      <DemandList
+                        title="Capacity Gap"
+                        items={capacityGapItems}
+                        empty="Select a district to view the qualitative capacity-gap note from published records."
+                      />
+                    )}
+                    {selectedCategory === "recommended_action" && (
+                      <DemandList
+                        title="Recommended Training Action"
+                        items={[
+                          activeDemand.length && !publishedCoverage
+                            ? "Review capacity: demand is recorded without published course coverage."
+                            : activeDemand.length
+                              ? "Review course alignment, trainer capability and equipment against recorded demand."
+                              : "No public demand record is available yet; use authorised district plans after login.",
+                        ]}
+                      />
+                    )}
                   </>
                 )}
               </div>
-            ) : null}
+            )}
             {districtLoading ? (
               <p className="mt-2 flex items-center gap-2 text-sm text-slate-600">
                 <LineChart className="h-4 w-4 animate-pulse" aria-hidden="true" />
