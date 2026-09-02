@@ -198,3 +198,37 @@ class DistrictTrainingPlanItem(Base):
         Index("ix_district_plan_items_plan_id", "plan_id"),
         Index("ix_district_plan_items_skill_id", "skill_id"),
     )
+
+
+class SupportTicket(TimestampMixin, Base):
+    __tablename__ = "support_tickets"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    provider_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("training_providers.id", ondelete="SET NULL"), nullable=True)
+    category: Mapped[str] = mapped_column(String(50), nullable=False)
+    subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    priority: Mapped[str] = mapped_column(String(20), nullable=False, default="medium")
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="open")
+    assigned_to_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolution_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    __table_args__ = (
+        CheckConstraint("priority IN ('low', 'medium', 'high', 'critical')", name="ck_support_tickets_priority"),
+        CheckConstraint("status IN ('open', 'in_progress', 'waiting_for_response', 'resolved', 'closed')", name="ck_support_tickets_status"),
+        Index("ix_support_tickets_user_id", "user_id"),
+        Index("ix_support_tickets_provider_id", "provider_id"),
+    )
+
+
+class SupportTicketResponse(TimestampMixin, Base):
+    __tablename__ = "support_ticket_responses"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ticket_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("support_tickets.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    response: Mapped[str] = mapped_column(Text, nullable=False)
+    is_internal: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    __table_args__ = (
+        Index("ix_support_ticket_responses_ticket_id", "ticket_id"),
+        Index("ix_support_ticket_responses_user_id", "user_id"),
+    )

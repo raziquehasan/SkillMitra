@@ -168,7 +168,7 @@ export const api = {
     ),
   jobRoles: (sectorId?: string) =>
     apiFetch<JobRole[]>(
-      `/api/v1/job-roles${sectorId ? `?industry_sector_id=${encodeURIComponent(sectorId)}` : ""}`,
+      `/api/v1/demand/job-roles${sectorId ? `?industry_sector_id=${encodeURIComponent(sectorId)}` : ""}`,
     ),
   careerRecommendation: (params: {
     district_id?: string;

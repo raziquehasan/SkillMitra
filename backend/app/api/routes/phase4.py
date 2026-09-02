@@ -1,6 +1,6 @@
 """Phase 4 training supply and curriculum APIs."""
 import uuid
-from datetime import date
+from datetime import date, datetime
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
@@ -13,6 +13,7 @@ from app.models.identity import User
 from app.models.phase4 import (
     CourseEquipmentRequirement, CourseOffering, Curriculum, CurriculumSkill,
     CurriculumVersion, Equipment, Trainer, TrainerSkill, TrainingProvider,
+    SupportTicket, SupportTicketResponse,
 )
 from app.models.phase9 import CurriculumProposal
 from app.models.skills import SkillProficiencyLevel
@@ -52,10 +53,29 @@ class ProviderCreate(BaseModel):
     registration_number: str | None = None
 
 
+class ProviderUpdate(BaseModel):
+    name: str | None = None
+    contact_person: str | None = None
+    phone: str | None = None
+    source_email: str | None = None
+    source_address: str | None = None
+    source_city: str | None = None
+
+
 class ProviderOut(ProviderCreate):
     id: uuid.UUID
     user_id: uuid.UUID
+    contact_person: str | None = None
+    phone: str | None = None
+    provider_type: str | None = None
     status: str
+    verification_status: str
+    submitted_at: datetime | None = None
+    source_scheme: str | None = None
+    source_city: str | None = None
+    source_address: str | None = None
+    source_email: str | None = None
+    source_sector: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -128,6 +148,20 @@ def _provider(db: Session, user_id: uuid.UUID) -> TrainingProvider:
 @router.get("/training-providers/me", response_model=ProviderOut)
 def get_provider_me(current_user: User = Depends(require_roles("training_provider")), db: Session = Depends(get_db)):
     return _provider(db, current_user.id)
+
+
+@router.patch("/training-providers/me", response_model=ProviderOut)
+def update_provider_me(
+    data: ProviderUpdate,
+    current_user: User = Depends(require_roles("training_provider")),
+    db: Session = Depends(get_db),
+):
+    provider = _provider(db, current_user.id)
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(provider, field, value)
+    db.commit()
+    db.refresh(provider)
+    return provider
 
 
 @router.post("/training-providers/me", response_model=ProviderOut, status_code=201)
@@ -286,3 +320,190 @@ def review_curriculum_proposal(
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
     return result
+
+
+# Support Ticket endpoints
+class SupportTicketCreate(BaseModel):
+    category: str
+    subject: str
+    description: str
+    priority: str = "medium"
+
+
+class SupportTicketOut(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    provider_id: uuid.UUID | None
+    category: str
+    subject: str
+    description: str
+    priority: str
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    assigned_to_user_id: uuid.UUID | None
+    resolved_at: datetime | None
+    resolution_notes: str | None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SupportTicketResponseCreate(BaseModel):
+    response: str
+    is_internal: bool = False
+
+
+class SupportTicketResponseOut(BaseModel):
+    id: uuid.UUID
+    ticket_id: uuid.UUID
+    user_id: uuid.UUID
+    response: str
+    is_internal: bool
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+@router.get("/support/tickets", response_model=list[SupportTicketOut])
+def list_support_tickets(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """List support tickets for the current user."""
+    stmt = select(SupportTicket).where(SupportTicket.user_id == current_user.id)
+    # If user is a training provider, also filter by provider_id
+    if "training_provider" in current_user.roles:
+        provider = db.scalar(select(TrainingProvider).where(TrainingProvider.user_id == current_user.id))
+        if provider:
+            stmt = stmt.where(SupportTicket.provider_id == provider.id)
+    return db.scalars(stmt.order_by(SupportTicket.created_at.desc())).all()
+
+
+@router.post("/support/tickets", response_model=SupportTicketOut, status_code=201)
+def create_support_ticket(
+    data: SupportTicketCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Create a new support ticket."""
+    provider_id = None
+    if "training_provider" in current_user.roles:
+        provider = db.scalar(select(TrainingProvider).where(TrainingProvider.user_id == current_user.id))
+        if provider:
+            provider_id = provider.id
+
+    ticket = SupportTicket(
+        user_id=current_user.id,
+        provider_id=provider_id,
+        category=data.category,
+        subject=data.subject,
+        description=data.description,
+        priority=data.priority,
+    )
+    db.add(ticket)
+    db.commit()
+    db.refresh(ticket)
+    return ticket
+
+
+@router.get("/support/tickets/{ticket_id}", response_model=SupportTicketOut)
+def get_support_ticket(
+    ticket_id: uuid.UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get a specific support ticket."""
+    ticket = db.get(SupportTicket, ticket_id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Support ticket not found")
+    
+    # Ensure user can only access their own tickets
+    if ticket.user_id != current_user.id:
+        # Allow government admins to access all tickets
+        if "government_admin" not in current_user.roles:
+            raise HTTPException(status_code=403, detail="Access denied")
+    
+    return ticket
+
+
+@router.get("/support/tickets/{ticket_id}/responses", response_model=list[SupportTicketResponseOut])
+def list_ticket_responses(
+    ticket_id: uuid.UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """List responses for a support ticket."""
+    ticket = db.get(SupportTicket, ticket_id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Support ticket not found")
+    
+    # Ensure user can only access their own ticket responses
+    if ticket.user_id != current_user.id:
+        if "government_admin" not in current_user.roles:
+            raise HTTPException(status_code=403, detail="Access denied")
+    
+    return db.scalars(
+        select(SupportTicketResponse)
+        .where(SupportTicketResponse.ticket_id == ticket_id)
+        .order_by(SupportTicketResponse.created_at.asc())
+    ).all()
+
+
+@router.post("/support/tickets/{ticket_id}/responses", response_model=SupportTicketResponseOut, status_code=201)
+def create_ticket_response(
+    ticket_id: uuid.UUID,
+    data: SupportTicketResponseCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Add a response to a support ticket."""
+    ticket = db.get(SupportTicket, ticket_id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Support ticket not found")
+    
+    # Ensure user can only respond to their own tickets
+    if ticket.user_id != current_user.id:
+        if "government_admin" not in current_user.roles:
+            raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Don't allow responses to closed tickets
+    if ticket.status == "closed":
+        raise HTTPException(status_code=400, detail="Cannot add responses to closed tickets")
+    
+    response = SupportTicketResponse(
+        ticket_id=ticket_id,
+        user_id=current_user.id,
+        response=data.response,
+        is_internal=data.is_internal,
+    )
+    db.add(response)
+    
+    # Update ticket status if needed
+    if ticket.status == "open":
+        ticket.status = "in_progress"
+    
+    db.commit()
+    db.refresh(response)
+    return response
+
+
+@router.patch("/support/tickets/{ticket_id}/status")
+def update_ticket_status(
+    ticket_id: uuid.UUID,
+    status: str,
+    current_user: User = Depends(require_roles("government_admin")),
+    db: Session = Depends(get_db),
+):
+    """Update support ticket status (government admin only)."""
+    valid_statuses = ["open", "in_progress", "waiting_for_response", "resolved", "closed"]
+    if status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
+    
+    ticket = db.get(SupportTicket, ticket_id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Support ticket not found")
+    
+    ticket.status = status
+    if status == "resolved":
+        ticket.resolved_at = datetime.now(timezone.utc)
+    
+    db.commit()
+    return {"message": "Ticket status updated successfully"}

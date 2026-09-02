@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     # Password policy
     PASSWORD_MIN_LENGTH: int = 8
 
+    # OpenAI Configuration for AI Assistant
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o-mini"
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

@@ -320,7 +320,7 @@ export default function TrainingCapacityPage() {
           <div className="mb-5">
             <h1 className="text-2xl font-bold text-[#1e293b] tracking-tight">Training Capacity</h1>
             <p className="text-sm text-slate-600 mt-1">
-              Analyse training capacity against labour-market demand across Maharashtra districts.
+              Analyse training capacity against job-market demand across Maharashtra districts.
             </p>
           </div>
 

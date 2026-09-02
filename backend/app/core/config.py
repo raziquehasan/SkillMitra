@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     # Password policy
     PASSWORD_MIN_LENGTH: int = 8
 
+    # OpenAI Configuration
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-3.5-turbo"
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

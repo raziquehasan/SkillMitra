@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import auth, candidates, skills, courses, jobs, employers, applications, placements, career_guidance, demand, government, industry, training_providers, phase4, phase5, phase6, sih, geography, job_roles
+from app.api.routes import auth, candidates, skills, courses, jobs, employers, applications, placements, career_guidance, demand, government, industry, training_providers, phase4, phase5, phase6, sih, geography, job_roles, ai_chatbot
 
 app = FastAPI(
     title="SkillMitra API",
@@ -45,3 +45,4 @@ app.include_router(phase6.router)
 app.include_router(sih.router)
 app.include_router(geography.router)
 app.include_router(job_roles.router)
+app.include_router(ai_chatbot.router, prefix="/api/v1/ai", tags=["AI Chatbot"])
