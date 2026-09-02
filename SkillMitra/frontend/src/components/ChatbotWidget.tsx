@@ -27,7 +27,7 @@ interface ChatbotResponse {
   fallback?: boolean;
 }
 
-// Custom SkillMitra AI Icon - Chat bubble with sparkle
+// Custom SkillMitra AI Icon - Professional AI assistant with chat bubble and spark
 const SkillMitraAIIcon = ({ className }: { className?: string }) => (
   <svg 
     viewBox="0 0 24 24" 
@@ -35,25 +35,44 @@ const SkillMitraAIIcon = ({ className }: { className?: string }) => (
     xmlns="http://www.w3.org/2000/svg"
     className={className}
   >
-    {/* Chat bubble */}
+    {/* Modern chat bubble shape */}
     <path 
-      d="M21 11.5C21.0034 12.8199 20.6951 14.1219 20.1 15.3C19.3944 16.7118 18.3098 17.8992 16.9674 18.7293C15.6251 19.5594 14.0782 19.9994 12.5 20C11.1801 20.0035 9.87812 19.6951 8.7 19.1L3 21L4.9 15.3C4.30493 14.1219 3.99656 12.8199 4 11.5C4.00061 9.92179 4.44061 8.37488 5.27072 7.03258C6.10083 5.69028 7.28825 4.6056 8.7 3.90003C9.87812 3.30496 11.1801 2.99659 12.5 3.00003H13C15.0843 3.11502 17.053 3.99479 18.5291 5.47089C20.0052 6.94699 20.885 8.91568 21 11V11.5Z" 
+      d="M12 2C6.48 2 2 6.48 2 12C2 13.54 2.35 15 2.93 16.31L2 21L6.69 20.07C8 20.65 9.46 21 11 21C16.52 21 21 16.52 21 11C21 5.48 16.52 1 11 1H12Z" 
       fill="currentColor"
     />
-    {/* Sparkle */}
+    {/* AI brain/network spark - represents intelligence */}
     <path 
-      d="M12 8L13.5 11L12 14L10.5 11L12 8Z" 
+      d="M12 6C13.66 6 15 7.34 15 9C15 10.66 13.66 12 12 12C10.34 12 9 10.66 9 9C9 7.34 10.34 6 12 6Z" 
+      fill="white"
+    />
+    {/* Central AI spark - represents intelligence */}
+    <path 
+      d="M12 7.5L12.3 8.7L13.5 9L12.3 9.3L12 10.5L11.7 9.3L10.5 9L11.7 8.7L12 7.5Z" 
+      fill="#123b68"
+    />
+    {/* Neural connection lines - represents AI */}
+    <path 
+      d="M12 12V15M9 13.5L12 15L15 13.5" 
+      stroke="white" 
+      strokeWidth="1.5" 
+      strokeLinecap="round"
+    />
+    {/* Outer sparkles - represents AI activity */}
+    <circle 
+      cx="8" 
+      cy="7" 
+      r="1" 
       fill="white"
     />
     <circle 
       cx="16" 
-      cy="8" 
-      r="1.5" 
+      cy="7" 
+      r="1" 
       fill="white"
     />
     <circle 
-      cx="8" 
-      cy="8" 
+      cx="12" 
+      cy="16" 
       r="1" 
       fill="white"
     />
@@ -63,6 +82,7 @@ const SkillMitraAIIcon = ({ className }: { className?: string }) => (
 export default function ChatbotWidget() {
   const { t, language } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
+  const [hasOpenedBefore, setHasOpenedBefore] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -187,14 +207,27 @@ export default function ChatbotWidget() {
 
   if (!isOpen) {
     return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 bg-[#123b68] text-white w-14 h-14 rounded-full shadow-lg hover:bg-[#0d2d52] transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#c2410c] focus:ring-offset-2 flex items-center justify-center"
-        aria-label={t("chatbot.title")}
-        title={t("chatbot.ask")}
-      >
-        <SkillMitraAIIcon className="w-7 h-7" />
-      </button>
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+        {/* Tooltip - shown only on first visit */}
+        {!hasOpenedBefore && (
+          <div className="bg-[#123b68] text-white px-4 py-2 rounded-lg shadow-lg text-[15px] font-medium mb-2 mr-2 animate-pulse">
+            {t("chatbot.ask")}
+          </div>
+        )}
+        
+        <button
+          onClick={() => {
+            setIsOpen(true);
+            setHasOpenedBefore(true);
+          }}
+          className="bg-[#123b68] text-white rounded-full shadow-lg hover:bg-[#0d2d52] transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#c2410c] focus:ring-offset-2 flex items-center justify-center"
+          style={{ width: '60px', height: '60px' }}
+          aria-label={isOpen ? "Close SkillMitra AI" : "Open SkillMitra AI"}
+          title={t("chatbot.ask")}
+        >
+          <SkillMitraAIIcon className="w-7 h-7" />
+        </button>
+      </div>
     );
   }
 
@@ -204,25 +237,25 @@ export default function ChatbotWidget() {
       {/* Mobile: Floating button is hidden when chat is open */}
       {/* Desktop: Floating button is hidden when chat is open */}
       
-      <div className="fixed z-50 w-full max-w-md bottom-0 right-0 left-0 md:bottom-24 md:right-6 md:w-auto md:left-auto md:max-w-md">
+      <div className="fixed z-50 w-full max-w-md bottom-0 right-0 left-0 md:bottom-24 md:right-6 md:w-auto md:left-auto md:max-w-[420px]">
         <div className="bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col md:rounded-xl rounded-t-xl h-[85vh] md:h-[560px]">
           {/* Header */}
-          <div className="bg-[#123b68] text-white p-4 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 p-2.5 rounded-lg">
+          <div className="bg-[#123b68] text-white p-3 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-white/20 p-2 rounded-lg">
               <SkillMitraAIIcon className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-semibold text-base leading-tight">{t("chatbot.title")}</h3>
-              <p className="text-xs text-white/80 mt-0.5 leading-snug">{getSubtitle()}</p>
+              <h3 className="font-semibold text-[16px] leading-tight">{t("chatbot.title")}</h3>
+              <p className="text-[12px] text-white/80 mt-0.5 leading-snug">{getSubtitle()}</p>
             </div>
           </div>
           <button
             onClick={() => setIsOpen(false)}
             className="text-white/80 hover:text-white transition-colors p-1.5 hover:bg-white/10 rounded focus:outline-none focus:ring-2 focus:ring-white/50"
-            aria-label={t("chatbot.close")}
+            aria-label="Close SkillMitra AI"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -230,10 +263,7 @@ export default function ChatbotWidget() {
         <div className="flex-1 overflow-y-auto p-4 bg-slate-50">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center px-4">
-              <div className="bg-[#123b68] p-3 rounded-full mb-4">
-                <SkillMitraAIIcon className="w-8 h-8 text-white" />
-              </div>
-              <p className="text-slate-700 font-medium mb-2 text-base leading-relaxed">{getWelcomeMessage()}</p>
+              <p className="text-slate-700 font-medium mb-3 text-[15px] leading-[1.6] max-w-md">{getWelcomeMessage()}</p>
               
               {/* Quick Questions */}
               <div className="grid grid-cols-1 gap-2 w-full mt-4">
@@ -241,7 +271,7 @@ export default function ChatbotWidget() {
                   <button
                     key={index}
                     onClick={() => handleQuickQuestion(question)}
-                    className="text-left p-3 bg-white border border-slate-200 rounded-lg hover:border-[#123b68] hover:bg-[#123b68]/5 transition-all text-sm text-slate-700 hover:text-[#123b68] min-h-[44px] flex items-center"
+                    className="text-left p-2.5 bg-white border border-slate-200 rounded-lg hover:border-[#123b68] hover:bg-[#123b68]/5 transition-all text-[14px] text-slate-700 hover:text-[#123b68] h-[48px] flex items-center"
                   >
                     {question}
                   </button>
@@ -271,11 +301,11 @@ export default function ChatbotWidget() {
                 }`}
               >
                 {message.role === "assistant" ? (
-                  <div className="text-sm prose prose-sm prose-slate max-w-none leading-relaxed prose-headings:font-semibold prose-headings:text-slate-800 prose-headings:mt-1 prose-headings:mb-2 prose-p:my-1 prose-ul:my-1 prose-li:my-0">
+                  <div className="text-[15px] prose prose-sm prose-slate max-w-none leading-[1.6] prose-headings:font-semibold prose-headings:text-slate-800 prose-headings:mt-2 prose-headings:mb-2 prose-p:my-2 prose-ul:my-2 prose-li:my-1">
                     <ReactMarkdown>{message.content}</ReactMarkdown>
                   </div>
                 ) : (
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                  <p className="text-[15px] whitespace-pre-wrap leading-[1.6]">{message.content}</p>
                 )}
                 <p className="text-xs mt-1 opacity-60">
                   {message.timestamp.toLocaleTimeString([], {
@@ -294,7 +324,7 @@ export default function ChatbotWidget() {
                 <SkillMitraAIIcon className="w-4 h-4 text-white" />
               </div>
               <div className="bg-white border border-slate-200 p-3 rounded-lg">
-                <p className="mb-2 text-xs text-slate-600">{t("chatbot.loading")}</p>
+                <p className="mb-2 text-[13px] text-slate-600">{t("chatbot.loading")}</p>
                 <div className="flex gap-1" aria-label={t("chatbot.loading")}>
                   <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
                   <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-100" />
@@ -321,16 +351,16 @@ export default function ChatbotWidget() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={t("chatbot.placeholder")}
-              className="flex-1 px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#123b68] focus:border-transparent text-sm placeholder:text-slate-400 disabled:bg-slate-100"
+              className="flex-1 px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#123b68] focus:border-transparent text-[15px] placeholder:text-slate-400 disabled:bg-slate-100"
               disabled={isLoading}
-              style={{ minHeight: '44px' }}
+              style={{ height: '48px' }}
             />
             <button
               type="submit"
               disabled={!inputValue.trim() || isLoading}
-              className="bg-[#123b68] text-white p-2.5 rounded-lg hover:bg-[#0d2d52] disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-[#123b68] focus:ring-offset-2"
+              className="bg-[#123b68] text-white p-2 rounded-lg hover:bg-[#0d2d52] disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-[#123b68] focus:ring-offset-2"
               aria-label={t("chatbot.sendMessage")}
-              style={{ minHeight: '44px', minWidth: '44px' }}
+              style={{ height: '48px', width: '48px' }}
             >
               <Send className="w-5 h-5" />
             </button>
