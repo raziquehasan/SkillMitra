@@ -537,6 +537,27 @@ export const api = {
     return apiFetch<any>(`/api/v1/government/reports${qs.toString() ? `?${qs.toString()}` : ""}`);
   },
 
+  // AI Chatbot endpoint
+  aiChat: (params: {
+    message: string;
+    context?: Record<string, any>;
+    language?: string;
+  }) => {
+    return apiFetch<{
+      answer: string;
+      sources: string[];
+      data_context: Record<string, any>;
+      language: string;
+      fallback?: boolean;
+    }>(
+      "/api/v1/ai/chat",
+      {
+        method: "POST",
+        body: JSON.stringify(params),
+      },
+    );
+  },
+
   generateReport: (reportId: string, params?: Record<string, any>) => {
     const qs = new URLSearchParams();
     if (params) {
@@ -548,4 +569,136 @@ export const api = {
       method: 'POST'
     });
   },
+
+  // Training Provider endpoints
+  trainingProviderMe: () => apiFetch<{
+    id: string;
+    user_id: string;
+    district_id: string;
+    name: string;
+    contact_person: string | null;
+    phone: string | null;
+    provider_type: string | null;
+    registration_number: string | null;
+    status: string;
+    verification_status: string;
+    submitted_at: string | null;
+    source_scheme: string | null;
+    source_city: string | null;
+    source_address: string | null;
+    source_email: string | null;
+    source_sector: string | null;
+  }>("/api/v1/training-providers/me"),
+
+  updateTrainingProviderMe: (data: {
+    name?: string;
+    contact_person?: string;
+    phone?: string;
+    source_email?: string;
+    source_address?: string;
+    source_city?: string;
+  }) => apiFetch<any>("/api/v1/training-providers/me", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  }),
+
+  trainingProviderVerification: () => apiFetch<{
+    provider_id: string;
+    name: string;
+    provider_type: string | null;
+    status: string;
+    verification_status: string;
+  }>("/api/v1/training-providers/me/verification"),
+
+  trainingProviderCapacity: () => apiFetch<any[]>("/api/v1/training-providers/me/capacity"),
+
+  trainingProviderOfferings: (params: Record<string, any> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<any[]>(`/api/v1/training-providers/me/offerings${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  createTrainingProviderOffering: (data: {
+    course_id: string;
+    district_id: string;
+    sanctioned_seats?: number;
+    active_seats?: number;
+    utilized_seats?: number;
+  }) => apiFetch<any>("/api/v1/training-providers/me/offerings", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+
+  trainingProviderTrainers: (params: Record<string, any> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<any[]>(`/api/v1/training-providers/me/trainers${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  createTrainingProviderTrainer: (data: { name: string }) => apiFetch<any>("/api/v1/training-providers/me/trainers", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+
+  trainingProviderEquipment: (params: Record<string, any> = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<any[]>(`/api/v1/training-providers/me/equipment${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  createTrainingProviderEquipment: (data: {
+    district_id: string;
+    name: string;
+    quantity?: number;
+    available_quantity?: number;
+  }) => apiFetch<any>("/api/v1/training-providers/me/equipment", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+
+  registerTrainingProviderProfile: (data: {
+    district_id: string;
+    name: string;
+    provider_type?: string;
+    registration_number?: string;
+  }) => apiFetch<{
+    provider_id: string;
+    name: string;
+    verification_status: string;
+    submitted_at: string | null;
+  }>("/api/v1/training-providers/register", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+
+  // Support ticket endpoints
+  supportTickets: () => apiFetch<any[]>("/api/v1/support/tickets"),
+
+  createSupportTicket: (data: {
+    category: string;
+    subject: string;
+    description: string;
+    priority?: string;
+  }) => apiFetch<any>("/api/v1/support/tickets", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+
+  supportTicket: (ticketId: string) => apiFetch<any>(`/api/v1/support/tickets/${ticketId}`),
+
+  supportTicketResponses: (ticketId: string) => apiFetch<any[]>(`/api/v1/support/tickets/${ticketId}/responses`),
+
+  createSupportTicketResponse: (ticketId: string, data: {
+    response: string;
+    is_internal?: boolean;
+  }) => apiFetch<any>(`/api/v1/support/tickets/${ticketId}/responses`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
 };

@@ -3,6 +3,8 @@ import { Source_Sans_3, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
+import ChatbotWidget from "@/components/ChatbotWidget";
 
 const sourceSans = Source_Sans_3({
   variable: "--font-gov-sans",
@@ -17,9 +19,9 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "SkillMitra | Maharashtra Labour Market Intelligence",
+  title: "SkillMitra | Maharashtra Job Intelligence",
   description:
-    "SkillMitra connects labour-market intelligence, employer requirements, skill gaps, courses, training capacity and placement outcomes to support evidence-based skill development planning across Maharashtra.",
+    "SkillMitra connects job-market intelligence, employer requirements, skill gaps, courses, training capacity and placement outcomes to support evidence-based skill development planning across Maharashtra.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -29,11 +31,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${sourceSans.variable} ${sourceSerif.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#f4f7fa] text-[#1b2838]">
-        <AuthProvider>
-          <NotificationProvider>
-            {children}
-          </NotificationProvider>
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <NotificationProvider>
+              {children}
+            </NotificationProvider>
+          </AuthProvider>
+          <ChatbotWidget />
+        </LanguageProvider>
       </body>
     </html>
   );

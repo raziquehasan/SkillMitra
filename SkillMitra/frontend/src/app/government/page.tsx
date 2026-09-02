@@ -869,10 +869,10 @@ function DashboardContent() {
       {/* Page Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#1e293b]">
-          Labour Market Intelligence Dashboard
+          Job Intelligence Dashboard
         </h1>
         <p className="mt-1 text-sm text-slate-600">
-          Monitor labour-market demand, skill gaps, training capacity and employment outcomes across Maharashtra.
+          Monitor job-market demand, skill gaps, training capacity and employment outcomes across Maharashtra.
         </p>
       </div>
 
@@ -999,7 +999,7 @@ function DashboardContent() {
               <Activity className="h-5 w-5 text-[#1e3a8a]" />
               <h2 className="text-sm font-semibold uppercase tracking-wide text-[#1e3a8a]">Decision Support Pipeline</h2>
             </div>
-            <p className="text-xs text-slate-500 mb-4">From labour-market demand to training and employment outcomes</p>
+            <p className="text-xs text-slate-500 mb-4">From job-market demand to training and employment outcomes</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 w-full">
               <PipelineStage
                 stage="01"
@@ -1051,7 +1051,7 @@ function DashboardContent() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-semibold text-[#1e293b]">Skill Demand Ranking</h3>
-                  <p className="text-xs text-slate-500 mt-1">Top skills by current labour-market demand</p>
+                  <p className="text-xs text-slate-500 mt-1">Top skills by current job-market demand</p>
                 </div>
                 <button 
                   onClick={() => router.push("/government/skill-gaps")}
