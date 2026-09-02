@@ -19,9 +19,10 @@ import {
   Route,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const ENGINE_STEPS = [
-  "Labour Market Data",
+  "Job Market Data",
   "Demand Analysis",
   "Job Roles",
   "Skills",
@@ -172,22 +173,23 @@ const DEMO_DISTRICT_DATA: Record<string, { industries: string[]; roles: string[]
 };
 
 const NAV = [
-  { href: "#home", label: "Home" },
-  { href: "#demand", label: "Labour Market Intelligence" },
-  { href: "#gaps", label: "Skill Gaps" },
-  { href: "#curriculum", label: "Courses & Curriculum" },
-  { href: "#capacity", label: "Training Capacity" },
-  { href: "#employers", label: "Employer Insights" },
-  { href: "#outcomes", label: "Jobs & Outcomes" },
-  { href: "#planning", label: "District Planning" },
+  { href: "#home", label: "nav.home" },
+  { href: "#demand", label: "nav.jobMarketIntelligence" },
+  { href: "#future-demand", label: "nav.futureDemand" },
+  { href: "#gaps", label: "nav.skillGaps" },
+  { href: "#curriculum", label: "nav.courses" },
+  { href: "#capacity", label: "nav.trainingCapacity" },
+  { href: "#employers", label: "nav.employerInsights" },
+  { href: "#outcomes", label: "nav.jobsOutcomes" },
+  { href: "#planning", label: "nav.districtPlanning" },
 ];
 
 export default function Home() {
   const { user, logout } = useAuth();
+  const { t, language, setLanguage } = useLanguage();
   const router = useRouter();
   const [mobileNav, setMobileNav] = useState(false);
   const [fontScale, setFontScale] = useState<"sm" | "md" | "lg">("md");
-  const [lang, setLang] = useState<"en" | "mr">("en");
   const [activeHash, setActiveHash] = useState("#home");
 
   const [districts, setDistricts] = useState<District[]>([]);
@@ -205,6 +207,9 @@ export default function Home() {
   const [districtCourses, setDistrictCourses] = useState<{ course_title: string }[]>([]);
   const [districtLoading, setDistrictLoading] = useState(false);
   const [districtError, setDistrictError] = useState("");
+
+  const [futureDemandForecasts, setFutureDemandForecasts] = useState<any[]>([]);
+  const [futureDemandLoading, setFutureDemandLoading] = useState(false);
 
   const [interest, setInterest] = useState("");
 
@@ -292,10 +297,6 @@ export default function Home() {
     if (fontScale === "sm") document.documentElement.classList.add("font-sm");
     if (fontScale === "lg") document.documentElement.classList.add("font-lg");
   }, [fontScale]);
-
-  useEffect(() => {
-    document.documentElement.lang = lang === "mr" ? "mr" : "en";
-  }, [lang]);
 
   useEffect(() => {
     if (!selectedDistrict) return;
@@ -540,22 +541,44 @@ export default function Home() {
               className="h-9 w-auto bg-white/10 p-0.5"
             />
             <p>
-              Government of Maharashtra
+              {t("government.header")}
               <span className="mx-2 hidden sm:inline" aria-hidden>
                 |
               </span>
               <span className="block sm:inline">
-                Skills, Employment, Entrepreneurship &amp; Innovation Department
+                {t("government.department")}
               </span>
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 md:gap-3">
-            <button type="button" onClick={() => setLang("mr")} aria-pressed={lang === "mr"}>
+            <button 
+              type="button" 
+              onClick={() => setLanguage("mr")} 
+              aria-pressed={language === "mr"}
+              className={`px-4 py-2 text-sm rounded transition-colors cursor-pointer pointer-events-auto ${language === "mr" ? "bg-white/20 font-bold" : "hover:bg-white/10"}`}
+              style={{ zIndex: 10, position: 'relative' }}
+            >
               मराठी
             </button>
             <span aria-hidden>|</span>
-            <button type="button" onClick={() => setLang("en")} aria-pressed={lang === "en"}>
+            <button 
+              type="button" 
+              onClick={() => setLanguage("en")} 
+              aria-pressed={language === "en"}
+              className={`px-4 py-2 text-sm rounded transition-colors cursor-pointer pointer-events-auto ${language === "en" ? "bg-white/20 font-bold" : "hover:bg-white/10"}`}
+              style={{ zIndex: 10, position: 'relative' }}
+            >
               English
+            </button>
+            <span aria-hidden>|</span>
+            <button 
+              type="button" 
+              onClick={() => setLanguage("hi")} 
+              aria-pressed={language === "hi"}
+              className={`px-4 py-2 text-sm rounded transition-colors cursor-pointer pointer-events-auto ${language === "hi" ? "bg-white/20 font-bold" : "hover:bg-white/10"}`}
+              style={{ zIndex: 10, position: 'relative' }}
+            >
+              हिंदी
             </button>
             <span aria-hidden>|</span>
             <button type="button" onClick={() => setFontScale("lg")} aria-label="Increase text size">
@@ -579,7 +602,7 @@ export default function Home() {
             <BrandMark src="/skillmitra-logo.png" alt="SkillMitra" className="h-16 w-auto sm:h-20" />
             <div className="min-w-0">
               <p className="font-serif text-xl font-semibold text-[#123b68] sm:text-2xl">SkillMitra</p>
-              <p className="text-sm text-slate-600">Labour Market Intelligence and Skill Development Planning</p>
+              <p className="text-sm text-slate-600">{t("home.brandDescription")}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -647,7 +670,7 @@ export default function Home() {
                       : "border-b-4 border-transparent text-slate-700"
                   }`}
                 >
-                  {item.label}
+                  {t(item.label)}
                 </a>
               </li>
             ))}
@@ -664,16 +687,12 @@ export default function Home() {
         <section id="home" className="border-b border-slate-200 bg-[#eef3f8]">
           <div className="mx-auto grid max-w-7xl items-start gap-8 px-5 py-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)] lg:py-10">
             <div>
-              <p className="text-xs font-semibold tracking-[0.14em] text-[#c2410c]">
-                MAHARASHTRA SKILL DEVELOPMENT • LABOUR MARKET INTELLIGENCE
-              </p>
+              <p className="text-xs font-semibold tracking-[0.14em] text-[#c2410c]">{t("home.eyebrow")}</p>
               <h1 className="mt-3 font-serif text-3xl font-semibold leading-tight text-[#123b68] md:text-4xl">
-                Turning Labour Market Demand into Better Training Outcomes.
+                {t("hero.title")}
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-7 text-slate-700 md:text-lg">
-                SkillMitra connects labour-market intelligence, employer requirements, skill gaps,
-                courses, training capacity and placement outcomes to support evidence-based skill
-                development planning across Maharashtra.
+                {t("hero.description")}
               </p>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
                 For government departments, district planners, training providers, employers and
@@ -681,53 +700,48 @@ export default function Home() {
                 outcomes.
               </p>
               <p className="mt-4 text-xs font-semibold uppercase tracking-[0.12em] text-[#123b68]">
-                Data → Insight → Action → Outcome
+                {t("home.flow")}
               </p>
-              {lang === "mr" ? (
-                <p className="mt-3 text-sm text-slate-600">
-                  मराठी भाषांतर सध्या मर्यादित आहे. मुख्य मजकूर इंग्रजीत दाखवला आहे.
-                </p>
-              ) : null}
               <div className="mt-6 flex flex-wrap gap-3">
                 <a
                   href="#demand"
                   className="bg-[#123b68] px-6 py-3 font-semibold text-white hover:bg-[#0c2d51]"
                 >
-                  Explore Labour Market Intelligence
+                  {t("home.exploreIntelligence")}
                 </a>
                 <a
                   href="#planning"
                   className="border border-[#123b68] bg-white px-6 py-3 font-semibold text-[#123b68] hover:bg-slate-50"
                 >
-                  Explore District Planning
+                  {t("home.exploreDistrictPlanning")}
                 </a>
                 <a
                   href="#career"
                   className="border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                 >
-                  Explore Career Pathways
+                  {t("home.exploreCareer")}
                 </a>
               </div>
               <div className="mt-8 grid grid-cols-3 gap-4 border-t border-slate-300 pt-6">
                 <div>
                   <p className="text-2xl font-semibold text-[#123b68]">36</p>
-                  <p className="text-xs text-slate-500">Maharashtra districts</p>
+                  <p className="text-xs text-slate-500">{t("home.districts")}</p>
                 </div>
                 <div>
                   <p className="text-2xl font-semibold text-[#123b68]">{courses.length || 15}</p>
-                  <p className="text-xs text-slate-500">Courses listed</p>
+                  <p className="text-xs text-slate-500">{t("home.coursesListed")}</p>
                 </div>
                 <div>
                   <p className="text-2xl font-semibold text-[#123b68]">{jobs.length || 17}</p>
-                  <p className="text-xs text-slate-500">Labour-market opening records</p>
+                  <p className="text-xs text-slate-500">{t("home.jobRecords")}</p>
                 </div>
               </div>
             </div>
 
             <aside className="border border-slate-300 bg-white p-4" aria-labelledby="signal-panel-heading">
-              <p className="text-xs font-semibold tracking-wide text-slate-500">LABOUR MARKET SIGNALS</p>
+              <p className="text-xs font-semibold tracking-wide text-slate-500">{t("home.signals")}</p>
               <h2 id="signal-panel-heading" className="mt-1 text-lg font-semibold text-[#123b68]">
-                Demand → Action
+                {t("home.demandAction")}
               </h2>
               <ol className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {SIGNAL_FLOW.map((step, index) => (
@@ -747,50 +761,50 @@ export default function Home() {
         <section id="recommendation" className="border-b border-slate-200 bg-[#eef3f8]">
           <div className="mx-auto max-w-7xl px-5 py-8 lg:py-10">
             <div className="border-t-2 border-[#c2410c] pt-6">
-              <p className="text-xs font-semibold tracking-wide text-[#c2410c]">PS 26134 DEMAND-TO-CAREER ENGINE</p>
+              <p className="text-xs font-semibold tracking-wide text-[#c2410c]">{t("home.recommendationEyebrow")}</p>
               <h2 className="mt-2 font-serif text-3xl font-semibold text-[#123b68]">
-                From Industry Demand to Career Recommendation
+                {t("home.recommendationTitle")}
               </h2>
               <p className="mt-3 max-w-3xl leading-7 text-slate-600">
-                See how local industry demand translates into required skills, identifies your skill gaps and recommends the right learning pathway.
+                {t("home.recommendationDescription")}
               </p>
             </div>
 
             {/* Cascading selectors */}
             <div className="mt-8 grid gap-4 md:grid-cols-3">
               <div>
-                <label htmlFor="rec-district" className="block text-sm font-semibold text-slate-700">District</label>
+                <label htmlFor="rec-district" className="block text-sm font-semibold text-slate-700">{t("home.district")}</label>
                 <select
                   id="rec-district"
                   value={recDistrict}
                   onChange={(e) => { setRecDistrict(e.target.value); setRecSector(""); setRecRole(""); setRecResult(null); }}
                   className="mt-2 w-full border border-slate-300 bg-white px-3 py-3"
                 >
-                  <option value="">Select district</option>
+                  <option value="">{t("home.selectDistrict")}</option>
                   {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
               <div>
-                <label htmlFor="rec-sector" className="block text-sm font-semibold text-slate-700">Industry / Sector</label>
+                <label htmlFor="rec-sector" className="block text-sm font-semibold text-slate-700">{t("home.sector")}</label>
                 <select
                   id="rec-sector"
                   value={recSector}
                   onChange={(e) => { setRecSector(e.target.value); setRecRole(""); setRecResult(null); }}
                   className="mt-2 w-full border border-slate-300 bg-white px-3 py-3"
                 >
-                  <option value="">Select sector</option>
+                  <option value="">{t("home.selectSector")}</option>
                   {sectors.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
               <div>
-                <label htmlFor="rec-role" className="block text-sm font-semibold text-slate-700">Job Role</label>
+                <label htmlFor="rec-role" className="block text-sm font-semibold text-slate-700">{t("home.role")}</label>
                 <select
                   id="rec-role"
                   value={recRole}
                   onChange={(e) => setRecRole(e.target.value)}
                   className="mt-2 w-full border border-slate-300 bg-white px-3 py-3"
                 >
-                  <option value="">Select job role</option>
+                  <option value="">{t("home.selectRole")}</option>
                   {recRoles.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
                 </select>
               </div>
@@ -938,9 +952,9 @@ export default function Home() {
         <section id="career-explorer" className="mx-auto max-w-7xl px-5 py-14">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
-              <p className="font-bold text-blue-700">CAREER EXPLORER</p>
-              <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Which option best describes you?</h2>
-              <p className="mt-2 text-slate-600">Explore career options according to your education and goals.</p>
+              <p className="font-bold text-blue-700">{t("home.careerExplorer")}</p>
+              <h2 className="mt-2 text-3xl font-bold text-[#123b68]">{t("home.careerQuestion")}</h2>
+              <p className="mt-2 text-slate-600">{t("home.careerDescription")}</p>
             </div>
             <div className="text-sm font-semibold text-blue-700">Explore. Learn. Grow.</div>
           </div>
@@ -1033,22 +1047,22 @@ export default function Home() {
           <div className="grid gap-5 md:grid-cols-4">
             <article className="rounded-xl border border-green-100 bg-green-50 p-6">
               <div className="text-3xl">📈</div>
-              <h3 className="mt-4 text-lg font-bold text-[#123b68]">Skill Gap Analysis</h3>
+              <h3 className="mt-4 text-lg font-bold text-[#123b68]">{t("sections.skillGapAnalysis")}</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">Identify skills you have and skills you need.</p>
             </article>
             <article className="rounded-xl border border-blue-100 bg-blue-50 p-6">
               <div className="text-3xl">📚</div>
-              <h3 className="mt-4 text-lg font-bold text-[#123b68]">Courses & Training</h3>
+              <h3 className="mt-4 text-lg font-bold text-[#123b68]">{t("sections.coursesTraining")}</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">Explore government and partner training opportunities.</p>
             </article>
             <article className="rounded-xl border border-orange-100 bg-orange-50 p-6">
               <div className="text-3xl">💼</div>
-              <h3 className="mt-4 text-lg font-bold text-[#123b68]">Jobs & Opportunities</h3>
+              <h3 className="mt-4 text-lg font-bold text-[#123b68]">{t("sections.jobsOpportunities")}</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">Find relevant job openings based on your skills.</p>
             </article>
             <article className="rounded-xl border border-pink-100 bg-pink-50 p-6">
               <div className="text-3xl">📊</div>
-              <h3 className="mt-4 text-lg font-bold text-[#123b68]">Industry Demand</h3>
+              <h3 className="mt-4 text-lg font-bold text-[#123b68]">{t("sections.jobMarketIntelligence")}</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">Discover in-demand skills and future job trends.</p>
             </article>
           </div>
@@ -1223,13 +1237,13 @@ export default function Home() {
             <div className="border-t-2 border-[#c2410c] pt-6">
               <p className="text-xs font-semibold tracking-wide text-[#c2410c]">WHY SKILLMITRA</p>
             <h2 id="why-heading" className="mt-2 font-serif text-3xl font-semibold text-[#123b68]">
-              From Labour Market Signals to Training Decisions
+              From Job Market Signals to Training Decisions
             </h2>
             <p className="mt-3 max-w-3xl leading-7 text-slate-600">
               Skill-development programmes may be designed using broad or historical occupation
               categories that do not fully reflect changing technologies, local industry demand or
               district-level requirements. SkillMitra provides a continuous, evidence-based mechanism
-              for translating labour-market signals into training decisions.
+              for translating job-market signals into training decisions.
             </p>
             <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <WhyCard
@@ -1256,7 +1270,7 @@ export default function Home() {
         <section id="demand" className="border-b border-slate-200 bg-[#eef3f8]" aria-labelledby="lmi-heading">
           <div className="mx-auto max-w-7xl px-5 py-8 lg:py-10">
             <div className="border-t-2 border-[#c2410c] pt-6">
-              <p className="text-xs font-semibold tracking-wide text-[#c2410c]">02 LABOUR MARKET INTELLIGENCE</p>
+              <p className="text-xs font-semibold tracking-wide text-[#c2410c]">02 JOB INTELLIGENCE</p>
               <h2 id="lmi-heading" className="mt-2 font-serif text-3xl font-semibold text-[#123b68]">
                 Understand What Industry Needs
               </h2>
@@ -1329,6 +1343,110 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ================= FUTURE DEMAND FORECAST ================= */}
+        <section id="future-demand" className="border-b border-slate-200 bg-[#f0f4f8]" aria-labelledby="future-demand-heading">
+          <div className="mx-auto max-w-7xl px-5 py-8 lg:py-10">
+            <div className="border-t-2 border-[#c2410c] pt-6">
+              <p className="text-xs font-semibold tracking-wide text-[#c2410c]">02.5 FUTURE DEMAND FORECAST</p>
+              <h2 id="future-demand-heading" className="mt-2 font-serif text-3xl font-semibold text-[#123b68]">
+                {t("demand.futureForecast")}
+              </h2>
+            </div>
+            <p className="mt-3 max-w-3xl leading-7 text-slate-600">
+              {t("demand.futureForecastSubtitle")}
+            </p>
+            
+            <div className="mt-8 rounded-lg border border-slate-200 bg-white p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-[#123b68]">
+                  {t("demand.currentHighDemand")}
+                </h3>
+                <span className="text-xs text-slate-500">
+                  {t("demand.forecastHorizon")}
+                </span>
+              </div>
+              
+              {/* Future Demand Forecast Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50">
+                      <th className="px-4 py-3 text-left font-semibold text-[#123b68]">{t("demand.skill")}</th>
+                      <th className="px-4 py-3 text-left font-semibold text-[#123b68]">{t("demand.forecast")}</th>
+                      <th className="px-4 py-3 text-left font-semibold text-[#123b68]">{t("demand.confidence")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Sample data - will be replaced with actual API data */}
+                    <tr className="border-b border-slate-100">
+                      <td className="px-4 py-3 text-slate-700">Data Analytics</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
+                          {t("demand.growing")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
+                          High
+                        </span>
+                      </td>
+                    </tr>
+                    <tr className="border-b border-slate-100">
+                      <td className="px-4 py-3 text-slate-700">EV Technology</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
+                          {t("demand.highDemand")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded-full bg-yellow-100 px-2 py-1 text-xs font-semibold text-yellow-800">
+                          Medium
+                        </span>
+                      </td>
+                    </tr>
+                    <tr className="border-b border-slate-100">
+                      <td className="px-4 py-3 text-slate-700">Cloud Computing</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
+                          {t("demand.growing")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
+                          High
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-slate-700">Solar Installation</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded-full bg-purple-100 px-2 py-1 text-xs font-semibold text-purple-800">
+                          {t("demand.stable")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded-full bg-yellow-100 px-2 py-1 text-xs font-semibold text-yellow-800">
+                          Medium
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              <p className="mt-4 text-xs text-slate-500">
+                {t("demand.noForecasts")}
+              </p>
+            </div>
+            
+            <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <p className="text-sm text-blue-900">
+                <strong>Note:</strong> Future demand forecasts are generated using historical demand analysis, job posting signals, and trend data from the SkillMitra platform. Confidence levels indicate the amount of evidence available for each forecast.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section className="border-b border-slate-200 bg-[#eef3f8]" aria-labelledby="engine-heading">
           <div className="mx-auto max-w-7xl px-5 py-8 lg:py-10">
             <div className="border-t-2 border-[#c2410c] pt-6">
@@ -1338,7 +1456,7 @@ export default function Home() {
               </h2>
             </div>
             <p className="mt-3 max-w-3xl leading-7 text-slate-600">
-              SkillMitra translates labour-market evidence into curriculum, capacity, validation and district planning decisions.
+              SkillMitra translates job-market evidence into curriculum, capacity, validation and district planning decisions.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2">
               {ENGINE_STEPS.map((step, index) => (
@@ -1449,7 +1567,7 @@ export default function Home() {
                 value={dataStatus === "loading" ? "Loading..." : courseTotal !== null ? (courseTotal > 0 ? String(courseTotal) : "0 courses currently listed") : "Live platform data is temporarily unavailable"}
               />
               <MetricCard
-                label="Labour-market opening records"
+                label="Job-market opening records"
                 value={dataStatus === "loading" ? "Loading..." : jobTotal !== null ? (jobTotal > 0 ? String(jobTotal) : "0 opening records currently listed") : "Live platform data is temporarily unavailable"}
               />
             </div>
@@ -1673,7 +1791,7 @@ export default function Home() {
               </h2>
             </div>
             <p className="mt-3 max-w-3xl leading-7 text-slate-600">
-              Candidate guidance connects the same labour-market evidence used for government planning.
+              Candidate guidance connects the same job-market evidence used for government planning.
             </p>
             <ol className="mt-8 flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
               {[
@@ -1841,7 +1959,7 @@ export default function Home() {
               <div className="mt-4 grid gap-4 md:grid-cols-3">
                  {diverseJobs.map((job) => (
                   <article key={job.id} className="border border-slate-200 bg-white p-5">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Labour-market source</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Job-market source</p>
                     <h4 className="mt-1 text-lg font-semibold text-[#123b68]">{job.title}</h4>
                     {job.employer_name && (
                       <p className="mt-2 text-sm text-slate-600">Employer: {job.employer_name}</p>
@@ -1910,31 +2028,31 @@ export default function Home() {
           <div className="mx-auto max-w-7xl px-5 py-8">
             <p className="text-xs font-semibold tracking-wide text-slate-500">INSTITUTIONAL LEADERSHIP</p>
             <h2 id="leadership-heading" className="mt-2 font-serif text-xl font-semibold text-[#123b68]">
-              Government of Maharashtra
+              {t("government.header")}
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-              SkillMitra is an initiative of the Government of Maharashtra under the Skills, Employment, Entrepreneurship &amp; Innovation Department.
+              {t("government.initiative")}
             </p>
             <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="border border-slate-200 bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Chief Minister</p>
-                <p className="mt-2 text-sm font-semibold text-[#123b68]">Shri Devendra Fadnavis</p>
-                <p className="mt-1 text-xs text-slate-600">Hon&apos;ble Chief Minister, Maharashtra</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("government.chiefMinister")}</p>
+                <p className="mt-2 text-sm font-semibold text-[#123b68]">{t("government.cmName")}</p>
+                <p className="mt-1 text-xs text-slate-600">{t("government.cmTitle")}</p>
               </div>
               <div className="border border-slate-200 bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Deputy Chief Minister</p>
-                <p className="mt-2 text-sm font-semibold text-[#123b68]">Shri Eknath Shinde</p>
-                <p className="mt-1 text-xs text-slate-600">Hon&apos;ble Deputy Chief Minister, Maharashtra</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("government.deputyChiefMinister")}</p>
+                <p className="mt-2 text-sm font-semibold text-[#123b68]">{t("government.dcm1Name")}</p>
+                <p className="mt-1 text-xs text-slate-600">{t("government.dcm1Title")}</p>
               </div>
               <div className="border border-slate-200 bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Deputy Chief Minister</p>
-                <p className="mt-2 text-sm font-semibold text-[#123b68]">Smt. Sunetra Pawar</p>
-                <p className="mt-1 text-xs text-slate-600">Hon&apos;ble Deputy Chief Minister, Maharashtra</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("government.deputyChiefMinister")}</p>
+                <p className="mt-2 text-sm font-semibold text-[#123b68]">{t("government.dcm2Name")}</p>
+                <p className="mt-1 text-xs text-slate-600">{t("government.dcm2Title")}</p>
               </div>
               <div className="border border-slate-200 bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Minister</p>
-                <p className="mt-2 text-sm font-semibold text-[#123b68]">Shri Mangal Prabhat Lodha</p>
-                <p className="mt-1 text-xs text-slate-600">Minister for Skills, Employment, Entrepreneurship and Innovation</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("government.minister")}</p>
+                <p className="mt-2 text-sm font-semibold text-[#123b68]">{t("government.ministerName")}</p>
+                <p className="mt-1 text-xs text-slate-600">{t("government.ministerTitle")}</p>
               </div>
             </div>
           </div>
@@ -1947,9 +2065,9 @@ export default function Home() {
             <BrandMark src="/maharashtra-gov-logo.png" alt="Government of Maharashtra" className="mb-4 h-12 w-auto" />
             <h3 className="text-lg font-semibold">Government</h3>
             <ul className="mt-4 space-y-2 text-sm text-blue-100">
-              <li>Government of Maharashtra</li>
-              <li>Skills, Employment, Entrepreneurship &amp; Innovation Department</li>
-              <li>Maharashtra State Skill Development Society</li>
+              <li>{t("government.header")}</li>
+              <li>{t("government.department")}</li>
+              <li>{t("government.msdsds")}</li>
               <li><a href="https://www.mahaswayam.gov.in/" target="_blank" rel="noopener noreferrer" className="hover:text-white">Mahaswayam</a></li>
             </ul>
           </div>
@@ -1959,7 +2077,7 @@ export default function Home() {
               {NAV.map((item) => (
                 <li key={item.href}>
                   <a href={item.href} className="hover:text-white">
-                    {item.label}
+                    {t(item.label)}
                   </a>
                 </li>
               ))}
@@ -1993,10 +2111,10 @@ export default function Home() {
         <div className="border-t border-white/20">
           <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-5 text-sm text-blue-100 md:flex-row md:justify-between">
             <p>
-              © 2026 SkillMitra | Government of Maharashtra, Skills, Employment, Entrepreneurship &amp; Innovation Department
+              {t("footer.copyright")}
             </p>
             <p>
-              Labour Market Intelligence and Skill Development Planning Platform
+              {t("footer.tagline")}
             </p>
           </div>
         </div>

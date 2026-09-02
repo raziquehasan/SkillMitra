@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { api, type District, type IndustrySector } from '@/lib/api';
+import { api, type District, type IndustrySector, type AuthUser } from '@/lib/api';
 
 type UserRole = '' | 'candidate' | 'employer' | 'training_provider' | 'government_official';
 
@@ -161,11 +161,13 @@ export default function RegisterPage() {
 
       if (!result) return;
 
-      setSuccess(result.message);
-      
+      // Handle different response types
+      const message = (result as any).message || 'Registration successful';
+      setSuccess(message);
+
       // Government official accounts may require verification
       if (selectedRole === 'government_official') {
-        setSuccess(`${result.message} Your account may require administrator verification before full access.`);
+        setSuccess(`${message} Your account may require administrator verification before full access.`);
       }
 
       // Redirect to login after successful registration

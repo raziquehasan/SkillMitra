@@ -1,0 +1,145 @@
+{
+  "nav": {
+    "home": "Home",
+    "jobMarketIntelligence": "Job Market Intelligence",
+    "futureDemand": "Future Demand",
+    "skillGaps": "Skill Gaps",
+    "courses": "Courses & Curriculum",
+    "trainingCapacity": "Training Capacity",
+    "employerInsights": "Employer Insights",
+    "jobsOutcomes": "Jobs & Outcomes",
+    "districtPlanning": "District Planning"
+  },
+  "hero": {
+    "title": "Turning Job Market Demand into Better Training Outcomes",
+    "description": "SkillMitra connects job-market intelligence, employer requirements, skill gaps, courses, training capacity and placement outcomes to support evidence-based skill development planning across Maharashtra.",
+    "statistics": {
+      "districts": "Districts Covered",
+      "courses": "Active Courses",
+      "jobs": "Job Openings"
+    }
+  },
+  "home": {
+    "brandDescription": "Job Intelligence and Skill Development Planning",
+    "eyebrow": "MAHARASHTRA SKILL DEVELOPMENT • JOB INTELLIGENCE",
+    "flow": "Data → Insight → Action → Outcome",
+    "exploreIntelligence": "Explore Job Intelligence",
+    "exploreDistrictPlanning": "Explore District Planning",
+    "exploreCareer": "Explore Career Pathways",
+    "districts": "Maharashtra districts",
+    "coursesListed": "Courses listed",
+    "jobRecords": "Job-market opening records",
+    "signals": "JOB MARKET SIGNALS",
+    "demandAction": "Demand → Action",
+    "recommendationEyebrow": "PS 26134 DEMAND-TO-CAREER ENGINE",
+    "recommendationTitle": "From Industry Demand to Career Recommendation",
+    "recommendationDescription": "See how local industry demand translates into required skills, identifies your skill gaps and recommends the right learning pathway.",
+    "district": "District",
+    "sector": "Industry / Sector",
+    "role": "Job Role",
+    "selectDistrict": "Select district",
+    "selectSector": "Select sector",
+    "selectRole": "Select job role",
+    "careerExplorer": "CAREER EXPLORER",
+    "careerQuestion": "Which option best describes you?",
+    "careerDescription": "Explore career options according to your education and goals.",
+    "loading": "Loading...",
+    "evidenceSources": "Evidence sources",
+    "analyseBy": "Demand can be analysed by",
+    "futureNote": "Note",
+    "futureNoteText": "Future demand forecasts are generated using historical demand analysis, job posting signals, and trend data from the SkillMitra platform. Confidence levels indicate the amount of evidence available for each forecast."
+  },
+  "demand": {
+    "currentHighDemand": "Current High-Demand Skills",
+    "futureForecast": "Future Demand Forecast",
+    "futureForecastSubtitle": "What skills and job roles are expected to grow?",
+    "highDemand": "High Demand",
+    "growing": "Growing",
+    "stable": "Stable",
+    "insufficientData": "Insufficient Data",
+    "skill": "Skill",
+    "forecast": "Forecast",
+    "confidence": "Confidence",
+    "forecastHorizon": "Forecast horizon: 12-24 months",
+    "noForecasts": "Future demand forecasts will appear as sufficient labour-market evidence becomes available."
+  },
+  "chatbot": {
+    "title": "SkillMitra AI",
+    "subtitle": "Ask about skills, jobs, courses and future demand",
+    "welcome": "Namaste! I'm SkillMitra AI. I can help you understand current skill demand, future demand, skill gaps, courses, careers, jobs and training opportunities in Maharashtra.",
+    "quickQuestions": {
+      "skillsHighDemand": "What skills are in high demand now?",
+      "skillsFutureDemand": "Which skills will be in demand in the future?",
+      "chooseCourse": "Which course should I choose?",
+      "matchSkills": "What jobs match my skills?"
+    },
+    "placeholder": "Ask about skills, jobs, courses and future demand...",
+    "sendMessage": "Send message",
+    "close": "Close chat",
+    "ask": "Ask SkillMitra AI",
+    "loading": "SkillMitra AI is analysing SkillMitra data...",
+    "fallback": "AI response is temporarily unavailable, and sufficient SkillMitra data is not currently available for this question."
+  },
+  "sections": {
+    "skillGapAnalysis": "Skill Gap Analysis",
+    "coursesTraining": "Courses & Training",
+    "jobsOpportunities": "Jobs & Opportunities",
+    "trainingCapacity": "Training Capacity",
+    "whySkillMitra": "Why SkillMitra",
+    "jobMarketIntelligence": "Job Market Intelligence",
+    "coreEngine": "Core Engine",
+    "curriculumAlignment": "Curriculum Alignment",
+    "employerValidation": "Employer Validation",
+    "districtPlanning": "District Planning",
+    "careerPathways": "Career Pathways",
+    "skillGaps": "Skill Gaps",
+    "placementOutcomes": "Placement Outcomes",
+    "exploreSkillMitra": "Explore SkillMitra",
+    "institutionalLeadership": "Institutional Leadership"
+  },
+  "buttons": {
+    "login": "Login",
+    "register": "Register",
+    "dashboard": "Dashboard",
+    "logout": "Logout",
+    "explore": "Explore",
+    "learnMore": "Learn More",
+    "getStarted": "Get Started"
+  },
+  "language": {
+    "english": "English",
+    "marathi": "मराठी",
+    "hindi": "हिंदी"
+  },
+  "accessibility": {
+    "skipToContent": "Skip to main content",
+    "fontSize": "Font Size",
+    "increaseFont": "Increase Font",
+    "decreaseFont": "Decrease Font",
+    "resetFont": "Reset Font"
+  },
+  "loading": "Loading...",
+  "error": "An error occurred. Please try again.",
+  "noData": "No data available.",
+  "government": {
+    "header": "Government of Maharashtra",
+    "department": "Skills, Employment, Entrepreneurship & Innovation Department",
+    "initiative": "SkillMitra is an initiative of the Government of Maharashtra under the Skills, Employment, Entrepreneurship & Innovation Department.",
+    "chiefMinister": "Chief Minister",
+    "deputyChiefMinister": "Deputy Chief Minister",
+    "minister": "Minister",
+    "cmName": "Shri Devendra Fadnavis",
+    "cmTitle": "Hon'ble Chief Minister, Maharashtra",
+    "dcm1Name": "Shri Eknath Shinde",
+    "dcm1Title": "Hon'ble Deputy Chief Minister, Maharashtra",
+    "dcm2Name": "Smt. Sunetra Pawar",
+    "dcm2Title": "Hon'ble Deputy Chief Minister, Maharashtra",
+    "ministerName": "Shri Mangal Prabhat Lodha",
+    "ministerTitle": "Minister for Skills, Employment, Entrepreneurship and Innovation",
+    "msdsds": "Maharashtra State Skill Development Society"
+  },
+  "footer": {
+    "copyright": "© 2026 SkillMitra | Government of Maharashtra, Skills, Employment, Entrepreneurship & Innovation Department",
+    "tagline": "Job Intelligence and Skill Development Planning Platform"
+  }
+}
