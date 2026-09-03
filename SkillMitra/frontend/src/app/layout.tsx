@@ -22,6 +22,11 @@ export const metadata: Metadata = {
   title: "SkillMitra | Maharashtra Job Intelligence",
   description:
     "SkillMitra connects job-market intelligence, employer requirements, skill gaps, courses, training capacity and placement outcomes to support evidence-based skill development planning across Maharashtra.",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

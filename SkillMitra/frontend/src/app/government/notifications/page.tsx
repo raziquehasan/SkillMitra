@@ -132,26 +132,26 @@ export default function NotificationsPage() {
 
         {/* Summary Stats */}
         <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-4 shadow-sm overflow-hidden">
             <p className="text-xs text-slate-500 uppercase tracking-wide">Total</p>
             <p className="text-2xl font-bold text-[#1e3a8a]">{summaryStats.total}</p>
           </div>
-          <div className="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-4 shadow-sm overflow-hidden">
             <p className="text-xs text-slate-500 uppercase tracking-wide">Unread</p>
             <p className="text-2xl font-bold text-[#c2410c]">{summaryStats.unread}</p>
           </div>
-          <div className="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-4 shadow-sm overflow-hidden">
             <p className="text-xs text-slate-500 uppercase tracking-wide">Critical</p>
             <p className="text-2xl font-bold text-red-600">{summaryStats.critical}</p>
           </div>
-          <div className="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-4 shadow-sm overflow-hidden">
             <p className="text-xs text-slate-500 uppercase tracking-wide">Today</p>
             <p className="text-2xl font-bold text-[#1e3a8a]">{summaryStats.today}</p>
           </div>
         </div>
 
         {/* Filter Bar */}
-        <div className="mb-6 rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+        <div className="min-w-0 mb-6 rounded-lg border border-slate-300 bg-white p-4 shadow-sm overflow-hidden">
           <div className="flex flex-col md:flex-row md:items-center gap-4">
             {/* Search */}
             <div className="flex-1 relative">
@@ -356,7 +356,7 @@ export default function NotificationsPage() {
             )}
           </div>
         ) : (
-          <div className="rounded-lg border border-slate-300 bg-white p-12 shadow-sm text-center">
+          <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-12 shadow-sm text-center overflow-hidden">
             <Inbox className="h-12 w-12 text-slate-300 mx-auto mb-4" />
             <p className="text-sm text-slate-500 mb-2">No notifications found</p>
             <p className="text-xs text-slate-400">

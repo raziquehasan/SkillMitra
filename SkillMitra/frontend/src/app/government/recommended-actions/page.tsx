@@ -7,7 +7,7 @@ import { Target, ChevronDown } from "lucide-react";
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center">
+    <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center overflow-hidden">
       <Target className="mx-auto h-10 w-10 text-slate-400" />
       <p className="mt-4 text-sm text-slate-600">{message}</p>
     </div>
@@ -161,9 +161,10 @@ export default function RecommendedActionsPage() {
         )}
 
         {!fetching && recommendations.length > 0 && (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-x-auto">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-x-auto">
             <p className="text-xs font-semibold uppercase tracking-wide text-[#c2410c] mb-4">Recommended Actions — {districtName}</p>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="text-left py-2 px-2">Skill</th>
@@ -216,6 +217,7 @@ export default function RecommendedActionsPage() {
                 })}
               </tbody>
             </table>
+          </div>
           </div>
         )}
       </div>

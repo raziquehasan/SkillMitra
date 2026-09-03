@@ -7,7 +7,7 @@ import { ClipboardList, ChevronDown } from "lucide-react";
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center">
+    <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center overflow-hidden">
       <ClipboardList className="mx-auto h-10 w-10 text-slate-400" />
       <p className="mt-4 text-sm text-slate-600">{message}</p>
     </div>
@@ -140,14 +140,14 @@ export default function CapacityPlanningPage() {
           )}
 
           {!filterDistrict && (
-            <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center">
+            <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center overflow-hidden">
               <ClipboardList className="mx-auto h-12 w-12 text-slate-400" />
               <p className="mt-4 text-sm text-slate-600">Select a district to view capacity planning details.</p>
             </div>
           )}
 
           {loading && filterDistrict && (
-            <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center">
+            <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center overflow-hidden">
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#123b68] border-r-transparent" />
               <p className="mt-4 text-sm text-slate-600">Loading capacity data...</p>
             </div>
@@ -155,7 +155,7 @@ export default function CapacityPlanningPage() {
 
           {!loading && capacity && (
             <div className="space-y-6">
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#c2410c] mb-4">
                   Capacity Overview — {capacity.district_name}
                 </p>
@@ -215,7 +215,7 @@ export default function CapacityPlanningPage() {
               </div>
 
               {classification.length > 0 && (
-                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
                   <p className="text-xs font-semibold uppercase tracking-wide text-[#c2410c] mb-4">
                     Skill-Level Classification
                   </p>

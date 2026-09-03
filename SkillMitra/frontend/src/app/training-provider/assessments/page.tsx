@@ -28,7 +28,7 @@ function AssessmentsContent() {
         </p>
       </div>
 
-      <div className="rounded-lg border border-slate-300 bg-white p-12 shadow-sm text-center">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-12 shadow-sm text-center overflow-hidden">
         <FileText className="h-16 w-16 text-slate-300 mx-auto mb-4" />
         <h2 className="text-xl font-semibold text-[#1e293b] mb-2">Assessment Management</h2>
         <p className="text-slate-600">

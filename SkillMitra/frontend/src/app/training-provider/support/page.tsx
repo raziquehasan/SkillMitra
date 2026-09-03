@@ -255,7 +255,8 @@ function SupportContent() {
           </div>
         ) : (
           <div className="border border-slate-300 rounded-lg bg-white overflow-hidden">
-            <table className="w-full">
+            <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Ticket</th>
@@ -311,6 +312,7 @@ function SupportContent() {
               </tbody>
             </table>
           </div>
+          </div>
         )}
       </div>
 
@@ -318,7 +320,7 @@ function SupportContent() {
       <div>
         <h2 className="text-lg font-semibold text-[#1e293b] mb-4">Need more help?</h2>
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="p-4 rounded-lg border border-slate-300 bg-white shadow-sm">
+          <div className="min-w-0 p-4 rounded-lg border border-slate-300 bg-white shadow-sm overflow-hidden">
             <div className="flex items-center gap-3 mb-2">
               <Phone className="h-5 w-5 text-[#1e3a8a]" />
               <p className="font-medium text-[#1e293b]">Support Phone</p>
@@ -326,7 +328,7 @@ function SupportContent() {
             <p className="text-sm text-slate-600">1800-123-4567</p>
             <p className="text-xs text-slate-400 mt-1">Mon-Fri, 9AM-6PM</p>
           </div>
-          <div className="p-4 rounded-lg border border-slate-300 bg-white shadow-sm">
+          <div className="min-w-0 p-4 rounded-lg border border-slate-300 bg-white shadow-sm overflow-hidden">
             <div className="flex items-center gap-3 mb-2">
               <Mail className="h-5 w-5 text-[#1e3a8a]" />
               <p className="font-medium text-[#1e293b]">Support Email</p>
@@ -334,7 +336,7 @@ function SupportContent() {
             <p className="text-sm text-slate-600">support@skillmitra.gov.in</p>
             <p className="text-xs text-slate-400 mt-1">Response within 24 hours</p>
           </div>
-          <div className="p-4 rounded-lg border border-slate-300 bg-white shadow-sm">
+          <div className="min-w-0 p-4 rounded-lg border border-slate-300 bg-white shadow-sm overflow-hidden">
             <div className="flex items-center gap-3 mb-2">
               <AlertCircle className="h-5 w-5 text-red-600" />
               <p className="font-medium text-[#1e293b]">Emergency Issues</p>

@@ -581,14 +581,14 @@ export default function Home() {
       </a>
 
       <div className="bg-[#123b68] text-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-5 py-2 text-sm md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-2 text-sm md:flex-row md:items-center md:justify-between sm:px-5">
+          <div className="flex items-center gap-2 sm:gap-3">
             <BrandMark
               src="/maharashtra-gov-logo.png"
               alt="Emblem of the Government of Maharashtra"
-              className="h-9 w-auto bg-white/10 p-0.5"
+              className="h-8 w-auto bg-white/10 p-0.5 sm:h-9"
             />
-            <p>
+            <p className="text-xs sm:text-sm">
               {t("government.header")}
               <span className="mx-2 hidden sm:inline" aria-hidden>
                 |
@@ -598,44 +598,44 @@ export default function Home() {
               </span>
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 md:gap-3">
-            <button 
-              type="button" 
-              onClick={() => setLanguage("mr")} 
+          <div className="flex flex-wrap items-center gap-1 md:gap-3">
+            <button
+              type="button"
+              onClick={() => setLanguage("mr")}
               aria-pressed={language === "mr"}
-              className={`px-4 py-2 text-sm rounded transition-colors cursor-pointer pointer-events-auto ${language === "mr" ? "bg-white/20 font-bold" : "hover:bg-white/10"}`}
+              className={`px-2 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm rounded transition-colors cursor-pointer pointer-events-auto ${language === "mr" ? "bg-white/20 font-bold" : "hover:bg-white/10"}`}
               style={{ zIndex: 10, position: 'relative' }}
             >
               मराठी
             </button>
-            <span aria-hidden>|</span>
-            <button 
-              type="button" 
-              onClick={() => setLanguage("en")} 
+            <span aria-hidden className="hidden sm:inline">|</span>
+            <button
+              type="button"
+              onClick={() => setLanguage("en")}
               aria-pressed={language === "en"}
-              className={`px-4 py-2 text-sm rounded transition-colors cursor-pointer pointer-events-auto ${language === "en" ? "bg-white/20 font-bold" : "hover:bg-white/10"}`}
+              className={`px-2 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm rounded transition-colors cursor-pointer pointer-events-auto ${language === "en" ? "bg-white/20 font-bold" : "hover:bg-white/10"}`}
               style={{ zIndex: 10, position: 'relative' }}
             >
               English
             </button>
-            <span aria-hidden>|</span>
-            <button 
-              type="button" 
-              onClick={() => setLanguage("hi")} 
+            <span aria-hidden className="hidden sm:inline">|</span>
+            <button
+              type="button"
+              onClick={() => setLanguage("hi")}
               aria-pressed={language === "hi"}
-              className={`px-4 py-2 text-sm rounded transition-colors cursor-pointer pointer-events-auto ${language === "hi" ? "bg-white/20 font-bold" : "hover:bg-white/10"}`}
+              className={`px-2 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm rounded transition-colors cursor-pointer pointer-events-auto ${language === "hi" ? "bg-white/20 font-bold" : "hover:bg-white/10"}`}
               style={{ zIndex: 10, position: 'relative' }}
             >
               हिंदी
             </button>
-            <span aria-hidden>|</span>
-            <button type="button" onClick={() => setFontScale("lg")} aria-label="Increase text size">
+            <span aria-hidden className="hidden sm:inline">|</span>
+            <button type="button" onClick={() => setFontScale("lg")} aria-label="Increase text size" className="px-2 py-1.5 text-xs sm:px-3 sm:py-2 sm:text-sm hover:bg-white/10 rounded">
               A+
             </button>
-            <button type="button" onClick={() => setFontScale("md")} aria-label="Default text size">
+            <button type="button" onClick={() => setFontScale("md")} aria-label="Default text size" className="px-2 py-1.5 text-xs sm:px-3 sm:py-2 sm:text-sm hover:bg-white/10 rounded">
               A
             </button>
-            <button type="button" onClick={() => setFontScale("sm")} aria-label="Decrease text size">
+            <button type="button" onClick={() => setFontScale("sm")} aria-label="Decrease text size" className="px-2 py-1.5 text-xs sm:px-3 sm:py-2 sm:text-sm hover:bg-white/10 rounded">
               A-
             </button>
           </div>
@@ -645,12 +645,12 @@ export default function Home() {
       <div className="h-1 bg-[#c2410c]" aria-hidden />
 
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3">
-          <div className="flex min-w-0 items-center gap-4">
-            <BrandMark src="/skillmitra-logo.png" alt="SkillMitra" className="h-16 w-auto sm:h-20" />
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-5">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+            <BrandMark src="/skillmitra-logo.png" alt="SkillMitra" className="h-12 w-auto sm:h-16 md:h-20" />
             <div className="min-w-0">
-              <p className="font-serif text-xl font-semibold text-[#123b68] sm:text-2xl">SkillMitra</p>
-              <p className="text-sm text-slate-600">{t("home.brandDescription")}</p>
+              <p className="font-serif text-lg font-semibold text-[#123b68] sm:text-xl md:text-2xl">SkillMitra</p>
+              <p className="text-xs text-slate-600 sm:text-sm">{t("home.brandDescription")}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -660,11 +660,12 @@ export default function Home() {
               aria-expanded={mobileNav}
               aria-controls="primary-navigation"
               onClick={() => setMobileNav((open) => !open)}
+              style={{ minHeight: '44px' }}
             >
               Menu
             </button>
             {user ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <p className="hidden text-sm text-slate-700 sm:block">
                   Signed in as <span className="font-semibold">{user.full_name}</span>
                 </p>
@@ -674,29 +675,32 @@ export default function Home() {
                     await logout();
                     router.push('/');
                   }}
-                  className="text-sm font-semibold text-slate-700 hover:text-[#123b68]"
+                  className="text-sm font-semibold text-slate-700 hover:text-[#123b68] hidden sm:block"
                 >
                   Logout
                 </button>
                 <button
                   type="button"
                   onClick={() => router.push('/dashboard')}
-                  className="bg-[#123b68] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#0d2d52]"
+                  className="bg-[#123b68] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d2d52] sm:px-5 sm:py-2.5"
+                  style={{ minHeight: '44px' }}
                 >
                   Dashboard
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <Link
                   href="/login"
-                  className="bg-[#123b68] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#0d2d52]"
+                  className="bg-[#123b68] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d2d52] sm:px-5 sm:py-2.5"
+                  style={{ minHeight: '44px' }}
                 >
                   Login
                 </Link>
                 <Link
                   href="/register"
-                  className="border border-[#123b68] bg-white px-5 py-2.5 text-sm font-semibold text-[#123b68] hover:bg-slate-50"
+                  className="border border-[#123b68] bg-white px-4 py-2 text-sm font-semibold text-[#123b68] hover:bg-slate-50 sm:px-5 sm:py-2.5 hidden sm:block"
+                  style={{ minHeight: '44px' }}
                 >
                   Register
                 </Link>
@@ -708,14 +712,14 @@ export default function Home() {
         <nav id="primary-navigation" className="border-t border-slate-200 bg-white" aria-label="Primary">
           <ul className={`${mobileNav ? "flex" : "hidden"} max-w-7xl flex-col md:mx-auto md:flex md:flex-row md:flex-wrap`}>
             {NAV.map((item) => (
-              <li key={item.href}>
+              <li key={item.href} className="w-full md:w-auto">
                 <a
                   href={item.href}
                   onClick={() => setMobileNav(false)}
-                  className={`block whitespace-nowrap px-5 py-3 text-sm font-semibold hover:bg-slate-50 hover:text-[#123b68] ${
+                  className={`block px-4 py-3 text-sm font-semibold hover:bg-slate-50 hover:text-[#123b68] sm:px-5 md:whitespace-nowrap ${
                     activeHash === item.href
                       ? "border-b-4 border-[#123b68] text-[#123b68]"
-                      : "border-b-4 border-transparent text-slate-700"
+                      : "border-b-4 border-transparent text-slate-700 md:border-b-4"
                   }`}
                 >
                   {t(item.label)}
@@ -733,16 +737,16 @@ export default function Home() {
           </p>
         ) : null}
         <section id="home" className="border-b border-slate-200 bg-[#eef3f8]">
-          <div className="mx-auto grid max-w-7xl items-start gap-8 px-5 py-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)] lg:py-10">
+          <div className="mx-auto grid max-w-7xl items-start gap-6 px-4 py-6 lg:gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)] lg:px-5 lg:py-8 lg:py-10">
             <div>
               <p className="text-xs font-semibold tracking-[0.14em] text-[#c2410c]">{t("home.eyebrow")}</p>
-              <h1 className="mt-3 font-serif text-3xl font-semibold leading-tight text-[#123b68] md:text-4xl">
+              <h1 className="mt-3 font-serif text-2xl font-semibold leading-tight text-[#123b68] sm:text-3xl md:text-4xl">
                 {t("hero.title")}
               </h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-700 md:text-lg">
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-700 sm:text-base md:text-lg md:leading-7">
                 {t("hero.description")}
               </p>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+              <p className="mt-3 max-w-2xl text-xs leading-5 text-slate-600 sm:text-sm sm:leading-6">
                 For government departments, district planners, training providers, employers and
                 candidates. The aim is to reduce skill mismatch and improve training-to-employment
                 outcomes.
@@ -750,45 +754,48 @@ export default function Home() {
               <p className="mt-4 text-xs font-semibold uppercase tracking-[0.12em] text-[#123b68]">
                 {t("home.flow")}
               </p>
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-col sm:flex-row gap-3">
                 <a
                   href="#demand"
-                  className="bg-[#123b68] px-6 py-3 font-semibold text-white hover:bg-[#0c2d51]"
+                  className="w-full sm:w-auto text-center bg-[#123b68] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0c2d51] sm:px-6 sm:py-3"
+                  style={{ minHeight: '44px' }}
                 >
                   {t("home.exploreIntelligence")}
                 </a>
                 <a
                   href="#planning"
-                  className="border border-[#123b68] bg-white px-6 py-3 font-semibold text-[#123b68] hover:bg-slate-50"
+                  className="w-full sm:w-auto text-center border border-[#123b68] bg-white px-4 py-2.5 text-sm font-semibold text-[#123b68] hover:bg-slate-50 sm:px-6 sm:py-3"
+                  style={{ minHeight: '44px' }}
                 >
                   {t("home.exploreDistrictPlanning")}
                 </a>
                 <a
                   href="#career"
-                  className="border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  className="w-full sm:w-auto text-center border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:px-6 sm:py-3"
+                  style={{ minHeight: '44px' }}
                 >
                   {t("home.exploreCareer")}
                 </a>
               </div>
-              <div className="mt-8 grid grid-cols-3 gap-4 border-t border-slate-300 pt-6">
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-slate-300 pt-4 sm:mt-8 sm:gap-4 sm:pt-6">
                 <div>
-                  <p className="text-2xl font-semibold text-[#123b68]">36</p>
+                  <p className="text-xl font-semibold text-[#123b68] sm:text-2xl">36</p>
                   <p className="text-xs text-slate-500">{t("home.districts")}</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-semibold text-[#123b68]">{courses.length || 15}</p>
+                  <p className="text-xl font-semibold text-[#123b68] sm:text-2xl">{courses.length || 15}</p>
                   <p className="text-xs text-slate-500">{t("home.coursesListed")}</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-semibold text-[#123b68]">{jobs.length || 17}</p>
+                  <p className="text-xl font-semibold text-[#123b68] sm:text-2xl">{jobs.length || 17}</p>
                   <p className="text-xs text-slate-500">{t("home.jobRecords")}</p>
                 </div>
               </div>
             </div>
 
-            <aside className="border border-slate-300 bg-white p-4" aria-labelledby="signal-panel-heading">
+            <aside className="border border-slate-300 bg-white p-3 sm:p-4" aria-labelledby="signal-panel-heading">
               <p className="text-xs font-semibold tracking-wide text-slate-500">{t("home.signals")}</p>
-              <h2 id="signal-panel-heading" className="mt-1 text-lg font-semibold text-[#123b68]">
+              <h2 id="signal-panel-heading" className="mt-1 text-base font-semibold text-[#123b68] sm:text-lg">
                 {t("home.demandAction")}
               </h2>
               <ol className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -797,7 +804,7 @@ export default function Home() {
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-[#123b68] text-xs font-bold text-white">
                       {index + 1}
                     </span>
-                    <span className="text-sm font-semibold leading-5 text-[#123b68]">{step}</span>
+                    <span className="text-xs font-semibold leading-5 text-[#123b68] sm:text-sm">{step}</span>
                   </li>
                 ))}
               </ol>

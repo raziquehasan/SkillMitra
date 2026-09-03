@@ -94,7 +94,7 @@ export default function UsersPage() {
             .map(([role, label]) => (
               <div
                 key={role}
-                className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm overflow-hidden"
               >
                 <div className="flex items-center gap-2 text-slate-500 mb-1">
                   {roleIcons[role]}
@@ -140,9 +140,10 @@ export default function UsersPage() {
             </div>
           </div>
         ) : users.length > 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="text-left py-3 px-4 font-semibold text-slate-700">Name</th>
@@ -197,10 +198,11 @@ export default function UsersPage() {
                   ))}
                 </tbody>
               </table>
+          </div>
             </div>
           </div>
         ) : (
-          <div className="rounded-xl border border-slate-200 bg-white p-12 shadow-sm text-center">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-12 shadow-sm text-center overflow-hidden">
             <Users className="h-12 w-12 text-slate-300 mx-auto mb-4" />
             <p className="text-sm text-slate-500">No users found for the selected filter.</p>
           </div>

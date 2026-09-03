@@ -184,7 +184,7 @@ function InstituteProfileContent() {
       </div>
 
       {/* Institute Information */}
-      <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-[#1e293b] flex items-center gap-2">
             <Building2 className="h-5 w-5" />
@@ -231,7 +231,7 @@ function InstituteProfileContent() {
       </div>
 
       {/* Contact Information */}
-      <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
         <h2 className="text-lg font-semibold text-[#1e293b] mb-4 flex items-center gap-2">
           <Phone className="h-5 w-5" />
           Contact Information
@@ -262,7 +262,7 @@ function InstituteProfileContent() {
       </div>
 
       {/* Location */}
-      <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
         <h2 className="text-lg font-semibold text-[#1e293b] mb-4 flex items-center gap-2">
           <MapPin className="h-5 w-5" />
           Location
@@ -300,7 +300,7 @@ function InstituteProfileContent() {
       </div>
 
       {/* Training Information */}
-      <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
         <h2 className="text-lg font-semibold text-[#1e293b] mb-4 flex items-center gap-2">
           <GraduationCap className="h-5 w-5" />
           Training Information
@@ -326,7 +326,7 @@ function InstituteProfileContent() {
       </div>
 
       {/* Infrastructure */}
-      <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
         <h2 className="text-lg font-semibold text-[#1e293b] mb-4 flex items-center gap-2">
           <Building2 className="h-5 w-5" />
           Infrastructure
@@ -352,7 +352,7 @@ function InstituteProfileContent() {
       </div>
 
       {/* Certification & Compliance */}
-      <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
         <h2 className="text-lg font-semibold text-[#1e293b] mb-4 flex items-center gap-2">
           <Shield className="h-5 w-5" />
           Certification & Compliance

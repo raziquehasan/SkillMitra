@@ -547,7 +547,7 @@ export default function TrainingCentresPage() {
             {/* Capacity Status Summary */}
             <div className="bg-white rounded-md border border-slate-200 p-4 shadow-sm">
               <h3 className="text-sm font-semibold text-[#1e293b] mb-3">Capacity Status</h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="p-3 bg-slate-50 rounded border border-slate-100">
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide">Total Capacity</p>
                   <p className="text-lg font-bold text-[#1e3a8a]">{kpiData.totalCapacity.toLocaleString()}</p>
@@ -650,7 +650,8 @@ export default function TrainingCentresPage() {
           {/* Training Centres Table */}
           {!loading && centres.length > 0 && (
             <div className="rounded-md border border-slate-200 bg-white shadow-sm overflow-x-auto">
-              <table className="w-full text-sm min-w-[1200px]">
+              <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full text-sm min-w-[1200px]">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50">
                     <th className="text-left py-3 px-4 font-semibold text-[#1e293b] min-w-[200px]">Centre</th>
@@ -717,6 +718,7 @@ export default function TrainingCentresPage() {
                   })}
                 </tbody>
               </table>
+          </div>
             </div>
           )}
         </div>

@@ -129,7 +129,7 @@ export function GovernmentHeader({
             </button>
 
             {notificationsOpen && (
-              <div className="absolute right-0 mt-2 w-80 rounded-lg border border-slate-200 bg-white shadow-lg z-50">
+              <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-32px)] rounded-lg border border-slate-200 bg-white shadow-lg z-50">
                 <div className="border-b border-slate-100 px-4 py-3 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-[#1e293b]">Notifications</h3>
                   {unreadCount > 0 && (
@@ -213,7 +213,7 @@ export function GovernmentHeader({
             </button>
 
             {profileOpen && (
-              <div className="absolute right-0 mt-2 w-48 rounded-lg border border-slate-200 bg-white py-2 shadow-lg">
+              <div className="absolute right-0 mt-2 w-48 max-w-[calc(100vw-32px)] rounded-lg border border-slate-200 bg-white py-2 shadow-lg">
                 <div className="border-b border-slate-100 px-3 py-2">
                   <p className="text-xs font-semibold text-[#1e293b]">{user?.full_name || "User"}</p>
                   <p className="text-xs text-slate-500">

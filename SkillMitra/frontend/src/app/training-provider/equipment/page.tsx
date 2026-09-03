@@ -138,7 +138,8 @@ function EquipmentContent() {
 
       {/* Equipment Table */}
       <div className="border border-slate-300 rounded-lg bg-white overflow-hidden">
-        <table className="w-full">
+        <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full">
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Equipment Name</th>
@@ -192,6 +193,7 @@ function EquipmentContent() {
             )}
           </tbody>
         </table>
+          </div>
       </div>
 
       {/* Add Equipment Modal */}
@@ -233,7 +235,7 @@ function EquipmentContent() {
                   ))}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Total Quantity</label>
                   <input
@@ -297,7 +299,7 @@ function KPICard({ title, value, icon, color }: {
   };
 
   return (
-    <div className="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+    <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-4 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between mb-2">
         <div className={`p-2 rounded-lg ${colorClasses[color as keyof typeof colorClasses]}`}>
           {icon}

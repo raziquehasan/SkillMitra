@@ -88,7 +88,7 @@ function CertificationsContent() {
       {/* Certifications List */}
       <div className="space-y-4">
         {certifications.map((cert) => (
-          <div key={cert.id} className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+          <div key={cert.id} className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-4">
                 <div className={`p-3 rounded-lg ${
@@ -142,7 +142,7 @@ function CertificationsContent() {
       </div>
 
       {/* Compliance Status */}
-      <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
         <h2 className="text-lg font-semibold text-[#1e293b] mb-4">Compliance Status</h2>
         <div className="space-y-3">
           <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
@@ -195,7 +195,7 @@ function KPICard({ title, value, icon, color }: {
   };
 
   return (
-    <div className="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+    <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-4 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between mb-2">
         <div className={`p-2 rounded-lg ${colorClasses[color as keyof typeof colorClasses]}`}>
           {icon}

@@ -729,7 +729,8 @@ export default function PlacementAnalyticsPage() {
               <h3 className="text-sm font-semibold text-[#1e293b]">Job Role Placement Performance</h3>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full text-xs">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Job Role</th>
@@ -761,6 +762,7 @@ export default function PlacementAnalyticsPage() {
                   ))}
                 </tbody>
               </table>
+          </div>
             </div>
           </div>
 
@@ -904,7 +906,8 @@ export default function PlacementAnalyticsPage() {
           <div className="mb-5 bg-white rounded-md border border-slate-200 p-5 shadow-sm">
             <h3 className="text-sm font-semibold text-[#1e293b] mb-4">District × Sector Placement Performance</h3>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full text-xs">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-3 py-2 text-left font-semibold text-slate-600">District</th>
@@ -966,6 +969,7 @@ export default function PlacementAnalyticsPage() {
                   ))}
                 </tbody>
               </table>
+          </div>
             </div>
           </div>
 

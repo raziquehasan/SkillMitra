@@ -97,7 +97,7 @@ function CurriculumAlignmentContent() {
       </div>
 
       {/* Course Filter */}
-      <div className="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-4 shadow-sm overflow-hidden">
         <div className="flex items-center gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -118,7 +118,7 @@ function CurriculumAlignmentContent() {
 
       {/* Alignment Overview */}
       <div className="grid gap-6 md:grid-cols-2">
-        <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+        <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
           <h2 className="text-lg font-semibold text-[#1e293b] mb-4 flex items-center gap-2">
             <PieChart className="h-5 w-5" />
             Alignment Status
@@ -155,7 +155,7 @@ function CurriculumAlignmentContent() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+        <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
           <h2 className="text-lg font-semibold text-[#1e293b] mb-4 flex items-center gap-2">
             <Target className="h-5 w-5" />
             Skill Coverage Analysis
@@ -194,7 +194,7 @@ function CurriculumAlignmentContent() {
       </div>
 
       {/* Course Alignment Directory */}
-      <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
         <h2 className="text-lg font-semibold text-[#1e293b] mb-4">Course Alignment Directory</h2>
         <div className="space-y-3">
           {alignmentData?.alignment?.map((item: any, index: number) => (
@@ -227,7 +227,7 @@ function CurriculumAlignmentContent() {
       </div>
 
       {/* Skill Gaps */}
-      <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
         <h2 className="text-lg font-semibold text-[#1e293b] mb-4 flex items-center gap-2">
           <AlertTriangle className="h-5 w-5" />
           Priority Skill Gaps
@@ -263,7 +263,7 @@ function CurriculumAlignmentContent() {
 
 function KPICard({ title, value, icon }: { title: string; value: number; icon: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+    <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-4 shadow-sm overflow-hidden">
       <div className="flex items-center gap-3 mb-2">
         <div className="p-2 bg-blue-50 rounded-lg text-blue-600">{icon}</div>
         <p className="text-xs text-slate-500 uppercase tracking-wide">{title}</p>

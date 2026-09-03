@@ -570,7 +570,7 @@ export default function ReportsPage() {
         </div>
 
         {/* Filter Bar */}
-        <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="min-w-0 mb-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 mb-3">
             <Filter className="h-4 w-4 text-[#1e3a8a]" />
             <span className="text-sm font-semibold text-slate-700">Filters</span>
@@ -681,7 +681,7 @@ export default function ReportsPage() {
         {/* Report Health Section */}
         <div className="grid gap-6 md:grid-cols-2 mb-6">
           {/* Report Coverage */}
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
             <div className="flex items-center gap-2 mb-4">
               <Activity className="h-5 w-5 text-[#1e3a8a]" />
               <h3 className="text-sm font-semibold text-[#1e293b]">Report Coverage</h3>
@@ -705,7 +705,7 @@ export default function ReportsPage() {
           </div>
 
           {/* Report Status */}
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
             <div className="flex items-center gap-2 mb-4">
               <PieChart className="h-5 w-5 text-[#1e3a8a]" />
               <h3 className="text-sm font-semibold text-[#1e293b]">Report Status</h3>
@@ -752,7 +752,7 @@ export default function ReportsPage() {
         </div>
 
         {/* Priority Reports */}
-        <div className="mb-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="min-w-0 mb-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 mb-4">
             <AlertTriangle className="h-5 w-5 text-[#1e3a8a]" />
             <h3 className="text-sm font-semibold text-[#1e293b]">Priority Reports</h3>
@@ -780,7 +780,7 @@ export default function ReportsPage() {
         </div>
 
         {/* Report Insights */}
-        <div className="mb-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="min-w-0 mb-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 mb-4">
             <Zap className="h-5 w-5 text-[#1e3a8a]" />
             <h3 className="text-sm font-semibold text-[#1e293b]">Key Insights</h3>
@@ -804,7 +804,7 @@ export default function ReportsPage() {
           <div className="grid gap-4 md:grid-cols-2">
             {filteredData.filteredCatalog.length > 0 ? (
               filteredData.filteredCatalog.map((report: any) => (
-                <div key={report.id} className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div key={report.id} className="min-w-0 rounded-lg border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0 p-2 bg-[#1e3a8a]/10 rounded-lg text-[#1e3a8a]">
                       {report.icon}
@@ -863,7 +863,7 @@ export default function ReportsPage() {
         {/* Charts Section */}
         <div className="grid gap-6 md:grid-cols-2 mb-6">
           {/* Report Generation Trend */}
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
             <div className="flex items-center gap-2 mb-4">
               <LineChart className="h-5 w-5 text-[#1e3a8a]" />
               <h3 className="text-sm font-semibold text-[#1e293b]">Report Generation Trend</h3>
@@ -880,7 +880,7 @@ export default function ReportsPage() {
           </div>
 
           {/* Report Coverage by Domain */}
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 className="h-5 w-5 text-[#1e3a8a]" />
               <h3 className="text-sm font-semibold text-[#1e293b]">Report Coverage by Domain</h3>
@@ -898,13 +898,14 @@ export default function ReportsPage() {
         </div>
 
         {/* Recent Report Activity */}
-        <div className="mb-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="min-w-0 mb-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 mb-4">
             <Activity className="h-5 w-5 text-[#1e3a8a]" />
             <h3 className="text-sm font-semibold text-[#1e293b]">Recent Report Activity</h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="text-left py-2 px-3 font-semibold text-[#1e293b]">Report</th>
@@ -943,16 +944,18 @@ export default function ReportsPage() {
               </tbody>
             </table>
           </div>
+          </div>
         </div>
 
         {/* District Report Coverage */}
-        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 mb-4">
             <MapPin className="h-5 w-5 text-[#1e3a8a]" />
             <h3 className="text-sm font-semibold text-[#1e293b]">District Report Coverage</h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="text-left py-2 px-3 font-semibold text-[#1e293b]">District</th>
@@ -1011,11 +1014,12 @@ export default function ReportsPage() {
               </tbody>
             </table>
           </div>
+          </div>
         </div>
           </>
         ) : (
           /* Empty State */
-          <div className="rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-8 shadow-sm overflow-hidden">
             <div className="text-center">
               <FileText className="h-12 w-12 text-slate-300 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-slate-700 mb-2">No reports available for the selected filters</h3>
@@ -1039,7 +1043,7 @@ export default function ReportsPage() {
 
 function KpiCard({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm overflow-hidden">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</p>
