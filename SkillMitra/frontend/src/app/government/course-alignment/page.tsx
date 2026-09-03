@@ -994,7 +994,8 @@ export default function CourseAlignmentPage() {
                   <h3 className="text-sm font-semibold text-[#1e293b]">Course Alignment Directory</h3>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
+                  <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full text-xs">
                     <thead className="bg-slate-50">
                       <tr>
                         <th className="px-4 py-3 text-left font-semibold text-slate-600">Course</th>
@@ -1049,6 +1050,7 @@ export default function CourseAlignmentPage() {
                       })}
                     </tbody>
                   </table>
+          </div>
                 </div>
               </div>
 
@@ -1167,7 +1169,8 @@ export default function CourseAlignmentPage() {
                   <h3 className="text-sm font-semibold text-[#1e293b]">District Alignment Summary</h3>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
+                  <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full text-xs">
                     <thead className="bg-slate-50">
                       <tr>
                         <th className="px-4 py-3 text-left font-semibold text-slate-600">District</th>
@@ -1204,6 +1207,7 @@ export default function CourseAlignmentPage() {
                       )}
                     </tbody>
                   </table>
+          </div>
                 </div>
               </div>
             </>

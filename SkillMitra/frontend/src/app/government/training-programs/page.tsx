@@ -618,7 +618,8 @@ export default function TrainingProgramsPage() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="min-w-[1100px] w-full text-sm">
+                  <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="min-w-[1100px] w-full text-sm">
                     <thead className="bg-slate-50 text-left text-[#1e293b]">
                       <tr>
                         <th className="px-4 py-3 font-semibold">Course</th>
@@ -669,6 +670,7 @@ export default function TrainingProgramsPage() {
                       ))}
                     </tbody>
                   </table>
+          </div>
                 </div>
               </div>
             </>

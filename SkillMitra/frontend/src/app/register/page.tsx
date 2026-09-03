@@ -214,7 +214,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <div className="hidden items-center gap-3 text-xs sm:flex">
+          <div className="hidden flex-wrap items-center gap-2 text-xs sm:flex sm:gap-3">
             <button type="button" className="hover:underline">
               Help
             </button>

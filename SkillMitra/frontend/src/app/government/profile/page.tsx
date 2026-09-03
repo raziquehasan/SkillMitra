@@ -192,7 +192,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Profile Header Card */}
-        <div className="mb-6 rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+        <div className="min-w-0 mb-6 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
           <div className="flex items-start gap-6">
             {/* Avatar */}
             <div className="flex-shrink-0">
@@ -239,7 +239,7 @@ export default function ProfilePage() {
 
         <div className="grid gap-6 md:grid-cols-2">
           {/* Personal Information */}
-          <div className="rounded-lg border border-slate-300 bg-white p-5 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-5 shadow-sm overflow-hidden">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-[#1e3a8a] mb-4 border-b border-slate-200 pb-2">
               Personal Information
             </h3>
@@ -269,7 +269,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Official Information */}
-          <div className="rounded-lg border border-slate-300 bg-white p-5 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-5 shadow-sm overflow-hidden">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-[#1e3a8a] mb-4 border-b border-slate-200 pb-2">
               Official Information
             </h3>
@@ -308,7 +308,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Account Information */}
-          <div className="rounded-lg border border-slate-300 bg-white p-5 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-5 shadow-sm overflow-hidden">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-[#1e3a8a] mb-4 border-b border-slate-200 pb-2">
               Account Information
             </h3>
@@ -364,7 +364,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Access & Permissions */}
-          <div className="rounded-lg border border-slate-300 bg-white p-5 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-5 shadow-sm overflow-hidden">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-[#1e3a8a] mb-4 border-b border-slate-200 pb-2">
               Role & Access
             </h3>
@@ -408,7 +408,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Account Security Section */}
-        <div className="mt-6 rounded-lg border border-slate-300 bg-white p-5 shadow-sm">
+        <div className="min-w-0 mt-6 rounded-lg border border-slate-300 bg-white p-5 shadow-sm overflow-hidden">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-[#1e3a8a] mb-4 border-b border-slate-200 pb-2">
             Account Security
           </h3>

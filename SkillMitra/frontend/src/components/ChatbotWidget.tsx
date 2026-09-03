@@ -58,24 +58,9 @@ const SkillMitraAIIcon = ({ className }: { className?: string }) => (
       strokeLinecap="round"
     />
     {/* Outer sparkles - represents AI activity */}
-    <circle 
-      cx="8" 
-      cy="7" 
-      r="1" 
-      fill="white"
-    />
-    <circle 
-      cx="16" 
-      cy="7" 
-      r="1" 
-      fill="white"
-    />
-    <circle 
-      cx="12" 
-      cy="16" 
-      r="1" 
-      fill="white"
-    />
+    <circle cx="8" cy="7" r="1" fill="white" />
+    <circle cx="16" cy="7" r="1" fill="white" />
+    <circle cx="12" cy="16" r="1" fill="white" />
   </svg>
 );
 
@@ -128,7 +113,6 @@ export default function ChatbotWidget() {
     if (hindiCount > marathiCount) return "hi";
     
     // Default to Hindi if Devanagari script detected but can't differentiate
-    // (Changed from Marathi to Hindi as a safer default)
     return "hi";
   };
 
@@ -205,24 +189,25 @@ export default function ChatbotWidget() {
     return t("chatbot.subtitle");
   };
 
+  // Launcher — when chat is closed
   if (!isOpen) {
     return (
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end gap-2">
         {/* Tooltip - shown only on first visit */}
         {!hasOpenedBefore && (
-          <div className="bg-[#123b68] text-white px-4 py-2 rounded-lg shadow-lg text-[15px] font-medium mb-2 mr-2 animate-pulse">
+          <div className="bg-[#123b68] text-white px-4 py-2 rounded-lg shadow-lg text-[15px] font-medium mb-2 mr-2 animate-pulse max-w-[200px] text-center">
             {t("chatbot.ask")}
           </div>
         )}
-        
+
         <button
           onClick={() => {
             setIsOpen(true);
             setHasOpenedBefore(true);
           }}
           className="bg-[#123b68] text-white rounded-full shadow-lg hover:bg-[#0d2d52] transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#c2410c] focus:ring-offset-2 flex items-center justify-center"
-          style={{ width: '60px', height: '60px' }}
-          aria-label={isOpen ? "Close SkillMitra AI" : "Open SkillMitra AI"}
+          style={{ width: '60px', height: '60px', minWidth: '44px', minHeight: '44px' }}
+          aria-label="Open SkillMitra AI"
           title={t("chatbot.ask")}
         >
           <SkillMitraAIIcon className="w-7 h-7" />
@@ -231,143 +216,194 @@ export default function ChatbotWidget() {
     );
   }
 
-  // When open, hide the floating button and show the chat panel
+  // Chat panel — when open
+  // Mobile (<640px): left:12px right:12px auto-width → fits any viewport ≥320px
+  // Desktop (≥640px): fixed 420px anchored to bottom-right
   return (
     <>
-      {/* Mobile: Floating button is hidden when chat is open */}
-      {/* Desktop: Floating button is hidden when chat is open */}
-      
-      <div className="fixed z-50 w-full max-w-md bottom-0 right-0 left-0 md:bottom-24 md:right-6 md:w-auto md:left-auto md:max-w-[420px]">
-        <div className="bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col md:rounded-xl rounded-t-xl h-[85vh] md:h-[560px]">
-          {/* Header */}
-          <div className="bg-[#123b68] text-white p-3 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="bg-white/20 p-2 rounded-lg">
-              <SkillMitraAIIcon className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-[16px] leading-tight">{t("chatbot.title")}</h3>
-              <p className="text-[12px] text-white/80 mt-0.5 leading-snug">{getSubtitle()}</p>
+      {/* Outer positioning wrapper */}
+      <div
+        className="fixed z-50"
+        style={{
+          // Mobile default: 12px safe margin both sides
+          bottom: 0,
+          left: '12px',
+          right: '12px',
+          width: 'auto',
+          maxWidth: 'calc(100vw - 24px)',
+        }}
+      >
+        {/* Responsive overrides via a scoped style tag */}
+        <style>{`
+          @media (min-width: 640px) {
+            .chatbot-panel-positioner {
+              left: auto !important;
+              right: 24px !important;
+              bottom: 96px !important;
+              width: 420px !important;
+              max-width: 420px !important;
+            }
+          }
+        `}</style>
+
+        {/* Apply the responsive class to the positioner */}
+        <div className="chatbot-panel-positioner" style={{ position: 'fixed', bottom: 0, left: '12px', right: '12px', width: 'auto', maxWidth: 'calc(100vw - 24px)', zIndex: 50 }}>
+          {/* Chat panel inner — flex column so only messages scroll */}
+          <div
+            className="bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col w-full"
+            style={{
+              // Mobile: top-only rounded corners (bottom flush with screen edge)
+              borderRadius: '16px 16px 0 0',
+              height: 'min(85dvh, 680px)',
+            }}
+          >
+            {/* Responsive inner overrides */}
+            <style>{`
+              @media (min-width: 640px) {
+                .chatbot-panel-inner {
+                  border-radius: 16px !important;
+                  height: 560px !important;
+                }
+              }
+            `}</style>
+            <div className="chatbot-panel-inner flex flex-col w-full h-full" style={{ borderRadius: '16px 16px 0 0', height: 'min(85dvh, 680px)' }}>
+
+              {/* Header — flex-shrink-0 so it never scrolls */}
+              <div className="bg-[#123b68] text-white p-3 flex items-center justify-between flex-shrink-0">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="bg-white/20 p-2 rounded-lg flex-shrink-0">
+                    <SkillMitraAIIcon className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-[16px] leading-tight truncate">{t("chatbot.title")}</h3>
+                    <p className="text-[12px] text-white/80 mt-0.5 leading-snug truncate">{getSubtitle()}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-white/80 hover:text-white transition-colors hover:bg-white/10 rounded focus:outline-none focus:ring-2 focus:ring-white/50 flex-shrink-0 flex items-center justify-center"
+                  aria-label="Close SkillMitra AI"
+                  style={{ minWidth: '44px', minHeight: '44px' }}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Messages — flex-1 + overflow-y-auto — ONLY this section scrolls */}
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 bg-slate-50 min-h-0">
+                {messages.length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-full text-center px-2">
+                    <p className="text-slate-700 font-medium mb-3 text-[15px] leading-[1.6] max-w-full">
+                      {getWelcomeMessage()}
+                    </p>
+
+                    {/* Quick Questions */}
+                    <div className="grid grid-cols-1 gap-2 w-full mt-4">
+                      {quickQuestions.map((question, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleQuickQuestion(question)}
+                          className="text-left p-2.5 bg-white border border-slate-200 rounded-lg hover:border-[#123b68] hover:bg-[#123b68]/5 transition-all text-[14px] text-slate-700 hover:text-[#123b68] min-h-[48px] flex items-center w-full"
+                        >
+                          <span className="line-clamp-2 leading-snug">{question}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex gap-3 mb-4 ${
+                      message.role === "user" ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    {message.role === "assistant" && (
+                      <div className="bg-[#123b68] p-2 rounded-full flex-shrink-0 self-start">
+                        <SkillMitraAIIcon className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                    
+                    <div
+                      className={`max-w-[80%] p-3 rounded-lg min-w-0 ${
+                        message.role === "user"
+                          ? "bg-[#123b68] text-white"
+                          : "bg-white border border-slate-200 text-slate-700"
+                      }`}
+                    >
+                      {message.role === "assistant" ? (
+                        <div className="text-[15px] prose prose-sm prose-slate max-w-none leading-[1.6] prose-headings:font-semibold prose-headings:text-slate-800 prose-headings:mt-2 prose-headings:mb-2 prose-p:my-2 prose-ul:my-2 prose-li:my-1">
+                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="text-[15px] whitespace-pre-wrap leading-[1.6] break-words">
+                          {message.content}
+                        </p>
+                      )}
+                      <p className="text-xs mt-1 opacity-60">
+                        {message.timestamp.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+
+                {isLoading && (
+                  <div className="flex gap-3 mb-4 justify-start">
+                    <div className="bg-[#123b68] p-2 rounded-full flex-shrink-0">
+                      <SkillMitraAIIcon className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="bg-white border border-slate-200 p-3 rounded-lg">
+                      <p className="mb-2 text-[13px] text-slate-600">{t("chatbot.loading")}</p>
+                      <div className="flex gap-1" aria-label={t("chatbot.loading")}>
+                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
+                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-100" />
+                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-200" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Input footer — flex-shrink-0 so it is ALWAYS visible at the bottom */}
+              <div className="p-3 border-t border-slate-200 bg-white flex-shrink-0">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    sendMessage(inputValue);
+                  }}
+                  className="flex gap-2 w-full"
+                >
+                  <input
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder={t("chatbot.placeholder")}
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#123b68] focus:border-transparent text-[15px] placeholder:text-slate-400 disabled:bg-slate-100 min-w-0"
+                    disabled={isLoading}
+                    style={{ height: '48px' }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!inputValue.trim() || isLoading}
+                    className="bg-[#123b68] text-white rounded-lg hover:bg-[#0d2d52] disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-[#123b68] focus:ring-offset-2 flex-shrink-0 flex items-center justify-center"
+                    aria-label={t("chatbot.sendMessage")}
+                    style={{ height: '48px', width: '48px', minWidth: '44px', minHeight: '44px' }}
+                  >
+                    <Send className="w-5 h-5" />
+                  </button>
+                </form>
+              </div>
+
             </div>
           </div>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="text-white/80 hover:text-white transition-colors p-1.5 hover:bg-white/10 rounded focus:outline-none focus:ring-2 focus:ring-white/50"
-            aria-label="Close SkillMitra AI"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 bg-slate-50">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center px-4">
-              <p className="text-slate-700 font-medium mb-3 text-[15px] leading-[1.6] max-w-md">{getWelcomeMessage()}</p>
-              
-              {/* Quick Questions */}
-              <div className="grid grid-cols-1 gap-2 w-full mt-4">
-                {quickQuestions.map((question, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleQuickQuestion(question)}
-                    className="text-left p-2.5 bg-white border border-slate-200 rounded-lg hover:border-[#123b68] hover:bg-[#123b68]/5 transition-all text-[14px] text-slate-700 hover:text-[#123b68] h-[48px] flex items-center"
-                  >
-                    {question}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex gap-3 mb-4 ${
-                message.role === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
-              {message.role === "assistant" && (
-                <div className="bg-[#123b68] p-2 rounded-full flex-shrink-0">
-                  <SkillMitraAIIcon className="w-4 h-4 text-white" />
-                </div>
-              )}
-              
-              <div
-                className={`max-w-[80%] p-3 rounded-lg ${
-                  message.role === "user"
-                    ? "bg-[#123b68] text-white"
-                    : "bg-white border border-slate-200 text-slate-700"
-                }`}
-              >
-                {message.role === "assistant" ? (
-                  <div className="text-[15px] prose prose-sm prose-slate max-w-none leading-[1.6] prose-headings:font-semibold prose-headings:text-slate-800 prose-headings:mt-2 prose-headings:mb-2 prose-p:my-2 prose-ul:my-2 prose-li:my-1">
-                    <ReactMarkdown>{message.content}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className="text-[15px] whitespace-pre-wrap leading-[1.6]">{message.content}</p>
-                )}
-                <p className="text-xs mt-1 opacity-60">
-                  {message.timestamp.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
-              </div>
-
-            </div>
-          ))}
-
-          {isLoading && (
-            <div className="flex gap-3 mb-4 justify-start">
-              <div className="bg-[#123b68] p-2 rounded-full flex-shrink-0">
-                <SkillMitraAIIcon className="w-4 h-4 text-white" />
-              </div>
-              <div className="bg-white border border-slate-200 p-3 rounded-lg">
-                <p className="mb-2 text-[13px] text-slate-600">{t("chatbot.loading")}</p>
-                <div className="flex gap-1" aria-label={t("chatbot.loading")}>
-                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-100" />
-                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-200" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input */}
-        <div className="p-4 border-t border-slate-200 bg-white flex-shrink-0">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              sendMessage(inputValue);
-            }}
-            className="flex gap-2"
-          >
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder={t("chatbot.placeholder")}
-              className="flex-1 px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#123b68] focus:border-transparent text-[15px] placeholder:text-slate-400 disabled:bg-slate-100"
-              disabled={isLoading}
-              style={{ height: '48px' }}
-            />
-            <button
-              type="submit"
-              disabled={!inputValue.trim() || isLoading}
-              className="bg-[#123b68] text-white p-2 rounded-lg hover:bg-[#0d2d52] disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-[#123b68] focus:ring-offset-2"
-              aria-label={t("chatbot.sendMessage")}
-              style={{ height: '48px', width: '48px' }}
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </form>
         </div>
       </div>
-    </div>
     </>
   );
 }

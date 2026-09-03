@@ -116,7 +116,7 @@ export default function SupportPage() {
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* FAQ Section */}
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="h-5 w-5 text-[#c2410c]" />
               <h2 className="text-lg font-semibold text-[#123b68]">Frequently Asked Questions</h2>
@@ -146,7 +146,7 @@ export default function SupportPage() {
           </div>
 
           {/* Platform Guide */}
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="h-5 w-5 text-[#c2410c]" />
               <h2 className="text-lg font-semibold text-[#123b68]">Platform Guides</h2>
@@ -170,7 +170,7 @@ export default function SupportPage() {
         </div>
 
         {/* Contact Support Form */}
-        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="min-w-0 mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 mb-4">
             <MessageSquare className="h-5 w-5 text-[#c2410c]" />
             <h2 className="text-lg font-semibold text-[#123b68]">Contact Support</h2>
@@ -250,7 +250,7 @@ export default function SupportPage() {
         </div>
 
         {/* Report Issue Form */}
-        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="min-w-0 mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 mb-4">
             <AlertTriangle className="h-5 w-5 text-[#c2410c]" />
             <h2 className="text-lg font-semibold text-[#123b68]">Report an Issue</h2>

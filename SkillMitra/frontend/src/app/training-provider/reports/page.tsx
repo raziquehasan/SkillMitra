@@ -76,7 +76,7 @@ function ReportsContent() {
       </div>
 
       {/* Report Filters */}
-      <div className="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-4 shadow-sm overflow-hidden">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -118,7 +118,7 @@ function ReportsContent() {
       {/* Reports Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {reports.map((report) => (
-          <div key={report.id} className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div key={report.id} className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
             <div className="flex items-start justify-between mb-4">
               <div className="p-2 bg-blue-50 rounded-lg">
                 <BarChart3 className="h-6 w-6 text-blue-600" />
@@ -148,7 +148,7 @@ function ReportsContent() {
       </div>
 
       {/* Recent Activity */}
-      <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
         <h2 className="text-lg font-semibold text-[#1e293b] mb-4">Recent Report Activity</h2>
         <div className="space-y-3">
           <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
@@ -192,7 +192,7 @@ function KPICard({ title, value, icon, color }: {
   };
 
   return (
-    <div className="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+    <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-4 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between mb-2">
         <div className={`p-2 rounded-lg ${colorClasses[color as keyof typeof colorClasses]}`}>
           {icon}

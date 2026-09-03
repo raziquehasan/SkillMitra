@@ -116,7 +116,7 @@ function TrainingProviderDashboardContent() {
       </div>
 
       {/* Filters */}
-      <div className="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-4 shadow-sm overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           {/* Search */}
           <div className="flex-1 relative">
@@ -256,22 +256,22 @@ function TrainingProviderDashboardContent() {
       </div>
 
       {/* Course Performance */}
-      <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+      <div className="min-w-0 overflow-hidden rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-[#1e293b] mb-4">Course Performance</h2>
         <div className="space-y-4">
           {dashboardData.coursePerformance.map((course) => (
             <div key={course.id} className="border-b border-slate-200 pb-4 last:border-0">
               <div className="flex items-center justify-between mb-2">
-                <div>
-                  <h3 className="font-medium text-[#1e293b]">{course.name}</h3>
-                  <p className="text-sm text-slate-500">{course.sector}</p>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-medium text-[#1e293b] truncate">{course.name}</h3>
+                  <p className="text-sm text-slate-500 truncate">{course.sector}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-right ml-4">
                   <p className="text-sm font-medium text-[#1e293b]">{course.utilization}%</p>
                   <p className="text-xs text-slate-500">Utilization</p>
                 </div>
               </div>
-              <div className="grid grid-cols-4 gap-4 text-sm">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mt-3">
                 <div>
                   <p className="text-slate-500">Enrolled</p>
                   <p className="font-medium">{course.enrolled}</p>
@@ -289,7 +289,7 @@ function TrainingProviderDashboardContent() {
                   <p className="font-medium">{course.outcome}%</p>
                 </div>
               </div>
-              <div className="mt-2">
+              <div className="mt-3">
                 <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-[#1e3a8a] transition-all"
@@ -303,14 +303,14 @@ function TrainingProviderDashboardContent() {
       </div>
 
       {/* Industry Demand vs Course Coverage */}
-      <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+      <div className="min-w-0 overflow-hidden rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-[#1e293b] mb-4">Industry Demand vs Course Coverage</h2>
         <div className="space-y-4">
           {dashboardData.skillCoverage.map((skill) => (
             <div key={skill.name} className="border-b border-slate-200 pb-4 last:border-0">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-medium text-[#1e293b]">{skill.name}</h3>
-                <div className="flex items-center gap-4 text-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                <h3 className="font-medium text-[#1e293b] truncate">{skill.name}</h3>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                   <span className="text-slate-500">Demand: {skill.demand}</span>
                   <span className="text-slate-500">Covered: {skill.covered}</span>
                   <span className={`font-medium ${skill.gap > 0 ? "text-red-600" : "text-green-600"}`}>
@@ -318,7 +318,7 @@ function TrainingProviderDashboardContent() {
                   </span>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
                 <div className="h-2 bg-blue-500 rounded-full" style={{ width: `${(skill.demand / skill.demand) * 100}%` }} />
                 <div className="h-2 bg-green-500 rounded-full" style={{ width: `${(skill.covered / skill.demand) * 100}%` }} />
                 <div className="h-2 bg-red-500 rounded-full" style={{ width: `${(skill.gap / skill.demand) * 100}%` }} />
@@ -329,18 +329,18 @@ function TrainingProviderDashboardContent() {
       </div>
 
       {/* Curriculum Alignment */}
-      <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+      <div className="min-w-0 overflow-hidden rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-[#1e293b] mb-4">Curriculum Alignment</h2>
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="p-4 bg-green-50 rounded-lg border border-green-200 text-center sm:text-left">
             <p className="text-sm text-slate-500">Strongly Aligned</p>
             <p className="text-2xl font-bold text-green-600">{dashboardData.curriculumAlignment.strong}</p>
           </div>
-          <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+          <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200 text-center sm:text-left">
             <p className="text-sm text-slate-500">Partially Aligned</p>
             <p className="text-2xl font-bold text-yellow-600">{dashboardData.curriculumAlignment.partial}</p>
           </div>
-          <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+          <div className="p-4 bg-red-50 rounded-lg border border-red-200 text-center sm:text-left">
             <p className="text-sm text-slate-500">Needs Review</p>
             <p className="text-2xl font-bold text-red-600">{dashboardData.curriculumAlignment.needsReview}</p>
           </div>
@@ -365,7 +365,7 @@ function TrainingProviderDashboardContent() {
       </div>
 
       {/* Recommended Actions */}
-      <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
         <h2 className="text-lg font-semibold text-[#1e293b] mb-4">Recommended Actions</h2>
         <div className="space-y-3">
           {dashboardData.recommendedActions.map((action, index) => (
@@ -388,7 +388,7 @@ function TrainingProviderDashboardContent() {
       </div>
 
       {/* Recent Activity */}
-      <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
         <h2 className="text-lg font-semibold text-[#1e293b] mb-4">Recent Activity</h2>
         <div className="space-y-3">
           {dashboardData.recentActivity.map((activity, index) => (
@@ -422,7 +422,7 @@ function KPICard({ title, value, icon, trend, color }: {
   };
 
   return (
-    <div className="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+    <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-4 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between mb-2">
         <div className={`p-2 rounded-lg ${colorClasses[color as keyof typeof colorClasses]}`}>
           {icon}

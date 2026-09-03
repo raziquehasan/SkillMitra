@@ -109,7 +109,7 @@ export default function SettingsPage() {
         <div className="grid gap-6 lg:grid-cols-4">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
               {sections.map((s) => (
                 <button
                   key={s.key}
@@ -129,7 +129,7 @@ export default function SettingsPage() {
 
           {/* Content */}
           <div className="lg:col-span-3">
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
               {activeSection === "account" && (
                 <div>
                   <h3 className="text-lg font-semibold text-[#123b68] mb-4">Account Information</h3>

@@ -49,7 +49,7 @@ function TrainingCapacityContent() {
         <KPICard title="Utilization" value="74.3%" icon={<BarChart3 className="h-5 w-5" />} />
       </div>
 
-      <div className="rounded-lg border border-slate-300 bg-white p-6 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-6 shadow-sm overflow-hidden">
         <h2 className="text-lg font-semibold text-[#1e293b] mb-4">Capacity by Course</h2>
         <div className="space-y-4">
           {[
@@ -83,7 +83,7 @@ function TrainingCapacityContent() {
 
 function KPICard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+    <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-4 shadow-sm overflow-hidden">
       <div className="flex items-center gap-3 mb-2">
         <div className="p-2 bg-blue-50 rounded-lg text-blue-600">{icon}</div>
         <p className="text-xs text-slate-500 uppercase tracking-wide">{title}</p>

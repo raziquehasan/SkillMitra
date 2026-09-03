@@ -6,7 +6,7 @@ import { api, type District } from "@/lib/api";
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center">
+    <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center overflow-hidden">
       <p className="text-sm text-slate-600">{message}</p>
     </div>
   );
@@ -91,7 +91,7 @@ export default function SkillGapsPage() {
           <p className="mt-2 text-slate-600">Identify skill gaps between demand and training capacity.</p>
         </div>
 
-        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="min-w-0 mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm overflow-hidden">
           <label className="block text-sm font-semibold text-slate-700 mb-2">Filter by District</label>
           <select
             value={filterDistrict}
@@ -124,9 +124,10 @@ export default function SkillGapsPage() {
         )}
 
         {!fetching && gaps.length > 0 && (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-x-auto">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-x-auto">
             <p className="text-xs font-semibold uppercase tracking-wide text-[#c2410c] mb-4">Skill Gap Analysis {districtName && `— ${districtName}`}</p>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="text-left py-2 px-2">Skill ID</th>
@@ -161,6 +162,7 @@ export default function SkillGapsPage() {
                 })}
               </tbody>
             </table>
+          </div>
           </div>
         )}
 

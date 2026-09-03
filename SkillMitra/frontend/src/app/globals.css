@@ -18,8 +18,20 @@
   --font-serif: var(--font-gov-serif);
 }
 
+/* Box sizing reset — ensures all elements respect their container width */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html {
   font-size: 100%;
+  /* Contain horizontal overflow — fix underlying issues, not just hide them */
+  overflow-x: clip;
+  /* Ensure proper touch handling on mobile */
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html.font-lg {
@@ -34,6 +46,9 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-gov-sans), "Segoe UI", Arial, Helvetica, sans-serif;
+  overflow-x: clip;
+  width: 100%;
+  min-width: 320px;
 }
 
 :focus-visible {
@@ -64,4 +79,23 @@ input {
 
 section[id] {
   scroll-margin-top: 5.5rem;
+}
+
+/* Targeted responsive media rules.
+   NOTE: Do NOT use `* { max-width: 100% }` — it breaks icons, SVGs,
+   avatars, buttons, dropdowns, and many Tailwind utilities. */
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Mobile touch targets — only native interactive elements */
+@media (max-width: 640px) {
+  button,
+  input[type="submit"],
+  input[type="button"],
+  input[type="reset"] {
+    min-height: 44px;
+  }
 }

@@ -498,7 +498,8 @@ export default function EmploymentOutcomesPage() {
           <div className="bg-white rounded-md border border-slate-200 p-5 shadow-sm mb-5">
             <h3 className="text-sm font-semibold text-[#1e293b] mb-4">District-wise Employment Outcomes</h3>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[900px]">
+              <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full text-sm min-w-[900px]">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50">
                     <th className="text-left py-3 px-4 font-semibold text-[#1e293b]">District</th>
@@ -524,6 +525,7 @@ export default function EmploymentOutcomesPage() {
                   ))}
                 </tbody>
               </table>
+          </div>
             </div>
           </div>
 

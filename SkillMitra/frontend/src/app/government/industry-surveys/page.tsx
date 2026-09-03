@@ -7,7 +7,7 @@ import { FileText, BarChart3 } from "lucide-react";
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center">
+    <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-8 shadow-sm text-center overflow-hidden">
       <FileText className="mx-auto h-10 w-10 text-slate-400" />
       <p className="mt-4 text-sm text-slate-600">{message}</p>
     </div>
@@ -103,7 +103,7 @@ export default function IndustrySurveysPage() {
           <p className="mt-2 text-slate-600">Employer survey responses, demand signals, and skill difficulty analysis.</p>
         </div>
 
-        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="min-w-0 mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm overflow-hidden">
           <label className="block text-sm font-semibold text-slate-700 mb-2">Filter by District</label>
           <select
             value={filterDistrict}
@@ -133,9 +133,10 @@ export default function IndustrySurveysPage() {
         )}
 
         {!fetching && employerSurveys.length > 0 && (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-x-auto mb-6">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-x-auto mb-6">
             <p className="text-xs font-semibold uppercase tracking-wide text-[#c2410c] mb-4">Survey List</p>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="text-left py-2 px-2">Survey Title</th>
@@ -162,12 +163,14 @@ export default function IndustrySurveysPage() {
               </tbody>
             </table>
           </div>
+          </div>
         )}
 
         {!fetching && industrySurveys.length > 0 && (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-x-auto mb-6">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-x-auto mb-6">
             <p className="text-xs font-semibold uppercase tracking-wide text-[#c2410c] mb-4">Demand Signals by Skill & Role</p>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="text-left py-2 px-2">Skill</th>
@@ -197,10 +200,11 @@ export default function IndustrySurveysPage() {
               </tbody>
             </table>
           </div>
+          </div>
         )}
 
         {!fetching && industrySurveys.length > 0 && (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
             <p className="text-xs font-semibold uppercase tracking-wide text-[#c2410c] mb-4">Difficulty Distribution</p>
             <div className="space-y-4">
               {industrySurveys.map((survey, idx) => (

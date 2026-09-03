@@ -27,7 +27,7 @@ function IndustryDemandContent() {
         </p>
       </div>
 
-      <div className="rounded-lg border border-slate-300 bg-white p-12 shadow-sm text-center">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-12 shadow-sm text-center overflow-hidden">
         <Factory className="h-16 w-16 text-slate-300 mx-auto mb-4" />
         <h2 className="text-xl font-semibold text-[#1e293b] mb-2">Industry Demand Analysis</h2>
         <p className="text-slate-600">

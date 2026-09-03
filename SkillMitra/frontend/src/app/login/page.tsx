@@ -48,7 +48,7 @@ export default function LoginPage() {
              </span>
            </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             <button
               type="button"
               className="hover:underline"

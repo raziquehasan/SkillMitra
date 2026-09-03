@@ -91,7 +91,7 @@ function MyCoursesContent() {
       </div>
 
       {/* Filters */}
-      <div className="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-4 shadow-sm overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -127,8 +127,9 @@ function MyCoursesContent() {
       </div>
 
       {/* Course List */}
-      <div className="rounded-lg border border-slate-300 bg-white shadow-sm overflow-hidden">
-        <table className="w-full">
+      <div className="min-w-0 rounded-lg border border-slate-300 bg-white shadow-sm overflow-hidden">
+        <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full">
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Course</th>
@@ -190,6 +191,7 @@ function MyCoursesContent() {
             ))}
           </tbody>
         </table>
+          </div>
       </div>
     </div>
   );
@@ -197,7 +199,7 @@ function MyCoursesContent() {
 
 function KPICard({ title, value, icon }: { title: string; value: number; icon: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-slate-300 bg-white p-4 shadow-sm">
+    <div className="min-w-0 rounded-lg border border-slate-300 bg-white p-4 shadow-sm overflow-hidden">
       <div className="flex items-center gap-3 mb-2">
         <div className="p-2 bg-blue-50 rounded-lg text-blue-600">{icon}</div>
         <p className="text-xs text-slate-500 uppercase tracking-wide">{title}</p>

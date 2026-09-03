@@ -877,7 +877,7 @@ function DashboardContent() {
       </div>
 
       {/* Filter Bar */}
-      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="min-w-0 mb-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm overflow-hidden">
         <div className="flex items-center gap-2 mb-3">
           <Filter className="h-4 w-4 text-[#1e3a8a]" />
           <span className="text-sm font-semibold text-slate-700">Filters</span>
@@ -994,7 +994,7 @@ function DashboardContent() {
           </div>
 
           {/* Decision Support Pipeline */}
-          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm overflow-hidden">
             <div className="flex items-center gap-2 mb-3">
               <Activity className="h-5 w-5 text-[#1e3a8a]" />
               <h2 className="text-sm font-semibold uppercase tracking-wide text-[#1e3a8a]">Decision Support Pipeline</h2>
@@ -1047,7 +1047,7 @@ function DashboardContent() {
           {/* Main Charts Row */}
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Skill Demand Ranking */}
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-semibold text-[#1e293b]">Skill Demand Ranking</h3>
@@ -1065,9 +1065,9 @@ function DashboardContent() {
                   {skillDemandData.map((skill, index) => (
                     <div key={index} className="flex items-center gap-3">
                       <span className="text-xs text-slate-500 w-6">{index + 1}.</span>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium text-[#1e293b]">{skill.name}</span>
+                          <span className="text-sm font-medium text-[#1e293b] truncate">{skill.name}</span>
                           <span className="text-sm font-bold text-[#1e3a8a]">{skill.demand}</span>
                         </div>
                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -1086,7 +1086,7 @@ function DashboardContent() {
             </div>
 
             {/* Demand vs Training Capacity */}
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-semibold text-[#1e293b]">Demand vs Training Capacity</h3>
@@ -1124,7 +1124,7 @@ function DashboardContent() {
           </div>
 
           {/* Critical Skill Gap Analysis */}
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-semibold text-[#1e293b]">Critical Skill Gap Analysis</h3>
@@ -1132,29 +1132,30 @@ function DashboardContent() {
               </div>
               <button
                 onClick={() => router.push("/government/skill-gaps")}
-                className="text-xs text-[#1e3a8a] hover:text-[#1e3a8a]/80 flex items-center gap-1 font-medium"
+                className="text-xs text-[#1e3a8a] hover:text-[#1e3a8a]/80 flex items-center gap-1 font-medium flex-shrink-0"
               >
                 View All <ArrowRight className="h-3 w-3" />
               </button>
             </div>
             {filteredDashboard.skill_gaps.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto -mx-6 px-6 pb-2">
+                <div className="overflow-x-auto w-full">
+            <table data-wrapped="true" className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-200">
-                      <th className="text-left py-2 px-3 font-semibold text-[#1e293b]">Skill</th>
-                      <th className="text-left py-2 px-3 font-semibold text-[#1e293b]">Demand</th>
-                      <th className="text-left py-2 px-3 font-semibold text-[#1e293b]">Coverage Status</th>
-                      <th className="text-left py-2 px-3 font-semibold text-[#1e293b]">Gap Severity</th>
-                      <th className="text-left py-2 px-3 font-semibold text-[#1e293b]">Course Availability</th>
+                      <th className="text-left py-2 px-3 font-semibold text-[#1e293b] whitespace-nowrap">Skill</th>
+                      <th className="text-left py-2 px-3 font-semibold text-[#1e293b] whitespace-nowrap">Demand</th>
+                      <th className="text-left py-2 px-3 font-semibold text-[#1e293b] whitespace-nowrap">Coverage Status</th>
+                      <th className="text-left py-2 px-3 font-semibold text-[#1e293b] whitespace-nowrap">Gap Severity</th>
+                      <th className="text-left py-2 px-3 font-semibold text-[#1e293b] whitespace-nowrap">Course Availability</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredDashboard.skill_gaps.slice(0, 8).map((gap, index) => (
                       <tr key={`${gap.skill_id}-${index}`} className="border-b border-slate-100">
-                        <td className="py-2 px-3 font-medium text-[#1e293b]">{gap.skill_name || gap.skill_id}</td>
-                        <td className="py-2 px-3">{gap.demand_count || 0}</td>
-                        <td className="py-2 px-3">
+                        <td className="py-2 px-3 font-medium text-[#1e293b] whitespace-nowrap">{gap.skill_name || gap.skill_id}</td>
+                        <td className="py-2 px-3 whitespace-nowrap">{gap.demand_count || 0}</td>
+                        <td className="py-2 px-3 whitespace-nowrap">
                           <span className={`px-2 py-1 rounded text-xs ${
                             gap.training_coverage === "Available"
                               ? "bg-green-100 text-green-700"
@@ -1163,7 +1164,7 @@ function DashboardContent() {
                             {gap.training_coverage || "None"}
                           </span>
                         </td>
-                        <td className="py-2 px-3">
+                        <td className="py-2 px-3 whitespace-nowrap">
                           <span className={`px-2 py-1 rounded text-xs ${
                             gap.gap_signal === "Critical Gap"
                               ? "bg-red-100 text-red-700"
@@ -1172,11 +1173,12 @@ function DashboardContent() {
                             {gap.gap_signal || "Unknown"}
                           </span>
                         </td>
-                        <td className="py-2 px-3">{gap.training_coverage === "Available" ? "Available" : "None"}</td>
+                        <td className="py-2 px-3 whitespace-nowrap">{gap.training_coverage === "Available" ? "Available" : "None"}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+          </div>
               </div>
             ) : (
               <EmptyState message="No skill gap data available for the selected filters." />
@@ -1184,7 +1186,7 @@ function DashboardContent() {
           </div>
 
           {/* Course Alignment */}
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-semibold text-[#1e293b]">Course Alignment</h3>
@@ -1192,7 +1194,7 @@ function DashboardContent() {
               </div>
               <button
                 onClick={() => router.push("/government/course-alignment")}
-                className="text-xs text-[#1e3a8a] hover:text-[#1e3a8a]/80 flex items-center gap-1 font-medium"
+                className="text-xs text-[#1e3a8a] hover:text-[#1e3a8a]/80 flex items-center gap-1 font-medium flex-shrink-0"
               >
                 View Details <ArrowRight className="h-3 w-3" />
               </button>
@@ -1201,9 +1203,9 @@ function DashboardContent() {
               <div className="space-y-3">
                 {filteredDashboard.course_alignment.slice(0, 5).map((course) => (
                   <div key={course.course_id} className="p-4 bg-slate-50 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                       <span className="text-sm font-medium text-[#1e293b]">{course.course_title}</span>
-                      <span className={`px-2 py-1 rounded text-xs ${
+                      <span className={`px-2 py-1 rounded text-xs self-start sm:self-auto ${
                         course.alignment_status === "ALIGNED"
                           ? "bg-green-100 text-green-700"
                           : course.alignment_status === "PARTIAL"
@@ -1213,7 +1215,7 @@ function DashboardContent() {
                         {course.alignment_status}
                       </span>
                     </div>
-                    <div className="flex gap-4 text-xs text-slate-600">
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-600">
                       <span>Skills Covered: {course.skills_covered.length}</span>
                       <span>Skills Demanded: {course.skills_demanded.length}</span>
                       {course.gaps.length > 0 && <span className="text-red-600">Gaps: {course.gaps.length}</span>}
@@ -1227,7 +1229,7 @@ function DashboardContent() {
           </div>
 
           {/* Employer Demand */}
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-semibold text-[#1e293b]">Employer Demand by Industry</h3>
@@ -1235,7 +1237,7 @@ function DashboardContent() {
               </div>
               <button
                 onClick={() => router.push("/government/employer-demand")}
-                className="text-xs text-[#1e3a8a] hover:text-[#1e3a8a]/80 flex items-center gap-1 font-medium"
+                className="text-xs text-[#1e3a8a] hover:text-[#1e3a8a]/80 flex items-center gap-1 font-medium flex-shrink-0"
               >
                 View Details <ArrowRight className="h-3 w-3" />
               </button>
@@ -1243,21 +1245,21 @@ function DashboardContent() {
             {filteredDashboard.employer_demand.length > 0 ? (
               <div className="space-y-3">
                 {filteredDashboard.employer_demand.slice(0, 5).map((ed, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-[#1e293b]">{ed.job_role || "—"}</p>
-                      <p className="text-xs text-slate-500">{ed.sector || "—"}</p>
+                  <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 rounded-lg gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[#1e293b] truncate">{ed.job_role || "—"}</p>
+                      <p className="text-xs text-slate-500 truncate">{ed.sector || "—"}</p>
                       {ed.required_skills && ed.required_skills.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
                           {ed.required_skills.slice(0, 3).map((skill, sidx) => (
-                            <span key={sidx} className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                            <span key={sidx} className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full truncate max-w-[120px]">
                               {skill}
                             </span>
                           ))}
                         </div>
                       )}
                     </div>
-                    <div className="text-right ml-4">
+                    <div className="text-left sm:text-right flex-shrink-0 border-t border-slate-200 sm:border-0 pt-2 sm:pt-0">
                       <p className="text-lg font-bold text-[#1e3a8a]">{ed.posting_count}</p>
                       <p className="text-xs text-slate-500">postings</p>
                     </div>
@@ -1270,16 +1272,16 @@ function DashboardContent() {
           </div>
 
           {/* District Overview */}
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-semibold text-[#1e293b]">District Overview</h3>
                 <p className="text-xs text-slate-500 mt-1">{selectedDistrictName}</p>
               </div>
-              <Activity className="h-4 w-4 text-[#1e3a8a]" />
+              <Activity className="h-4 w-4 text-[#1e3a8a] flex-shrink-0" />
             </div>
             {filteredDashboard.district_intelligence ? (
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-3">
                 <div className="p-4 bg-slate-50 rounded-lg">
                   <p className="text-xs text-slate-500 mb-1">Total Demand</p>
                   <p className="text-2xl font-bold text-[#1e3a8a]">{filteredDashboard.district_intelligence.total_demand?.toLocaleString() || 0}</p>
@@ -1299,7 +1301,7 @@ function DashboardContent() {
           </div>
 
           {/* Placement Outcomes */}
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-semibold text-[#1e293b]">Placement Outcomes</h3>
@@ -1334,7 +1336,7 @@ function DashboardContent() {
           </div>
 
           {/* Government Actions */}
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-semibold text-[#1e293b]">Recommended Government Actions</h3>

@@ -64,7 +64,7 @@ export function GovernmentLayout({ children }: GovernmentLayoutProps) {
         
         <main 
           className={`flex-1 transition-all duration-300 ease-in-out ${
-            sidebarOpen ? "md:ml-64" : "md:ml-20"
+            sidebarOpen ? "lg:ml-64" : "lg:ml-20"
           } pt-4 pb-8`}
         >
           <div className="max-w-7xl mx-auto px-4">
