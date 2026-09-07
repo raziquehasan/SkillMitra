@@ -1,177 +1,738 @@
+
 "use client";
 
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { api, type District, type IndustrySector, type Course, type Skill, type JobPosting } from "@/lib/api";
+import Image from "next/image";
+import Link from "next/link";
+import CandidateSidebar from "@/components/candidate/CandidateSidebar";
 
-export default function CandidateDashboard() {
+const applications = [
+  {
+    company: "Automotive Solutions",
+    role: "EV Technician",
+    location: "Pune",
+    status: "Under Review",
+  },
+  {
+    company: "Tech Solutions India",
+    role: "Software Developer",
+    location: "Mumbai",
+    status: "Shortlisted",
+  },
+  {
+    company: "DataWorks",
+    role: "Data Analyst",
+    location: "Nashik",
+    status: "Applied",
+  },
+];
+
+const recommendedJobs = [
+  {
+    title: "EV Technician",
+    company: "Maharashtra Automotive Systems",
+    location: "Pune",
+    match: "94%",
+    skills: ["EV Technology", "Battery Systems", "Diagnostics"],
+  },
+  {
+    title: "Software Developer",
+    company: "Digital Technology Solutions",
+    location: "Mumbai",
+    match: "89%",
+    skills: ["React", "JavaScript", "SQL"],
+  },
+  {
+    title: "Data Analyst",
+    company: "Industry Analytics Pvt. Ltd.",
+    location: "Nashik",
+    match: "84%",
+    skills: ["Python", "SQL", "Data Analysis"],
+  },
+];
+
+const skills = [
+  {
+    name: "JavaScript",
+    level: "Advanced",
+    percentage: 85,
+  },
+  {
+    name: "React",
+    level: "Intermediate",
+    percentage: 72,
+  },
+  {
+    name: "SQL",
+    level: "Intermediate",
+    percentage: 68,
+  },
+  {
+    name: "Python",
+    level: "Basic",
+    percentage: 48,
+  },
+];
+
+export default function CandidateDashboardPage() {
   return (
-    <ProtectedRoute allowedRoles={["candidate"]}>
-      <CandidateDashboardContent />
-    </ProtectedRoute>
-  );
-}
-
-function CandidateDashboardContent() {
-  const { user, logout } = useAuth();
-  const router = useRouter();
-  const [districts, setDistricts] = useState<District[]>([]);
-  const [sectors, setSectors] = useState<IndustrySector[]>([]);
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [jobs, setJobs] = useState<JobPosting[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const [districtRes, sectorRes, skillRes, courseRes, jobRes] = await Promise.all([
-          api.districts().catch(() => []),
-          api.sectors().catch(() => []),
-          api.skills().catch(() => ({ items: [], total: 0 })),
-          api.courses().catch(() => ({ items: [], total: 0 })),
-          api.jobs().catch(() => ({ items: [], total: 0 })),
-        ]);
-        setDistricts(districtRes);
-        setSectors(sectorRes);
-        setSkills(skillRes.items ?? []);
-        setCourses(courseRes.items ?? []);
-        setJobs(jobRes.items ?? []);
-      } catch (error) {
-        console.error("Failed to load data:", error);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  return (
-    <main className="min-h-screen bg-[#f4f7fa]">
+    <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
       {/* Government Header */}
-      <div className="bg-[#123b68] text-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-2 text-sm">
+      <header className="fixed left-0 right-0 top-0 z-50 h-[72px] bg-[#123b68] text-white">
+        <div className="mx-auto flex h-full max-w-[1600px] items-center justify-between px-6 text-sm">
           <div className="flex items-center gap-3">
-            <p>Government of Maharashtra</p>
-            <span className="hidden sm:inline">|</span>
-            <span className="hidden sm:inline">Skills, Employment, Entrepreneurship & Innovation Department</span>
+            <Image
+              src="/maharashtra-gov-logo.png"
+              alt="Government of Maharashtra"
+              width={48}
+              height={48}
+              priority
+              className="h-12 w-12 object-contain"
+            />
+
+            <div>
+              <div className="font-semibold">
+                Government of Maharashtra
+              </div>
+
+              <div className="text-[11px] text-blue-100">
+                Skills, Employment, Entrepreneurship & Innovation Department
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <p>SkillMitra Candidate Portal</p>
-            <button
-              onClick={async () => {
-                await logout();
-                router.push('/');
-              }}
-              className="text-sm hover:underline"
-            >
-              Logout
-            </button>
+
+          <div className="hidden font-semibold md:block">
+            SkillMitra | Candidate Portal
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="h-1 bg-[#c2410c]" />
+      {/* Orange Line */}
+      <div className="fixed left-0 right-0 top-[72px] z-50 h-1 bg-[#c2410c]" />
 
-      {/* Main Content */}
-      <div className="mx-auto max-w-7xl px-5 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[#123b68]">Candidate Dashboard</h1>
-          <p className="mt-2 text-slate-600">
-            Welcome, {user?.full_name}. Explore career pathways, skill gaps, and training opportunities.
-          </p>
-        </div>
+      <div className="min-h-screen pt-[76px]">
+        {/* Candidate Sidebar */}
+        <CandidateSidebar />
 
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#123b68] border-r-transparent"></div>
-              <p className="mt-4 text-sm text-slate-600">Loading your dashboard...</p>
-            </div>
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Career Pathways */}
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-[#123b68]">Career Pathways</h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Explore career paths based on industry demand and skill requirements.
-              </p>
-              <div className="mt-4">
-                <p className="text-sm text-slate-500">
-                  {sectors.length} industry sectors available for exploration
-                </p>
+        {/* Main Content */}
+        <section className="min-w-0 lg:ml-72">
+          {/* Page Header */}
+          <div className="border-b border-slate-200 bg-white px-5 py-4 lg:px-8">
+            <div className="mx-auto flex max-w-[1250px] items-center gap-4">
+              <div className="relative h-14 w-14 shrink-0">
+                <Image
+                  src="/skillmitra-logo.png"
+                  alt="SkillMitra"
+                  fill
+                  className="object-contain"
+                  priority
+                />
               </div>
-            </div>
 
-            {/* Skill Gaps */}
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-[#123b68]">Skill Gaps</h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Identify skill gaps in your profile compared to industry requirements.
-              </p>
-              <div className="mt-4">
-                <p className="text-sm text-slate-500">
-                  {skills.length} skills tracked in the system
+              <div>
+                <p className="text-xs text-slate-400">
+                  SkillMitra
                 </p>
-              </div>
-            </div>
 
-            {/* Course Discovery */}
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-[#123b68]">Available Courses</h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Discover training courses aligned with industry demand.
-              </p>
-              <div className="mt-4">
-                <p className="text-sm text-slate-500">
-                  {courses.length} courses currently available
-                </p>
-              </div>
-            </div>
-
-            {/* Job Opportunities */}
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-[#123b68]">Job Opportunities</h2>
-              <p className="mt-2 text-sm text-slate-600">
-                View labour-market openings and employer requirements.
-              </p>
-              <div className="mt-4">
-                <p className="text-sm text-slate-500">
-                  {jobs.length} active job postings
-                </p>
-              </div>
-            </div>
-
-            {/* District Planning */}
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-[#123b68]">District Planning</h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Access district-specific training and employment information.
-              </p>
-              <div className="mt-4">
-                <p className="text-sm text-slate-500">
-                  {districts.length} Maharashtra districts covered
-                </p>
-              </div>
-            </div>
-
-            {/* Profile */}
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-[#123b68]">Your Profile</h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Manage your candidate profile and preferences.
-              </p>
-              <div className="mt-4">
-                <p className="text-sm text-slate-500">
-                  Profile management coming soon
+                <p className="font-semibold text-[#123b68]">
+                  Candidate Dashboard
                 </p>
               </div>
             </div>
           </div>
-        )}
+
+          {/* Dashboard */}
+          <div className="mx-auto max-w-[1250px] px-5 py-7 lg:px-8">
+
+            {/* Welcome */}
+            <div className="mb-7 rounded-xl bg-[#123b68] p-6 text-white shadow-sm">
+              <p className="text-sm text-blue-100">
+                Welcome to SkillMitra
+              </p>
+
+              <h1 className="mt-1 text-2xl font-bold">
+                Candidate Career Dashboard
+              </h1>
+
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100">
+                Discover suitable employment opportunities, understand
+                your skill gaps and explore training recommendations
+                based on your career goals.
+              </p>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <SummaryCard
+                title="Profile Completion"
+                value="82%"
+                description="Complete your profile"
+                icon="👤"
+              />
+
+              <SummaryCard
+                title="Applications"
+                value="08"
+                description="Jobs applied"
+                icon="▣"
+              />
+
+              <SummaryCard
+                title="Recommended Jobs"
+                value="12"
+                description="Matching opportunities"
+                icon="★"
+              />
+
+              <SummaryCard
+                title="Skills"
+                value="14"
+                description="Skills in your profile"
+                icon="◆"
+              />
+            </div>
+
+            {/* Main Grid */}
+            <div className="mt-6 grid gap-6 lg:grid-cols-3">
+
+              {/* Applications */}
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm lg:col-span-2">
+                <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+                  <div>
+                    <h2 className="font-semibold text-[#123b68]">
+                      Recent Applications
+                    </h2>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Track your latest job applications.
+                    </p>
+                  </div>
+
+                  <Link
+                    href="/candidate/applications"
+                    className="text-xs font-semibold text-[#123b68] hover:underline"
+                  >
+                    View All
+                  </Link>
+                </div>
+
+                <div className="divide-y divide-slate-100">
+                  {applications.map((application) => (
+                    <div
+                      key={`${application.company}-${application.role}`}
+                      className="flex flex-col gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-slate-700">
+                          {application.role}
+                        </p>
+
+                        <p className="mt-1 text-xs text-slate-500">
+                          {application.company}
+                        </p>
+
+                        <p className="mt-1 text-xs text-slate-400">
+                          {application.location}
+                        </p>
+                      </div>
+
+                      <ApplicationStatus status={application.status} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Profile Completion */}
+              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="font-semibold text-[#123b68]">
+                  Profile Completion
+                </h2>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  Improve your profile to get better job matches.
+                </p>
+
+                <div className="mt-6 flex items-center justify-center">
+                  <div className="relative flex h-32 w-32 items-center justify-center rounded-full border-[10px] border-blue-100">
+                    <div className="absolute inset-[-10px] rounded-full border-[10px] border-transparent border-t-[#123b68] border-r-[#123b68] rotate-[-20deg]" />
+
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-[#123b68]">
+                        82%
+                      </p>
+
+                      <p className="text-[10px] text-slate-400">
+                        Complete
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Link
+                  href="/candidate/profile"
+                  className="mt-6 block rounded-lg bg-[#123b68] px-4 py-3 text-center text-sm font-semibold text-white hover:bg-[#0e3155]"
+                >
+                  Complete Profile
+                </Link>
+              </div>
+            </div>
+
+            {/* Recommended Jobs */}
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="flex flex-col gap-3 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="font-semibold text-[#123b68]">
+                    Recommended Jobs
+                  </h2>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Opportunities matching your skills and profile.
+                  </p>
+                </div>
+
+                <Link
+                  href="/candidate/recommended-jobs"
+                  className="text-xs font-semibold text-[#123b68] hover:underline"
+                >
+                  View Recommendations →
+                </Link>
+              </div>
+
+              <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
+                {recommendedJobs.map((job) => (
+                  <div
+                    key={`${job.company}-${job.title}`}
+                    className="rounded-lg border border-slate-200 p-5 transition hover:border-blue-200 hover:shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-700">
+                          {job.title}
+                        </h3>
+
+                        <p className="mt-1 text-xs text-slate-500">
+                          {job.company}
+                        </p>
+
+                        <p className="mt-1 text-xs text-slate-400">
+                          {job.location}
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-700">
+                        {job.match} Match
+                      </span>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {job.skills.map((skill) => (
+                        <span
+                          key={skill}
+                          className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-[#123b68]"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+
+                    <Link
+                      href="/candidate/jobs"
+                      className="mt-5 block rounded-lg border border-[#123b68] px-4 py-2.5 text-center text-xs font-semibold text-[#123b68] hover:bg-blue-50"
+                    >
+                      View Job
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Skills + Skill Gap */}
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+
+              {/* My Skills */}
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+                  <div>
+                    <h2 className="font-semibold text-[#123b68]">
+                      My Skills
+                    </h2>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Your current skill profile.
+                    </p>
+                  </div>
+
+                  <Link
+                    href="/candidate/skills"
+                    className="text-xs font-semibold text-[#123b68] hover:underline"
+                  >
+                    Manage
+                  </Link>
+                </div>
+
+                <div className="space-y-5 p-6">
+                  {skills.map((skill) => (
+                    <div key={skill.name}>
+                      <div className="mb-2 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-700">
+                            {skill.name}
+                          </p>
+
+                          <p className="text-[11px] text-slate-400">
+                            {skill.level}
+                          </p>
+                        </div>
+
+                        <span className="text-xs font-semibold text-[#123b68]">
+                          {skill.percentage}%
+                        </span>
+                      </div>
+
+                      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className="h-full rounded-full bg-[#123b68]"
+                          style={{
+                            width: `${skill.percentage}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Skill Gap */}
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-200 px-6 py-5">
+                  <h2 className="font-semibold text-[#123b68]">
+                    Skill Gap Overview
+                  </h2>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Understand the skills you can improve for better
+                    opportunities.
+                  </p>
+                </div>
+
+                <div className="p-6">
+                  <div className="rounded-lg border border-orange-200 bg-orange-50 p-5">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">
+                      Improvement Areas
+                    </p>
+
+                    <h3 className="mt-2 text-lg font-bold text-orange-900">
+                      03 Skills
+                    </h3>
+
+                    <p className="mt-1 text-xs leading-5 text-orange-800">
+                      Some recommended jobs require skills that are not
+                      fully covered in your current profile.
+                    </p>
+                  </div>
+
+                  <div className="mt-5 space-y-3">
+                    <SkillGapRow
+                      skill="TypeScript"
+                      status="Recommended"
+                    />
+
+                    <SkillGapRow
+                      skill="Advanced Excel"
+                      status="Recommended"
+                    />
+
+                    <SkillGapRow
+                      skill="Cloud Computing"
+                      status="Recommended"
+                    />
+                  </div>
+
+                  <Link
+                    href="/candidate/skill-gap"
+                    className="mt-5 block rounded-lg bg-[#123b68] px-4 py-3 text-center text-xs font-semibold text-white hover:bg-[#0e3155]"
+                  >
+                    View Skill Gap
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Training Recommendations */}
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="flex flex-col gap-3 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="font-semibold text-[#123b68]">
+                    Training & Course Recommendations
+                  </h2>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Build skills that can improve your employment
+                    opportunities.
+                  </p>
+                </div>
+
+                <Link
+                  href="/candidate/training"
+                  className="text-xs font-semibold text-[#123b68] hover:underline"
+                >
+                  Explore Training →
+                </Link>
+              </div>
+
+              <div className="grid gap-4 p-5 md:grid-cols-3">
+                <TrainingCard
+                  title="Advanced Data Analytics"
+                  provider="Industry Skill Training Centre"
+                  duration="10 Weeks"
+                  skill="Data Analytics"
+                />
+
+                <TrainingCard
+                  title="Cloud Computing Fundamentals"
+                  provider="Technology Training Partner"
+                  duration="8 Weeks"
+                  skill="Cloud Computing"
+                />
+
+                <TrainingCard
+                  title="Full Stack Web Development"
+                  provider="Digital Technology Training Hub"
+                  duration="12 Weeks"
+                  skill="Full Stack Development"
+                />
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="mt-6">
+              <h2 className="mb-4 text-lg font-semibold text-[#123b68]">
+                Quick Actions
+              </h2>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <QuickAction
+                  title="Find Jobs"
+                  description="Explore available opportunities"
+                  href="/candidate/jobs"
+                />
+
+                <QuickAction
+                  title="My Applications"
+                  description="Track your applications"
+                  href="/candidate/applications"
+                />
+
+                <QuickAction
+                  title="Update Skills"
+                  description="Manage your skill profile"
+                  href="/candidate/skills"
+                />
+
+                <QuickAction
+                  title="Explore Training"
+                  description="Improve your career skills"
+                  href="/candidate/training"
+                />
+              </div>
+            </div>
+
+            {/* Information Note */}
+            <div className="mt-7 rounded-lg border border-slate-200 bg-white px-5 py-4">
+              <p className="text-xs leading-5 text-slate-500">
+                <span className="font-semibold text-slate-700">
+                  SkillMitra Candidate Portal:
+                </span>{" "}
+                The dashboard provides candidates with employment
+                opportunities, application tracking, skill intelligence
+                and training recommendations.
+              </p>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   );
 }
+
+
+/* =========================================
+   Summary Card
+========================================= */
+
+function SummaryCard({
+  title,
+  value,
+  description,
+  icon,
+}: {
+  title: string;
+  value: string;
+  description: string;
+  icon: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs text-slate-500">
+            {title}
+          </p>
+
+          <p className="mt-2 text-2xl font-bold text-[#123b68]">
+            {value}
+          </p>
+
+          <p className="mt-1 text-[11px] text-slate-400">
+            {description}
+          </p>
+        </div>
+
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-lg text-[#123b68]">
+          {icon}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+/* =========================================
+   Application Status
+========================================= */
+
+function ApplicationStatus({
+  status,
+}: {
+  status: string;
+}) {
+  const statusClass =
+    status === "Shortlisted"
+      ? "bg-green-100 text-green-700"
+      : status === "Under Review"
+        ? "bg-blue-100 text-blue-700"
+        : "bg-slate-100 text-slate-600";
+
+  return (
+    <span
+      className={`w-fit rounded-full px-3 py-1.5 text-xs font-semibold ${statusClass}`}
+    >
+      {status}
+    </span>
+  );
+}
+
+
+/* =========================================
+   Skill Gap Row
+========================================= */
+
+function SkillGapRow({
+  skill,
+  status,
+}: {
+  skill: string;
+  status: string;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-orange-100 text-xs font-bold text-orange-700">
+          !
+        </div>
+
+        <span className="text-sm font-medium text-slate-700">
+          {skill}
+        </span>
+      </div>
+
+      <span className="text-[11px] font-semibold text-orange-600">
+        {status}
+      </span>
+    </div>
+  );
+}
+
+
+/* =========================================
+   Training Card
+========================================= */
+
+function TrainingCard({
+  title,
+  provider,
+  duration,
+  skill,
+}: {
+  title: string;
+  provider: string;
+  duration: string;
+  skill: string;
+}) {
+  return (
+    <div className="rounded-lg border border-slate-200 p-5">
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-lg">
+        📚
+      </div>
+
+      <h3 className="mt-4 text-sm font-bold text-slate-700">
+        {title}
+      </h3>
+
+      <p className="mt-1 text-xs text-slate-500">
+        {provider}
+      </p>
+
+      <div className="mt-4 flex items-center justify-between text-[11px]">
+        <span className="rounded-full bg-blue-50 px-2.5 py-1 font-medium text-[#123b68]">
+          {skill}
+        </span>
+
+        <span className="text-slate-400">
+          {duration}
+        </span>
+      </div>
+
+      <Link
+        href="/candidate/training"
+        className="mt-4 block text-center text-xs font-semibold text-[#123b68] hover:underline"
+      >
+        View Course →
+      </Link>
+    </div>
+  );
+}
+
+
+/* =========================================
+   Quick Action
+========================================= */
+
+function QuickAction({
+  title,
+  description,
+  href,
+}: {
+  title: string;
+  description: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
+    >
+      <h3 className="text-sm font-semibold text-[#123b68]">
+        {title}
+      </h3>
+
+      <p className="mt-1 text-xs leading-5 text-slate-500">
+        {description}
+      </p>
+
+      <p className="mt-4 text-xs font-semibold text-[#123b68]">
+        Open →
+      </p>
+    </Link>
+  );
+}
+

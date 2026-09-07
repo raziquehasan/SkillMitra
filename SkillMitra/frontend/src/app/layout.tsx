@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import React from "react";
 import { Source_Sans_3, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -21,17 +22,21 @@ export const metadata: Metadata = {
     "SkillMitra connects labour-market intelligence, employer requirements, skill gaps, courses, training capacity and placement outcomes to support evidence-based skill development planning across Maharashtra.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
-  return (
-    <html
-      lang="en"
-      className={`${sourceSans.variable} ${sourceSerif.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-[#f4f7fa] text-[#1b2838]">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
-      </body>
-    </html>
-  );
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+ return (
+  <html
+    lang="en"
+    className={`${sourceSans.variable} ${sourceSerif.variable} h-full antialiased`}
+  >
+    <body>
+      <AuthProvider>
+        {children}
+      </AuthProvider>
+    </body>
+  </html>
+);
 }
