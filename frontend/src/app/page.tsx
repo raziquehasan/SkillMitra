@@ -433,23 +433,39 @@ export default function Home() {
 
         <div className="mt-8 grid gap-5 md:grid-cols-4">
 
-          <Career
-            icon="🎓"
-            title="Class 10"
-            text="Explore career options after Class 10 and build a strong foundation."
-          />
+        <div
+  onClick={() => (window.location.href = "/career/10th")}
+  className="cursor-pointer"
+>
+  <Career
+    icon="🎓"
+    title="Class 10"
+    text="Explore career options after Class 10 and build a strong foundation."
+  />
+</div>
+ 
 
-          <Career
-            icon="🎓"
-            title="Class 12"
-            text="Discover career paths after Class 12 and plan your future."
-          />
+         <div
+  onClick={() => (window.location.href = "/career/12th")}
+  className="cursor-pointer"
+>
+  <Career
+    icon="🎓"
+    title="Class 12"
+    text="Discover career paths after Class 12 and plan your future."
+  />
+</div>
 
-          <Career
-            icon="👨‍🎓"
-            title="Graduate"
-            text="Explore opportunities after graduation and advance your career."
-          />
+          <div
+  onClick={() => (window.location.href = "/career/graduation")}
+  className="cursor-pointer"
+>
+  <Career
+    icon="🎓"
+    title="Graduate"
+    text="Explore opportunities after graduation and advance your career."
+  />
+</div>
 
           <Career
             icon="💼"
