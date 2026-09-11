@@ -282,12 +282,12 @@ def generate_future_demand_forecasts(
     db: Session = Depends(get_db),
 ):
     """Generate future demand forecasts using existing SkillMitra data.
-    
+
     This endpoint analyzes:
     - Current demand from IndustryDemand table
     - Historical trends from demand over time
     - Real-time signals from job postings
-    
+
     Returns the number of forecasts generated.
     """
     service = FutureDemandService(db)
@@ -309,4 +309,74 @@ def generate_future_demand_forecasts(
         "execution_time_seconds": round(time.perf_counter() - started_at, 3),
         "forecast_horizon_months": forecast_horizon_months,
         "algorithm_version": service.algorithm_version
+    }
+
+
+@router.get("/future/evidence/{forecast_id}", summary="Get forecast evidence details")
+def get_forecast_evidence(
+    forecast_id: uuid.UUID,
+    db: Session = Depends(get_db),
+):
+    """Get detailed evidence breakdown for a specific forecast."""
+    forecast = db.get(FutureDemandForecast, forecast_id)
+    if not forecast:
+        raise HTTPException(status_code=404, detail="Forecast not found")
+
+    # Get demand records used for this forecast
+    demand_records = db.scalars(
+        select(IndustryDemand).where(
+            IndustryDemand.skill_id == forecast.skill_id,
+            IndustryDemand.district_id == forecast.district_id,
+        )
+    ).all()
+
+    # Get demand signals used
+    signal_records = db.scalars(
+        select(DemandSignal).where(
+            DemandSignal.skill_id == forecast.skill_id,
+            DemandSignal.district_id == forecast.district_id,
+        )
+    ).all()
+
+    return {
+        "forecast_id": str(forecast.id),
+        "skill_id": str(forecast.skill_id),
+        "district_id": str(forecast.district_id),
+        "current_demand_score": forecast.current_demand_score,
+        "current_demand_level": forecast.current_demand_level,
+        "trend_score": forecast.trend_score,
+        "growth_indicator": forecast.growth_indicator,
+        "forecast_level": forecast.forecast_level,
+        "confidence_score": forecast.confidence_score,
+        "confidence_level": forecast.confidence_level,
+        "evidence_summary": forecast.evidence_summary,
+        "algorithm_version": forecast.algorithm_version,
+        "data_points_used": forecast.data_points_used,
+        "forecast_horizon_months": forecast.forecast_horizon_months,
+        "forecast_horizon_start": str(forecast.forecast_horizon_start),
+        "forecast_horizon_end": str(forecast.forecast_horizon_end),
+        "generated_at": forecast.created_at.isoformat() if forecast.created_at else None,
+        "evidence_sources": {
+            "industry_demand_records": len(demand_records),
+            "demand_signal_records": len(signal_records),
+            "demand_records_sample": [
+                {
+                    "id": str(r.id),
+                    "period_start": str(r.period_start),
+                    "period_end": str(r.period_end),
+                    "aggregate_demand_score": r.aggregate_demand_score,
+                    "data_source_id": str(r.data_source_id) if r.data_source_id else None,
+                }
+                for r in demand_records[:5]
+            ],
+            "signal_records_sample": [
+                {
+                    "id": str(s.id),
+                    "source_type": "job_posting" if s.job_posting_id else "employer_survey",
+                    "detected_at": s.detected_at.isoformat() if s.detected_at else None,
+                    "scaled_weight": s.scaled_weight,
+                }
+                for s in signal_records[:5]
+            ],
+        },
     }

@@ -2,16 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import CandidateSidebar from "@/components/candidate/CandidateSidebar";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-const skills = [
-  { name: "JavaScript", level: "Advanced", score: 85 },
-  { name: "React", level: "Intermediate", score: 72 },
-  { name: "SQL", level: "Intermediate", score: 68 },
-  { name: "Python", level: "Basic", score: 48 },
-  { name: "HTML & CSS", level: "Advanced", score: 88 },
-  { name: "Git & GitHub", level: "Intermediate", score: 70 },
-];
+// Force dynamic rendering to prevent SSR issues
+export const dynamic = 'force-dynamic';
+import CandidateSidebar from "@/components/candidate/CandidateSidebar";
+import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 function ProfileInfo({
   label,
@@ -32,39 +30,59 @@ function ProfileInfo({
   );
 }
 
-function SkillBar({
-  name,
-  level,
-  score,
-}: {
-  name: string;
-  level: string;
-  score: number;
-}) {
-  return (
-    <div>
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-slate-800">{name}</p>
-          <p className="mt-1 text-xs text-slate-500">{level}</p>
-        </div>
 
-        <span className="text-sm font-bold text-[#123b68]">
-          {score}%
-        </span>
-      </div>
-
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
-        <div
-          className="h-full rounded-full bg-[#123b68]"
-          style={{ width: `${score}%` }}
-        />
-      </div>
-    </div>
-  );
-}
 
 export default function CandidateProfilePage() {
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [profile, setProfile] = useState<any>(null);
+  const [skills, setSkills] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<any>({});
+
+  useEffect(() => {
+    // Redirect to login if not authenticated
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
+    const loadData = async () => {
+      if (!isAuthenticated) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        const [profileData, skillsData] = await Promise.all([
+          api.candidateProfile(),
+          api.candidateSkills()
+        ]);
+        setProfile(profileData);
+        setSkills(skillsData);
+        setEditForm({
+          full_name: profileData.full_name || '',
+          phone: profileData.phone || '',
+          gender: profileData.gender || '',
+          education_level: profileData.education_level || '',
+          current_status: profileData.current_status || '',
+        });
+      } catch (err) {
+        console.error("Failed to load profile data:", err);
+        setError("Unable to load profile data. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isAuthenticated) {
+      loadData();
+    } else {
+      setLoading(false);
+    }
+  }, [isAuthenticated, authLoading, router]);
+
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
       {/* Government Header */}
@@ -133,6 +151,27 @@ export default function CandidateProfilePage() {
 
           {/* Content */}
           <div className="mx-auto max-w-[1250px] px-5 py-7 lg:px-8">
+            {/* Loading and Error States */}
+            {authLoading || loading ? (
+              <div className="flex items-center justify-center py-12">
+                <p className="text-sm text-slate-500">Loading profile...</p>
+              </div>
+            ) : error ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                <p className="text-sm text-amber-950">{error}</p>
+              </div>
+            ) : !isAuthenticated ? (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-sm text-slate-600">Please log in to view your profile.</p>
+                <Link 
+                  href="/login" 
+                  className="mt-2 inline-block text-sm font-semibold text-[#123b68] hover:underline"
+                >
+                  Go to Login
+                </Link>
+              </div>
+            ) : (
+              <>
             {/* Intro */}
             <div className="mb-6">
               <p className="text-sm font-medium text-[#c2410c]">
@@ -154,104 +193,210 @@ export default function CandidateProfilePage() {
             <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
               {/* Main Profile Card */}
               <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-50 text-2xl font-bold text-[#123b68]">
-                      S
+                {loading ? (
+                  <div className="text-center py-8">
+                    <p className="text-slate-500">Loading profile...</p>
+                  </div>
+                ) : error ? (
+                  <div className="text-center py-8">
+                    <p className="text-red-600">{error}</p>
+                  </div>
+                ) : profile ? (
+                  <>
+                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-50 text-2xl font-bold text-[#123b68]">
+                          {profile.full_name ? profile.full_name.charAt(0).toUpperCase() : 'C'}
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            Candidate
+                          </p>
+
+                          <h2 className="mt-1 text-xl font-bold text-[#123b68]">
+                            {profile.full_name || 'Candidate Name'}
+                          </h2>
+
+                          <p className="mt-1 text-sm text-slate-500">
+                            {profile.education_level || 'Education Level'}
+                          </p>
+
+                          <span className="mt-2 inline-flex rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-semibold text-green-700">
+                            Profile Active
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsEditing(true)}
+                        className="rounded-lg border border-[#123b68] px-4 py-2.5 text-sm font-semibold text-[#123b68] hover:bg-blue-50"
+                      >
+                        Edit Profile
+                      </button>
                     </div>
 
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        Candidate
-                      </p>
+                    {/* Edit Form Modal */}
+                    {isEditing && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                        <div className="rounded-lg bg-white p-6 shadow-xl max-w-md w-full mx-4">
+                          <h3 className="text-lg font-bold text-[#123b68] mb-4">Edit Profile</h3>
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                              <input
+                                type="text"
+                                value={editForm.full_name || ''}
+                                onChange={(e) => setEditForm({...editForm, full_name: e.target.value})}
+                                className="w-full border border-slate-300 rounded px-3 py-2"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+                              <input
+                                type="text"
+                                value={editForm.phone || ''}
+                                onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
+                                className="w-full border border-slate-300 rounded px-3 py-2"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">Gender</label>
+                              <select
+                                value={editForm.gender || ''}
+                                onChange={(e) => setEditForm({...editForm, gender: e.target.value})}
+                                className="w-full border border-slate-300 rounded px-3 py-2"
+                              >
+                                <option value="">Select Gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">Education Level</label>
+                              <input
+                                type="text"
+                                value={editForm.education_level || ''}
+                                onChange={(e) => setEditForm({...editForm, education_level: e.target.value})}
+                                className="w-full border border-slate-300 rounded px-3 py-2"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">Current Status</label>
+                              <input
+                                type="text"
+                                value={editForm.current_status || ''}
+                                onChange={(e) => setEditForm({...editForm, current_status: e.target.value})}
+                                className="w-full border border-slate-300 rounded px-3 py-2"
+                              />
+                            </div>
+                          </div>
+                          <div className="mt-6 flex gap-3 justify-end">
+                            <button
+                              type="button"
+                              onClick={() => setIsEditing(false)}
+                              className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  setLoading(true);
+                                  await api.updateCandidateProfile(editForm);
+                                  const updatedProfile = await api.candidateProfile();
+                                  setProfile(updatedProfile);
+                                  setIsEditing(false);
+                                } catch (err) {
+                                  console.error("Failed to update profile:", err);
+                                  setError("Failed to update profile. Please try again.");
+                                } finally {
+                                  setLoading(false);
+                                }
+                              }}
+                              className="px-4 py-2 text-sm font-semibold text-white bg-[#123b68] hover:bg-[#0c2d51] rounded"
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-                      <h2 className="mt-1 text-xl font-bold text-[#123b68]">
-                        SkillMitra Candidate
-                      </h2>
+                    <div className="mt-7 border-t border-slate-100 pt-6">
+                      <h3 className="text-base font-bold text-[#123b68]">
+                        Personal Information
+                      </h3>
 
-                      <p className="mt-1 text-sm text-slate-500">
-                        Software Development & Technology
-                      </p>
+                      <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                        <ProfileInfo
+                          label="Full Name"
+                          value={profile.full_name || 'Not provided'}
+                        />
 
-                      <span className="mt-2 inline-flex rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-semibold text-green-700">
-                        Profile Active
-                      </span>
+                        <ProfileInfo
+                          label="Email"
+                          value={profile.email || 'Not provided'}
+                        />
+
+                        <ProfileInfo
+                          label="Phone"
+                          value={profile.phone || 'Not provided'}
+                        />
+
+                        <ProfileInfo
+                          label="Gender"
+                          value={profile.gender || 'Not provided'}
+                        />
+
+                        <ProfileInfo
+                          label="Education Level"
+                          value={profile.education_level || 'Not provided'}
+                        />
+
+                        <ProfileInfo
+                          label="Current Status"
+                          value={profile.current_status || 'Not provided'}
+                        />
+
+                        <ProfileInfo
+                          label="Date of Birth"
+                          value={profile.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString() : 'Not provided'}
+                        />
+
+                        <ProfileInfo
+                          label="Gender"
+                          value={profile.gender || 'Not provided'}
+                        />
+                      </div>
                     </div>
+
+                    <div className="mt-7 border-t border-slate-100 pt-6">
+                      <h3 className="text-base font-bold text-[#123b68]">
+                        Career Information
+                      </h3>
+
+                      <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                        <ProfileInfo
+                          label="Career Interests"
+                          value={profile.career_interests?.length > 0 ? `${profile.career_interests.length} interests` : 'Not provided'}
+                        />
+
+                        <ProfileInfo
+                          label="Education History"
+                          value={profile.education_history?.length > 0 ? `${profile.education_history.length} records` : 'Not provided'}
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-slate-500">No profile data available</p>
                   </div>
-
-                  <button
-                    type="button"
-                    className="rounded-lg border border-[#123b68] px-4 py-2.5 text-sm font-semibold text-[#123b68] hover:bg-blue-50"
-                  >
-                    Edit Profile
-                  </button>
-                </div>
-
-                <div className="mt-7 border-t border-slate-100 pt-6">
-                  <h3 className="text-base font-bold text-[#123b68]">
-                    Personal Information
-                  </h3>
-
-                  <div className="mt-5 grid gap-5 sm:grid-cols-2">
-                    <ProfileInfo
-                      label="Full Name"
-                      value="SkillMitra Candidate"
-                    />
-
-                    <ProfileInfo
-                      label="Email Address"
-                      value="candidate@skillmitra.in"
-                    />
-
-                    <ProfileInfo
-                      label="Phone Number"
-                      value="+91 XXXXX XXXXX"
-                    />
-
-                    <ProfileInfo
-                      label="Location"
-                      value="Pune, Maharashtra"
-                    />
-
-                    <ProfileInfo
-                      label="Preferred Role"
-                      value="Software Developer"
-                    />
-
-                    <ProfileInfo
-                      label="Experience"
-                      value="1–2 Years"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-7 border-t border-slate-100 pt-6">
-                  <h3 className="text-base font-bold text-[#123b68]">
-                    Career Preferences
-                  </h3>
-
-                  <div className="mt-5 grid gap-5 sm:grid-cols-2">
-                    <ProfileInfo
-                      label="Preferred Sector"
-                      value="IT & Technology"
-                    />
-
-                    <ProfileInfo
-                      label="Preferred Location"
-                      value="Pune / Mumbai"
-                    />
-
-                    <ProfileInfo
-                      label="Employment Type"
-                      value="Full Time"
-                    />
-
-                    <ProfileInfo
-                      label="Career Interest"
-                      value="Software Development"
-                    />
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Profile Completion */}
@@ -349,20 +494,59 @@ export default function CandidateProfilePage() {
                 </Link>
               </div>
 
-              <div className="grid gap-5 md:grid-cols-2">
-                {skills.map((skill) => (
-                  <div
-                    key={skill.name}
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-                  >
-                    <SkillBar
-                      name={skill.name}
-                      level={skill.level}
-                      score={skill.score}
-                    />
+              {loading ? (
+                <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+                  <p className="text-slate-500">Loading skills...</p>
+                </div>
+              ) : skills.length > 0 ? (
+                <div className="grid gap-5 md:grid-cols-2">
+                  {skills.map((skill) => (
+                    <div
+                      key={skill.id}
+                      className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">
+                            {skill.skill_id || 'Skill'}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {skill.verification_status || 'Unverified'}
+                          </p>
+                        </div>
+
+                        <span className="text-sm font-bold text-[#123b68]">
+                          {skill.source || 'Claimed'}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600">
+                          {skill.proficiency_level_id || 'Proficiency Level'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-500">
+                    +
                   </div>
-                ))}
-              </div>
+                  <h3 className="mt-4 font-semibold text-slate-700">
+                    No skills added yet
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Add skills to your profile to improve job recommendations.
+                  </p>
+                  <Link
+                    href="/candidate/skills"
+                    className="mt-4 inline-block rounded-lg bg-[#123b68] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#0e3155]"
+                  >
+                    Add Skills
+                  </Link>
+                </div>
+              )}
             </div>
 
             {/* Career Intelligence */}
@@ -471,6 +655,8 @@ export default function CandidateProfilePage() {
                 </div>
               </div>
             </div>
+              </>
+            )}
           </div>
         </section>
       </div>

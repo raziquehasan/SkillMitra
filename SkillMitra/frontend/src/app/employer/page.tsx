@@ -53,6 +53,7 @@ function EmployerDashboardContent() {
   const [districts, setDistricts] = useState<District[]>([]);
   const [sectors, setSectors] = useState<IndustrySector[]>([]);
   const [jobs, setJobs] = useState<JobPosting[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(true);
 
@@ -71,7 +72,7 @@ function EmployerDashboardContent() {
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const [districtRes, sectorRes, jobRes] =
+        const [districtRes, sectorRes, jobRes, appRes] =
           await Promise.all([
             api.districts().catch(() => []),
             api.sectors().catch(() => []),
@@ -79,15 +80,17 @@ function EmployerDashboardContent() {
               items: [],
               total: 0,
             })),
+            api.employerApplications().catch(() => []),
           ]);
 
         setDistricts(districtRes);
         setSectors(sectorRes);
         setJobs(jobRes.items ?? []);
+        setApplications(appRes);
 
         setDashboard({
           activeJobs: jobRes.items?.length ?? 0,
-          applications: 0,
+          applications: appRes.length ?? 0,
           highDemandSkills: 0,
           criticalSkillGaps: 0,
           matchRate: 0,
@@ -925,6 +928,91 @@ function EmployerDashboardContent() {
 
                             <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
                               Active
+                            </span>
+
+                            <button className="text-sm font-semibold text-blue-600">
+                              View →
+                            </button>
+
+                          </div>
+
+                        </div>
+
+                      )
+                    )}
+
+                  </div>
+
+                )}
+
+              </DashboardCard>
+
+            </div>
+
+            {/* =================================================
+                APPLICATIONS
+            ================================================== */}
+
+            <div className="mt-6">
+
+              <DashboardCard>
+
+                <div className="flex items-center justify-between">
+
+                  <CardHeader
+                    title="Received Applications"
+                    subtitle="Candidates who applied to your jobs"
+                  />
+
+                  <button className="rounded-lg bg-[#123b68] px-4 py-2 text-sm font-semibold text-white">
+                    View All
+                  </button>
+
+                </div>
+
+                {applications.length === 0 ? (
+
+                  <EmptyState
+                    text="Applications will appear here when candidates apply to your job postings."
+                  />
+
+                ) : (
+
+                  <div className="mt-4 space-y-3">
+
+                    {applications.slice(0, 5).map(
+                      (app: any, index) => (
+
+                        <div
+                          key={app.id ?? index}
+                          className="flex flex-col justify-between gap-3 rounded-lg border border-slate-200 p-4 md:flex-row md:items-center"
+                        >
+
+                          <div>
+
+                            <p className="font-semibold text-slate-900">
+                              {app.candidate_name || "Candidate"}
+                            </p>
+
+                            <p className="mt-1 text-xs text-slate-500">
+                              Applied for: {app.job_title || "Job"}
+                            </p>
+
+                            <p className="mt-1 text-xs text-slate-500">
+                              {app.candidate_email || "Email not specified"}
+                            </p>
+
+                          </div>
+
+                          <div className="flex items-center gap-3">
+
+                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                              app.status === 'applied' ? 'bg-blue-50 text-blue-700' :
+                              app.status === 'under_review' ? 'bg-amber-50 text-amber-700' :
+                              app.status === 'shortlisted' ? 'bg-green-50 text-green-700' :
+                              'bg-slate-100 text-slate-600'
+                            }`}>
+                              {app.status}
                             </span>
 
                             <button className="text-sm font-semibold text-blue-600">

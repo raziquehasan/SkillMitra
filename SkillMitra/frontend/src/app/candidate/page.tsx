@@ -3,7 +3,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import CandidateSidebar from "@/components/candidate/CandidateSidebar";
+import { api } from "@/lib/api";
 
 const applications = [
   {
@@ -73,7 +75,48 @@ const skills = [
   },
 ];
 
+type CandidateSkill = {
+  id: string;
+  candidate_id: string;
+  skill_id: string;
+  skill_name: string | null;
+  proficiency_level_id: string;
+  proficiency_level_name: string | null;
+  source: string;
+  verification_status: string;
+  last_assessed_date: string | null;
+  evidence_reference: string | null;
+};
+
 export default function CandidateDashboardPage() {
+  const [hasSkills, setHasSkills] = useState<boolean | null>(null);
+  const [dismissedOnboarding, setDismissedOnboarding] = useState(false);
+  const [candidateSkills, setCandidateSkills] = useState<CandidateSkill[]>([]);
+
+  useEffect(() => {
+    const checkSkills = async () => {
+      try {
+        const skills = await api.candidateSkills();
+        setHasSkills(skills.length > 0);
+        setCandidateSkills(skills);
+      } catch (err) {
+        console.error("Failed to check skills:", err);
+        setHasSkills(false);
+      }
+    };
+
+    // Check if user has dismissed the onboarding
+    const dismissed = localStorage.getItem("skillmitra_onboarding_dismissed");
+    setDismissedOnboarding(dismissed === "true");
+
+    checkSkills();
+  }, []);
+
+  const handleDismissOnboarding = () => {
+    localStorage.setItem("skillmitra_onboarding_dismissed", "true");
+    setDismissedOnboarding(true);
+  };
+
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
       {/* Government Header */}
@@ -159,6 +202,43 @@ export default function CandidateDashboardPage() {
                 based on your career goals.
               </p>
             </div>
+
+            {/* Onboarding Prompt for New Candidates */}
+            {hasSkills === false && !dismissedOnboarding && (
+              <div className="mb-7 rounded-xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-100 text-2xl text-amber-600">
+                      🎯
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-amber-900">
+                        Complete Your Skills Profile
+                      </h2>
+                      <p className="mt-1 max-w-2xl text-sm leading-6 text-amber-800">
+                        Add your current skills to get personalized job recommendations and skill gap analysis. 
+                        This helps us match you with the right opportunities based on your actual capabilities.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <button
+                      onClick={handleDismissOnboarding}
+                      className="rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-100"
+                    >
+                      Remind Me Later
+                    </button>
+                    <Link
+                      href="/candidate/skills"
+                      className="rounded-lg bg-[#123b68] px-4 py-2 text-center text-sm font-semibold text-white hover:bg-[#0f3155]"
+                    >
+                      Add My Skills
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Summary Cards */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -370,34 +450,59 @@ export default function CandidateDashboardPage() {
                 </div>
 
                 <div className="space-y-5 p-6">
-                  {skills.map((skill) => (
-                    <div key={skill.name}>
-                      <div className="mb-2 flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-slate-700">
-                            {skill.name}
-                          </p>
+                  {candidateSkills.length === 0 ? (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-slate-500">No skills added yet</p>
+                      <Link
+                        href="/candidate/skills"
+                        className="mt-2 inline-block text-xs font-semibold text-[#123b68] hover:underline"
+                      >
+                        Add your first skill
+                      </Link>
+                    </div>
+                  ) : (
+                    candidateSkills.slice(0, 4).map((skill) => (
+                      <div key={skill.id}>
+                        <div className="mb-2 flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-slate-700">
+                              {skill.skill_name || "Unknown Skill"}
+                            </p>
 
-                          <p className="text-[11px] text-slate-400">
-                            {skill.level}
-                          </p>
+                            <p className="text-[11px] text-slate-400">
+                              {skill.proficiency_level_name || "Unknown Level"}
+                            </p>
+                          </div>
+
+                          <span className={`text-xs font-semibold ${
+                            skill.verification_status === "verified" ? "text-green-600" : "text-slate-500"
+                          }`}>
+                            {skill.verification_status === "verified" ? "Verified" : 
+                             skill.verification_status === "pending" ? "Pending" : "Unverified"}
+                          </span>
                         </div>
 
-                        <span className="text-xs font-semibold text-[#123b68]">
-                          {skill.percentage}%
-                        </span>
+                        <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className="h-full rounded-full bg-[#123b68]"
+                            style={{
+                              width: `${skill.proficiency_level_name === "Advanced" ? 85 : 
+                                     skill.proficiency_level_name === "Intermediate" ? 65 : 
+                                     skill.proficiency_level_name === "Beginner" ? 40 : 50}%`,
+                            }}
+                          />
+                        </div>
                       </div>
-
-                      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                        <div
-                          className="h-full rounded-full bg-[#123b68]"
-                          style={{
-                            width: `${skill.percentage}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
+                  {candidateSkills.length > 4 && (
+                    <Link
+                      href="/candidate/skills"
+                      className="block text-center text-xs font-semibold text-[#123b68] hover:underline"
+                    >
+                      View all {candidateSkills.length} skills
+                    </Link>
+                  )}
                 </div>
               </div>
 

@@ -1,4 +1,17 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+function getApiBase(): string {
+  if (typeof window === 'undefined') {
+    // Server-side (inside Docker)
+    return process.env.INTERNAL_API_URL || "http://backend:8080";
+  }
+  // Client-side (browser)
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+}
+
+console.log('API_BASE:', getApiBase(), 'Environment:', {
+  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+  INTERNAL_API_URL: process.env.INTERNAL_API_URL,
+  isServer: typeof window === 'undefined'
+});
 
 export type Paginated<T> = {
   items: T[];
@@ -35,12 +48,6 @@ export type JobRole = {
   description: string | null;
   is_active: boolean;
   industry_sector_id: string | null;
-  industry_sector: {
-    id: string;
-    name: string;
-    code: string | null;
-    description: string | null;
-  } | null;
 };
 
 export type Course = {
@@ -50,6 +57,23 @@ export type Course = {
   district_id: string | null;
   status: string | null;
   delivery_mode: string | null;
+  course_url: string | null;
+  provider_url: string | null;
+};
+
+export type HomepageCourse = {
+  id: string;
+  title: string;
+  demandLevel: string;
+  district: string | null;
+  skills: string[];
+  durationHours: number | null;
+  courseUrl: string | null;
+  providerUrl: string | null;
+  providerName: string | null;
+  relatedProgrammeName: string | null;  // Name of related programme if isRelatedProgramme is true
+  isRelatedProgramme?: boolean;  // True if this is a related pathway, not direct provider
+  isListingUrl?: boolean;  // True if URL is a listing page, not course-specific
 };
 
 export type JobPosting = {
@@ -58,7 +82,17 @@ export type JobPosting = {
   status: string;
   posted_date: string | null;
   district_id: string | null;
+  employer_id: string;
+  job_role_id: string;
+  company_name: string | null;
+  district_name: string | null;
+  job_role_title: string | null;
+  skills: Array<string | { skill: { id: string; name: string; category: { id: string; name: string } | null } | null }>;
+  employer_website: string | null;
   employer_name: string | null;
+  job_url: string | null;
+  employer_careers_url: string | null;
+  is_verified: boolean;
   job_posting_skills: Array<{
     skill_id: string;
     proficiency_level_id: string | null;
@@ -123,7 +157,10 @@ function authHeaders(): Record<string, string> {
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const url = `${getApiBase()}${path}`;
+  console.log(`API Request: ${url}`, init);
+  
+  const response = await fetch(url, {
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -131,13 +168,18 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
       ...(init?.headers ?? {}),
     },
   });
+  
+  console.log(`API Response: ${response.status} ${response.statusText}`);
+  
   if (!response.ok) {
     let detail = `Request failed (${response.status})`;
     try {
       const body = await response.json();
+      console.log('Error response body:', body);
       if (typeof body?.detail === "string") detail = body.detail;
       else if (Array.isArray(body?.detail)) detail = body.detail[0]?.msg ?? detail;
-    } catch {
+    } catch (e) {
+      console.log('Failed to parse error response:', e);
       /* keep default */
     }
     // Don't throw error for government dashboard permission issues
@@ -147,15 +189,38 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw new Error(detail);
   }
-  return response.json() as Promise<T>;
+  
+  const data = await response.json() as Promise<T>;
+  console.log('API Response data:', data);
+  return data;
 }
 
 export const api = {
   districts: () => apiFetch<District[]>("/api/v1/geography/districts"),
   sectors: () => apiFetch<IndustrySector[]>("/api/v1/industry/sectors"),
   skills: () => apiFetch<Paginated<Skill>>("/api/v1/skills?page=1&page_size=100"),
+
+  proficiencyLevels: () => apiFetch<{
+    id: string;
+    name: string;
+    description: string | null;
+    rank_score: number;
+  }[]>("/api/v1/skills/proficiency-levels"),
+
   courses: () => apiFetch<Paginated<Course>>("/api/v1/courses?page=1&page_size=12"),
-  jobs: () => apiFetch<Paginated<JobPosting>>("/api/v1/jobs?page=1&page_size=6"),
+  homepageCourses: () => apiFetch<HomepageCourse[]>("/api/v1/courses/homepage"),
+  jobs: (params?: { district_id?: string; search?: string }) => {
+    const qs = new URLSearchParams();
+    qs.set("page", "1");
+    qs.set("page_size", "50"); // Increased to show more jobs
+    if (params?.district_id) qs.set("district_id", params.district_id);
+    if (params?.search) qs.set("search", params.search);
+    return apiFetch<Paginated<JobPosting>>(`/api/v1/jobs?${qs.toString()}`);
+  },
+  
+  jobById: (jobId: string) => apiFetch<JobPosting>(`/api/v1/jobs/${jobId}`),
+  
+  jobRelatedCourses: (jobId: string) => apiFetch<any[]>(`/api/v1/jobs/${jobId}/related-courses`),
   demandIndustries: () =>
     apiFetch<IndustryDemand[]>("/api/v1/demand/industries?page=1&page_size=50"),
   demandByDistrict: (districtId: string) =>
@@ -166,10 +231,15 @@ export const api = {
     apiFetch<{ course_id: string; course_title: string; coverage_status: string }[]>(
       `/api/v1/demand/courses?district_id=${encodeURIComponent(districtId)}&page=1&page_size=20`,
     ),
-  jobRoles: (sectorId?: string) =>
-    apiFetch<JobRole[]>(
-      `/api/v1/demand/job-roles${sectorId ? `?industry_sector_id=${encodeURIComponent(sectorId)}` : ""}`,
-    ),
+  jobRoles: (sectorId?: string, districtId?: string) => {
+    const params = new URLSearchParams();
+    if (sectorId) params.set("industry_sector_id", sectorId);
+    if (districtId) params.set("district_id", districtId);
+    const queryString = params.toString();
+    return apiFetch<JobRole[]>(
+      `/api/v1/industry/job-roles${queryString ? `?${queryString}` : ""}`,
+    );
+  },
   careerRecommendation: (params: {
     district_id?: string;
     industry_sector_id?: string;
@@ -199,16 +269,36 @@ export const api = {
       total_required_skills: number;
       missing_skills: Array<{ id: string; name: string; description: string | null }>;
       recommended_courses: Array<{
-        id: string;
+        id: string | null;
         title: string;
         description: string | null;
         covers: string[];
         why: string;
+        addresses_missing: string;
+        covers_details: string;
       }>;
       job_readiness_percentage: number;
       candidate_authenticated: boolean;
       message: string | null;
     }>(`/api/v1/career-guidance/recommendation?${qs.toString()}`);
+  },
+  careerExplorer: (industry_sector_id: string) => {
+    const qs = new URLSearchParams();
+    qs.set("industry_sector_id", industry_sector_id);
+    return apiFetch<{
+      sector_name: string | null;
+      career_paths: Array<{
+        job_role_id: string;
+        job_role_title: string;
+        required_skill_ids: string[];
+        demand_signal_count: number;
+        relevant_course_count: number;
+        open_job_postings_count: number;
+        demand_trend: string | null;
+        reasons: string[];
+      }>;
+      message: string | null;
+    }>(`/api/v1/career-guidance/career-explorer?${qs.toString()}`);
   },
   // Auth endpoints
   me: () => apiFetch<AuthUser>("/api/v1/auth/me"),
@@ -302,10 +392,16 @@ export const api = {
   governmentDashboard: (params: {
     district_id?: string;
     sector_id?: string;
+    job_role_id?: string;
+    start_date?: string;
+    end_date?: string;
   }) => {
     const qs = new URLSearchParams();
     if (params.district_id) qs.set("district_id", params.district_id);
     if (params.sector_id) qs.set("sector_id", params.sector_id);
+    if (params.job_role_id) qs.set("job_role_id", params.job_role_id);
+    if (params.start_date) qs.set("start_date", params.start_date);
+    if (params.end_date) qs.set("end_date", params.end_date);
     return apiFetch<{
       kpis: {
         districts_covered: number;
@@ -380,11 +476,15 @@ export const api = {
     district_id?: string;
     sector_id?: string;
     status?: string;
+    search?: string;
+    include_demo?: boolean;
   }) => {
     const qs = new URLSearchParams();
     if (params.district_id) qs.set("district_id", params.district_id);
     if (params.sector_id) qs.set("sector_id", params.sector_id);
     if (params.status) qs.set("status", params.status);
+    if (params.search) qs.set("search", params.search);
+    if (params.include_demo) qs.set("include_demo", "true");
     return apiFetch<any[]>(`/api/v1/government/training-programs?${qs.toString()}`);
   },
 
@@ -396,7 +496,7 @@ export const api = {
     return apiFetch<any>(`/api/v1/government/candidates${qs.toString() ? `?${qs.toString()}` : ""}`);
   },
 
-  trainingCentres: (params: Record<string, any> = {}) => {
+  trainingCentres: (params: { district_id?: string; sector_id?: string; search?: string; capacity_status?: string } = {}) => {
     const qs = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
@@ -701,4 +801,168 @@ export const api = {
     method: "POST",
     body: JSON.stringify(data),
   }),
+
+  // Candidate applications endpoint
+  applications: () => apiFetch<{
+    id: string;
+    job_posting_id: string;
+    candidate_id: string;
+    status: string;
+    applied_at: string | null;
+    job_title: string | null;
+    job_company_name: string | null;
+    job_district_name: string | null;
+    job_posted_date: string | null;
+  }[]>("/api/v1/applications"),
+
+  applyToJob: (data: { job_posting_id: string }) =>
+    apiFetch<any>("/api/v1/applications", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // Candidate profile endpoints
+  candidateProfile: () => apiFetch<{
+    id: string;
+    user_id: string;
+    full_name: string | null;
+    email: string | null;
+    phone: string | null;
+    gender: string | null;
+    district_id: string | null;
+    date_of_birth: string | null;
+    education_level: string | null;
+    current_status: string | null;
+    education_history: any[];
+    career_interests: any[];
+  }>("/api/v1/candidates/me"),
+
+  updateCandidateProfile: (data: {
+    full_name?: string;
+    phone?: string;
+    gender?: string;
+    district_id?: string;
+    date_of_birth?: string;
+    education_level?: string;
+    current_status?: string;
+  }) => apiFetch<{
+    id: string;
+    user_id: string;
+    full_name: string | null;
+    email: string | null;
+    phone: string | null;
+    gender: string | null;
+    district_id: string | null;
+    date_of_birth: string | null;
+    education_level: string | null;
+    current_status: string | null;
+    education_history: any[];
+    career_interests: any[];
+  }>("/api/v1/candidates/me", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  }),
+
+  candidateSkills: () => apiFetch<{
+    id: string;
+    candidate_id: string;
+    skill_id: string;
+    skill_name: string | null;
+    proficiency_level_id: string;
+    proficiency_level_name: string | null;
+    source: string;
+    verification_status: string;
+    last_assessed_date: string | null;
+    evidence_reference: string | null;
+  }[]>("/api/v1/candidates/me/skills"),
+
+  addCandidateSkill: (data: {
+    skill_id: string;
+    proficiency_level_id: string;
+    source?: string;
+    verification_status?: string;
+    last_assessed_date?: string;
+    evidence_reference?: string;
+  }) => apiFetch<{
+    id: string;
+    candidate_id: string;
+    skill_id: string;
+    skill_name: string | null;
+    proficiency_level_id: string;
+    proficiency_level_name: string | null;
+    source: string;
+    verification_status: string;
+    last_assessed_date: string | null;
+    evidence_reference: string | null;
+  }>("/api/v1/candidates/me/skills", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+
+  updateCandidateSkill: (skillId: string, data: {
+    proficiency_level_id?: string;
+    source?: string;
+    verification_status?: string;
+    last_assessed_date?: string;
+    evidence_reference?: string;
+  }) => apiFetch<{
+    id: string;
+    candidate_id: string;
+    skill_id: string;
+    skill_name: string | null;
+    proficiency_level_id: string;
+    proficiency_level_name: string | null;
+    source: string;
+    verification_status: string;
+    last_assessed_date: string | null;
+    evidence_reference: string | null;
+  }>(`/api/v1/candidates/me/skills/${skillId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  }),
+
+  deleteCandidateSkill: (skillId: string) => apiFetch<{ message: string }>(`/api/v1/candidates/me/skills/${skillId}`, {
+    method: "DELETE",
+  }),
+
+  requestSkillVerification: (skillId: string, data: {
+    evidence_reference?: string;
+    last_assessed_date?: string;
+  }) => apiFetch<{
+    id: string;
+    candidate_id: string;
+    skill_id: string;
+    skill_name: string | null;
+    proficiency_level_id: string;
+    proficiency_level_name: string | null;
+    source: string;
+    verification_status: string;
+    last_assessed_date: string | null;
+    evidence_reference: string | null;
+  }>(`/api/v1/candidates/me/skills/${skillId}/verify`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+
+  candidateEnrollments: () => apiFetch<{
+    id: string;
+    course_id: string;
+    status: string;
+    enrollment_date: string | null;
+    completion_date: string | null;
+    grade_outcome: string | null;
+    course: {
+      id: string;
+      title: string;
+      description: string | null;
+      duration_hours: number | null;
+      delivery_mode: string | null;
+      status: string;
+    } | null;
+  }[]>("/api/v1/candidates/me/enrollments"),
+
+  // Employer candidates endpoint
+  employerCandidates: () => apiFetch<any[]>("/api/v1/employers/me/candidates"),
+
+  employerApplications: () => apiFetch<any[]>("/api/v1/employers/me/applications"),
 };

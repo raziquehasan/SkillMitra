@@ -3,72 +3,77 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import CandidateSidebar from "@/components/candidate/CandidateSidebar";
 
-const recommendedJobs = [
-  {
-    id: 1,
-    title: "EV Technician",
-    company: "Maharashtra Automotive Systems",
-    location: "Pune",
-    experience: "1–3 Years",
-    salary: "₹3.5–5.5 LPA",
-    match: 94,
-    priority: "Excellent Match",
-    skills: ["EV Technology", "Battery Systems", "Diagnostics"],
-    reason: "Strong match with your EV and technical skills.",
-  },
-  {
-    id: 2,
-    title: "Software Developer",
-    company: "Digital Technology Solutions",
-    location: "Mumbai",
-    experience: "0–2 Years",
-    salary: "₹4–7 LPA",
-    match: 89,
-    priority: "Strong Match",
-    skills: ["React", "JavaScript", "SQL"],
-    reason: "Your frontend and programming skills match this role.",
-  },
-  {
-    id: 3,
-    title: "Data Analyst",
-    company: "Industry Analytics Pvt. Ltd.",
-    location: "Nashik",
-    experience: "1–2 Years",
-    salary: "₹4–6 LPA",
-    match: 84,
-    priority: "Strong Match",
-    skills: ["Python", "SQL", "Data Analysis"],
-    reason: "Good alignment with your analytical and SQL skills.",
-  },
-  {
-    id: 4,
-    title: "Cloud Support Associate",
-    company: "Technology Services India",
-    location: "Pune",
-    experience: "0–2 Years",
-    salary: "₹3–5 LPA",
-    match: 79,
-    priority: "Good Match",
-    skills: ["Cloud Computing", "Linux", "Networking"],
-    reason: "A suitable opportunity based on your technical profile.",
-  },
-  {
-    id: 5,
-    title: "UI/UX Designer",
-    company: "Digital Innovation Studio",
-    location: "Mumbai",
-    experience: "0–2 Years",
-    salary: "₹3.5–6 LPA",
-    match: 76,
-    priority: "Good Match",
-    skills: ["Figma", "UI Design", "UX Research"],
-    reason: "Relevant opportunity with some skills to improve.",
-  },
-];
+// Force dynamic rendering to prevent SSR issues
+export const dynamic = 'force-dynamic';
+import { useState, useEffect } from "react";
+import CandidateSidebar from "@/components/candidate/CandidateSidebar";
+import { api } from "@/lib/api";
 
 export default function RecommendedJobsPage() {
+  const [recommendation, setRecommendation] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedJobRole, setSelectedJobRole] = useState<string | null>(null);
+  const [jobRoles, setJobRoles] = useState<any[]>([]);
+  const [hasSkills, setHasSkills] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const loadJobRoles = async () => {
+      try {
+        const response = await api.jobRoles();
+        setJobRoles(response);
+        setLoading(false);
+      } catch (err) {
+        console.error("Failed to load job roles:", err);
+        setError("Unable to load job roles. Please try again.");
+        setLoading(false);
+      }
+    };
+
+    // Check if user has skills
+    const checkSkills = async () => {
+      try {
+        const skills = await api.candidateSkills();
+        setHasSkills(skills.length > 0);
+      } catch (err) {
+        console.error("Failed to check skills:", err);
+        setHasSkills(false);
+      }
+    };
+
+    loadJobRoles();
+    checkSkills();
+  }, []);
+
+  const loadRecommendations = async (jobRoleId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.careerRecommendation({
+        job_role_id: jobRoleId,
+      });
+      
+      // Backend now handles validation - only valid recommendations should reach here
+      // However, we still check for error messages from backend
+      if (response.message && !response.demand) {
+        setError(response.message);
+        setRecommendation(null);
+      } else if (response.demand) {
+        setRecommendation(response);
+        setSelectedJobRole(jobRoleId);
+      } else {
+        setError("No valid recommendations available for this job role.");
+        setRecommendation(null);
+      }
+    } catch (err) {
+      console.error("Failed to load recommendations:", err);
+      setError("Unable to load recommendations. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
 
@@ -181,81 +186,185 @@ export default function RecommendedJobsPage() {
 
             </div>
 
-            {/* Intelligence Banner */}
-            <div className="rounded-xl border border-blue-100 bg-blue-50 p-5">
+            {/* Job Role Selection */}
+            <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="mb-4">
+                <h2 className="font-bold text-slate-900">
+                  Select Job Role for Recommendations
+                </h2>
 
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <p className="mt-1 text-xs text-slate-500">
+                  Choose a job role to see personalized job recommendations based on your skills.
+                </p>
+              </div>
 
-                <div className="flex items-start gap-3">
+              {loading && !selectedJobRole ? (
+                <p className="text-slate-500">Loading job roles...</p>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-3">
+                  {jobRoles.map((role) => (
+                    <button
+                      key={role.id}
+                      type="button"
+                      onClick={() => loadRecommendations(role.id)}
+                      className={`rounded-lg border px-4 py-3 text-left text-sm transition ${
+                        selectedJobRole === role.id
+                          ? "border-[#123b68] bg-blue-50 text-[#123b68]"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-[#123b68]"
+                      }`}
+                    >
+                      <div className="font-semibold">{role.title}</div>
+                      {role.description && (
+                        <div className="mt-1 text-xs text-slate-500 line-clamp-2">
+                          {role.description}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-lg text-[#123b68] shadow-sm">
-                    ✦
+            {/* No Skills Empty State */}
+            {hasSkills === false && (
+              <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-100 text-2xl text-amber-600">
+                      🎯
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-amber-900">
+                        Add Your Skills First
+                      </h2>
+                      <p className="mt-1 max-w-2xl text-sm leading-6 text-amber-800">
+                        To get personalized job recommendations, you need to add your current skills to your profile. 
+                        This helps us match you with opportunities that align with your actual capabilities.
+                      </p>
+                    </div>
                   </div>
 
-                  <div>
+                  <Link
+                    href="/candidate/skills"
+                    className="shrink-0 rounded-lg bg-[#123b68] px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-[#0f3155]"
+                  >
+                    Add My Skills
+                  </Link>
+                </div>
+              </div>
+            )}
 
-                    <h2 className="font-bold text-[#123b68]">
-                      Skill-Based Job Recommendations
-                    </h2>
+            {/* Intelligence Banner */}
+            {recommendation ? (
+              <div className="rounded-xl border border-blue-100 bg-blue-50 p-5">
 
-                    <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-600">
-                      These opportunities are selected according to the
-                      skills available in your candidate profile and the
-                      requirements of available jobs.
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+                  <div className="flex items-start gap-3">
+
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-lg text-[#123b68] shadow-sm">
+                      ✦
+                    </div>
+
+                    <div>
+
+                      <h2 className="font-bold text-[#123b68]">
+                        Skill-Based Job Recommendations
+                      </h2>
+
+                      <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-600">
+                        {recommendation.message || "Recommendations based on your skills and job requirements."}
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                  <div className="rounded-lg bg-white px-4 py-3 text-center shadow-sm">
+
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      Match
+                    </p>
+
+                    <p className="text-xl font-bold text-[#123b68]">
+                      {recommendation.skill_match_percentage}%
+                    </p>
+
+                    <p className="text-[10px] text-slate-500">
+                      Skill Alignment
                     </p>
 
                   </div>
 
                 </div>
 
-                <div className="rounded-lg bg-white px-4 py-3 text-center shadow-sm">
-
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    Recommended
-                  </p>
-
-                  <p className="text-xl font-bold text-[#123b68]">
-                    12
-                  </p>
-
-                  <p className="text-[10px] text-slate-500">
-                    Opportunities
-                  </p>
-
-                </div>
-
               </div>
-
-            </div>
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-sm text-slate-500">
+                  Select a job role above to see personalized recommendations.
+                </p>
+              </div>
+            )}
 
             {/* Summary */}
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {recommendation ? (
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-              <SummaryCard
-                title="Recommended Jobs"
-                value="12"
-                text="Jobs matched to your profile"
-              />
+                <SummaryCard
+                  title="Skill Match"
+                  value={`${recommendation.skill_match_percentage}%`}
+                  text="Match with job requirements"
+                />
 
-              <SummaryCard
-                title="90%+ Match"
-                value="03"
-                text="Excellent skill alignment"
-              />
+                <SummaryCard
+                  title="Matched Skills"
+                  value={String(recommendation.matched_skill_count)}
+                  text="Skills you have"
+                />
 
-              <SummaryCard
-                title="80%+ Match"
-                value="08"
-                text="Strong opportunities"
-              />
+                <SummaryCard
+                  title="Missing Skills"
+                  value={String(recommendation.missing_skills.length)}
+                  text="Skills to develop"
+                />
 
-              <SummaryCard
-                title="Skills Considered"
-                value="14"
-                text="Skills from your profile"
-              />
+                <SummaryCard
+                  title="Job Readiness"
+                  value={`${recommendation.job_readiness_percentage}%`}
+                  text="Overall readiness score"
+                />
 
-            </div>
+              </div>
+            ) : (
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+                <SummaryCard
+                  title="Recommended Jobs"
+                  value="--"
+                  text="Select a job role"
+                />
+
+                <SummaryCard
+                  title="90%+ Match"
+                  value="--"
+                  text="Excellent skill alignment"
+                />
+
+                <SummaryCard
+                  title="80%+ Match"
+                  value="--"
+                  text="Strong opportunities"
+                />
+
+                <SummaryCard
+                  title="Skills Considered"
+                  value="--"
+                  text="Skills from your profile"
+                />
+
+              </div>
+            )}
 
             {/* Recommended List */}
             <div className="mt-8">
@@ -273,16 +382,98 @@ export default function RecommendedJobsPage() {
 
               </div>
 
-              <div className="space-y-4">
+              {loading ? (
+                <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+                  <p className="text-slate-500">Loading recommendations...</p>
+                </div>
+              ) : error ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-6 py-12 text-center shadow-sm">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-xl text-amber-600">
+                    ⚠
+                  </div>
+                  <h3 className="mt-4 font-semibold text-amber-800">
+                    No Recommendations Available
+                  </h3>
+                  <p className="mt-2 text-sm text-amber-700">
+                    {error}
+                  </p>
+                  <div className="mt-6 flex justify-center gap-3">
+                    <Link
+                      href="/candidate/skills"
+                      className="rounded-lg border border-amber-600 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
+                    >
+                      Update My Skills
+                    </Link>
+                    <Link
+                      href="/candidate/jobs"
+                      className="rounded-lg bg-[#123b68] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#0e3155]"
+                    >
+                      Browse All Jobs
+                    </Link>
+                  </div>
+                </div>
+              ) : recommendation && recommendation.demand ? (
+                <div className="space-y-4">
+                  {recommendation.message && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                      <p className="text-sm text-amber-800">{recommendation.message}</p>
+                    </div>
+                  )}
+                  
+                  <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-base font-bold text-[#123b68]">
+                          {recommendation.demand.job_role_title || 'Job Role'}
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {recommendation.demand.district_name || 'Location not specified'}
+                        </p>
+                        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
+                          <span>Demand: {recommendation.demand.demand_trend || 'Not specified'}</span>
+                          <span>Job Postings: {recommendation.demand.relevant_job_postings_count || 0}</span>
+                        </div>
+                      </div>
+                      <div className="rounded-lg bg-green-50 px-4 py-2 text-center">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-green-600">
+                          Match
+                        </p>
+                        <p className="text-lg font-bold text-green-700">
+                          {recommendation.skill_match_percentage}%
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-                {recommendedJobs.map((job) => (
-                  <RecommendedJobCard
-                    key={job.id}
-                    job={job}
-                  />
-                ))}
-
-              </div>
+                  {recommendation.recommended_courses.length > 0 && recommendation.recommended_courses[0].id && (
+                    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <h4 className="font-semibold text-[#123b68] mb-3">Recommended Courses</h4>
+                      <div className="space-y-3">
+                        {recommendation.recommended_courses.map((course: any, index: number) => (
+                          course.id && (
+                            <div key={index} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                              <p className="text-sm font-semibold text-slate-800">{course.title}</p>
+                              <p className="mt-1 text-xs text-slate-600">{course.why || course.covers_details}</p>
+                            </div>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-500">
+                    ✦
+                  </div>
+                  <h3 className="mt-4 font-semibold text-slate-700">
+                    No recommendations available
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Select a job role to see personalized recommendations.
+                  </p>
+                </div>
+              )}
 
             </div>
 
@@ -443,126 +634,7 @@ function SummaryCard({
   );
 }
 
-/* Recommended Job Card */
 
-function RecommendedJobCard({
-  job,
-}: {
-  job: (typeof recommendedJobs)[number];
-}) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md">
-
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-
-        <div className="min-w-0 flex-1">
-
-          <div className="flex flex-wrap items-start justify-between gap-3">
-
-            <div>
-
-              <div className="flex flex-wrap items-center gap-2">
-
-                <h3 className="text-base font-bold text-[#123b68]">
-                  {job.title}
-                </h3>
-
-                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-[#123b68]">
-                  Recommended
-                </span>
-
-              </div>
-
-              <p className="mt-1 text-sm font-medium text-slate-700">
-                {job.company}
-              </p>
-
-            </div>
-
-            <div className="rounded-lg bg-green-50 px-4 py-2 text-center">
-
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-green-600">
-                Skill Match
-              </p>
-
-              <p className="text-xl font-bold text-green-700">
-                {job.match}%
-              </p>
-
-            </div>
-
-          </div>
-
-          {/* Job Info */}
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
-
-            <span>📍 {job.location}</span>
-
-            <span>◷ {job.experience}</span>
-
-            <span>₹ {job.salary}</span>
-
-          </div>
-
-          {/* Skills */}
-          <div className="mt-4">
-
-            <p className="mb-2 text-[11px] font-semibold text-slate-500">
-              Matching Skills
-            </p>
-
-            <div className="flex flex-wrap gap-2">
-
-              {job.skills.map((skill) => (
-                <span
-                  key={skill}
-                  className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600"
-                >
-                  {skill}
-                </span>
-              ))}
-
-            </div>
-
-          </div>
-
-          {/* Reason */}
-          <div className="mt-4 rounded-lg bg-slate-50 px-4 py-3">
-
-            <p className="text-[11px] text-slate-500">
-              <span className="font-semibold text-[#123b68]">
-                Why this job?
-              </span>{" "}
-              {job.reason}
-            </p>
-
-          </div>
-
-        </div>
-
-        {/* Actions */}
-        <div className="flex shrink-0 gap-2 lg:flex-col">
-
-          <button
-            type="button"
-            className="rounded-lg border border-[#123b68] px-4 py-2.5 text-xs font-semibold text-[#123b68] transition hover:bg-blue-50"
-          >
-            View Details
-          </button>
-
-          <button
-            type="button"
-            className="rounded-lg bg-[#123b68] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#0e3155]"
-          >
-            Apply Now
-          </button>
-
-        </div>
-
-      </div>
-    </div>
-  );
-}
 
 /* Recommendation Step */
 

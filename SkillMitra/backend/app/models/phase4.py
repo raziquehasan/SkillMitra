@@ -3,7 +3,7 @@ import uuid
 from datetime import date, datetime
 from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, Index
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin
 
 
@@ -17,6 +17,11 @@ class CandidateSkill(TimestampMixin, Base):
     verification_status: Mapped[str] = mapped_column(String(30), nullable=False, default="unverified")
     last_assessed_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     evidence_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    
+    # Relationships
+    skill = relationship("Skill", back_populates="candidate_skills", lazy="select")
+    proficiency_level = relationship("SkillProficiencyLevel", back_populates="candidate_skills", lazy="select")
+    
     __table_args__ = (
         UniqueConstraint("candidate_id", "skill_id", name="uq_candidate_skill"),
         CheckConstraint("verification_status IN ('unverified', 'pending', 'verified')", name="ck_candidate_skills_verification"),

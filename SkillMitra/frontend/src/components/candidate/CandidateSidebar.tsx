@@ -1,9 +1,11 @@
 
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { api } from "@/lib/api";
 
 const navigation = [
   {
@@ -65,6 +67,24 @@ const navigation = [
 
 export default function CandidateSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await api.logout();
+      sessionStorage.removeItem("skillmitra_access_token");
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Even if API call fails, clear local storage and redirect
+      sessionStorage.removeItem("skillmitra_access_token");
+      router.push("/login");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <aside className="fixed left-0 top-[76px] z-40 hidden h-[calc(100vh-76px)] w-72 overflow-y-auto border-r border-slate-200 bg-white lg:block">
@@ -142,6 +162,20 @@ export default function CandidateSidebar() {
           })}
         </div>
       </nav>
+
+      {/* Logout Button */}
+      <div className="mx-3 mb-4">
+        <button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-600">
+            {isLoggingOut ? "..." : "↩"}
+          </span>
+          <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
+        </button>
+      </div>
 
       {/* Candidate Intelligence Card */}
       <div className="mx-4 mb-5 mt-3 rounded-lg border border-blue-100 bg-blue-50 p-4">

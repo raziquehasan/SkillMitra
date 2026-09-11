@@ -6,8 +6,7 @@ import { api, type District } from "@/lib/api";
 import { 
   MapPin, Filter, X, Search, 
   Building2, Users, GraduationCap, TrendingUp, 
-  AlertCircle, RefreshCw, CheckCircle, AlertTriangle,
-  Wrench
+  AlertCircle, RefreshCw, CheckCircle, AlertTriangle
 } from "lucide-react";
 
 type TrainingCentre = {
@@ -23,7 +22,6 @@ type TrainingCentre = {
   available_seats: number;
   utilization: number | null;
   verification_status: string;
-  equipment_status?: string;
 };
 
 const demoTrainingCentres: TrainingCentre[] = [
@@ -40,7 +38,6 @@ const demoTrainingCentres: TrainingCentre[] = [
     available_seats: 28,
     utilization: 82.5,
     verification_status: "VERIFIED",
-    equipment_status: "Ready",
   },
   {
     provider_id: "DEMO-TC002",
@@ -55,7 +52,6 @@ const demoTrainingCentres: TrainingCentre[] = [
     available_seats: 44,
     utilization: 63.3,
     verification_status: "VERIFIED",
-    equipment_status: "Ready",
   },
   {
     provider_id: "DEMO-TC003",
@@ -70,7 +66,6 @@ const demoTrainingCentres: TrainingCentre[] = [
     available_seats: 56,
     utilization: 60.0,
     verification_status: "VERIFIED",
-    equipment_status: "Partial",
   },
   {
     provider_id: "DEMO-TC004",
@@ -85,7 +80,6 @@ const demoTrainingCentres: TrainingCentre[] = [
     available_seats: 15,
     utilization: 92.5,
     verification_status: "VERIFIED",
-    equipment_status: "Ready",
   },
   {
     provider_id: "DEMO-TC005",
@@ -100,7 +94,6 @@ const demoTrainingCentres: TrainingCentre[] = [
     available_seats: 58,
     utilization: 27.5,
     verification_status: "VERIFIED",
-    equipment_status: "Needs Attention",
   },
   {
     provider_id: "DEMO-TC006",
@@ -115,7 +108,6 @@ const demoTrainingCentres: TrainingCentre[] = [
     available_seats: 12,
     utilization: 80.0,
     verification_status: "VERIFIED",
-    equipment_status: "Ready",
   },
   {
     provider_id: "DEMO-TC007",
@@ -130,7 +122,6 @@ const demoTrainingCentres: TrainingCentre[] = [
     available_seats: 38,
     utilization: 57.8,
     verification_status: "VERIFIED",
-    equipment_status: "Partial",
   },
   {
     provider_id: "DEMO-TC008",
@@ -145,7 +136,6 @@ const demoTrainingCentres: TrainingCentre[] = [
     available_seats: 5,
     utilization: 95.0,
     verification_status: "VERIFIED",
-    equipment_status: "Ready",
   },
   {
     provider_id: "DEMO-TC009",
@@ -160,7 +150,6 @@ const demoTrainingCentres: TrainingCentre[] = [
     available_seats: 32,
     utilization: 36.0,
     verification_status: "PENDING",
-    equipment_status: "Needs Attention",
   },
   {
     provider_id: "DEMO-TC010",
@@ -175,7 +164,6 @@ const demoTrainingCentres: TrainingCentre[] = [
     available_seats: 30,
     utilization: 80.0,
     verification_status: "VERIFIED",
-    equipment_status: "Ready",
   },
   {
     provider_id: "DEMO-TC011",
@@ -190,7 +178,6 @@ const demoTrainingCentres: TrainingCentre[] = [
     available_seats: 28,
     utilization: 30.0,
     verification_status: "PENDING",
-    equipment_status: "Partial",
   },
   {
     provider_id: "DEMO-TC012",
@@ -205,7 +192,6 @@ const demoTrainingCentres: TrainingCentre[] = [
     available_seats: 32,
     utilization: 70.9,
     verification_status: "VERIFIED",
-    equipment_status: "Ready",
   },
 ];
 
@@ -237,11 +223,14 @@ export default function TrainingCentresPage() {
     try {
       const data = await api.trainingCentres({
         district_id: filterDistrict || undefined,
+        search: searchQuery || undefined,
+        capacity_status: filterStatus || undefined,
       });
       
       let fetchedCentres = Array.isArray(data) ? data : [];
       
       if (fetchedCentres.length === 0) {
+        // Fall back to demo data only if no real data exists
         let demoFiltered = [...demoTrainingCentres];
         if (filterDistrict) {
           demoFiltered = demoFiltered.filter((c) => c.district_id === filterDistrict);
@@ -261,26 +250,28 @@ export default function TrainingCentresPage() {
         setCentres(demoFiltered);
         setUsingDemoData(true);
       } else {
-        let filtered = fetchedCentres;
-        if (filterStatus) {
-          filtered = filtered.filter((c) => {
-            const util = c.total_capacity > 0 ? (c.filled_seats / c.total_capacity) * 100 : 0;
-            const status = getCapacityStatusLabel(util);
-            return status === filterStatus;
-          });
-        }
-        if (searchQuery) {
-          filtered = filtered.filter((c) =>
-            c.provider_name.toLowerCase().includes(searchQuery.toLowerCase())
-          );
-        }
-        setCentres(filtered);
+        // Use real data from Supabase
+        setCentres(fetchedCentres);
+        setUsingDemoData(false);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load training centres");
+      // Fall back to demo data on error
       let demoFiltered = [...demoTrainingCentres];
       if (filterDistrict) {
         demoFiltered = demoFiltered.filter((c) => c.district_id === filterDistrict);
+      }
+      if (filterStatus) {
+        demoFiltered = demoFiltered.filter((c) => {
+          const util = c.total_capacity > 0 ? (c.filled_seats / c.total_capacity) * 100 : 0;
+          const status = getCapacityStatusLabel(util);
+          return status === filterStatus;
+        });
+      }
+      if (searchQuery) {
+        demoFiltered = demoFiltered.filter((c) =>
+          c.provider_name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
       }
       setCentres(demoFiltered);
       setUsingDemoData(true);
@@ -340,19 +331,6 @@ export default function TrainingCentresPage() {
         return "bg-blue-100 text-blue-700";
       case "Low Utilisation":
         return "bg-slate-100 text-slate-600";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
-
-  const getEquipmentBadge = (status: string) => {
-    switch (status) {
-      case "Ready":
-        return "bg-green-100 text-green-700";
-      case "Partial":
-        return "bg-amber-100 text-amber-700";
-      case "Needs Attention":
-        return "bg-red-100 text-red-700";
       default:
         return "bg-gray-100 text-gray-700";
     }
@@ -585,14 +563,6 @@ export default function TrainingCentresPage() {
             </div>
           </div>
 
-          {/* Demo Data Label */}
-          {usingDemoData && (
-            <div className="mb-3 inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 border border-blue-200 rounded text-[11px] text-blue-700 font-medium">
-              <Building2 className="h-3.5 w-3.5" />
-              Illustrative Demo Data
-            </div>
-          )}
-
           {/* Error State */}
           {error && !usingDemoData && (
             <div className="mb-5 rounded-md border border-red-200 bg-red-50 p-4">
@@ -658,7 +628,7 @@ export default function TrainingCentresPage() {
                     <th className="text-left py-3 px-4 font-semibold text-[#1e293b] min-w-[100px]">District</th>
                     <th className="text-right py-3 px-4 font-semibold text-[#1e293b] min-w-[70px]">Courses</th>
                     <th className="text-right py-3 px-4 font-semibold text-[#1e293b] min-w-[70px]">Trainers</th>
-                    <th className="text-left py-3 px-4 font-semibold text-[#1e293b] min-w-[100px]">Equipment</th>
+                    <th className="text-right py-3 px-4 font-semibold text-[#1e293b] min-w-[70px]">Equipment</th>
                     <th className="text-right py-3 px-4 font-semibold text-[#1e293b] min-w-[80px]">Capacity</th>
                     <th className="text-right py-3 px-4 font-semibold text-[#1e293b] min-w-[80px]">Filled</th>
                     <th className="text-right py-3 px-4 font-semibold text-[#1e293b] min-w-[80px]">Available</th>
@@ -687,11 +657,7 @@ export default function TrainingCentresPage() {
                         </td>
                         <td className="py-3 px-4 text-right text-slate-600">{centre.course_count}</td>
                         <td className="py-3 px-4 text-right text-slate-600">{centre.trainer_count}</td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${getEquipmentBadge(centre.equipment_status || "Unknown")}`}>
-                            {centre.equipment_status || "Unknown"}
-                          </span>
-                        </td>
+                        <td className="py-3 px-4 text-right text-slate-600">{centre.equipment_count}</td>
                         <td className="py-3 px-4 text-right font-medium text-[#1e293b]">{centre.total_capacity}</td>
                         <td className="py-3 px-4 text-right font-medium text-[#1e3a8a]">{centre.filled_seats}</td>
                         <td className="py-3 px-4 text-right text-slate-500">{centre.total_capacity - centre.filled_seats}</td>

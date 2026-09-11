@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 from app.repositories.candidate_repository import CandidateRepository
-from app.schemas.candidates import CandidateProfileUpdate, CandidateEducationCreate, CandidateInterestCreate
+from app.schemas.candidates import CandidateProfileUpdate, CandidateEducationCreate, CandidateInterestCreate, SkillVerificationRequest
 from app.models.career import JobRole, JobRoleSkill
 from app.models.phase4 import CandidateSkill
 from app.models.skills import SkillProficiencyLevel
@@ -120,27 +120,110 @@ class CandidateService:
         return results
 
     def list_skills(self, user_id: uuid.UUID):
+        from app.models.skills import Skill, SkillProficiencyLevel
+        from sqlalchemy.orm import selectinload
+        from app.schemas.candidates import CandidateSkillResponse
+        
         profile = self.get_or_create_profile(user_id)
-        return self.db.scalars(select(CandidateSkill).where(CandidateSkill.candidate_id == profile.id)).all()
+        skills = self.db.scalars(
+            select(CandidateSkill)
+            .where(CandidateSkill.candidate_id == profile.id)
+            .options(
+                selectinload(CandidateSkill.skill),
+                selectinload(CandidateSkill.proficiency_level)
+            )
+        ).all()
+        
+        # Enrich with human-readable names for API response
+        result = []
+        for skill in skills:
+            skill_data = {
+                "id": skill.id,
+                "candidate_id": skill.candidate_id,
+                "skill_id": skill.skill_id,
+                "skill_name": skill.skill.name if skill.skill else None,
+                "proficiency_level_id": skill.proficiency_level_id,
+                "proficiency_level_name": skill.proficiency_level.name if skill.proficiency_level else None,
+                "source": skill.source,
+                "verification_status": skill.verification_status,
+                "last_assessed_date": skill.last_assessed_date,
+                "evidence_reference": skill.evidence_reference,
+            }
+            result.append(CandidateSkillResponse(**skill_data))
+        
+        return result
 
     def add_skill(self, user_id: uuid.UUID, data):
+        from app.models.skills import Skill, SkillProficiencyLevel
+        from sqlalchemy.orm import selectinload
+        from app.schemas.candidates import CandidateSkillResponse
+        
         profile = self.get_or_create_profile(user_id)
         skill = CandidateSkill(candidate_id=profile.id, **data.model_dump())
         self.db.add(skill)
         self.db.commit()
         self.db.refresh(skill)
-        return skill
+        
+        # Load relationships for response
+        skill_with_relations = self.db.scalar(
+            select(CandidateSkill)
+            .where(CandidateSkill.id == skill.id)
+            .options(
+                selectinload(CandidateSkill.skill),
+                selectinload(CandidateSkill.proficiency_level)
+            )
+        )
+        
+        # Enrich with human-readable names
+        skill_data = {
+            "id": skill_with_relations.id,
+            "candidate_id": skill_with_relations.candidate_id,
+            "skill_id": skill_with_relations.skill_id,
+            "skill_name": skill_with_relations.skill.name if skill_with_relations.skill else None,
+            "proficiency_level_id": skill_with_relations.proficiency_level_id,
+            "proficiency_level_name": skill_with_relations.proficiency_level.name if skill_with_relations.proficiency_level else None,
+            "source": skill_with_relations.source,
+            "verification_status": skill_with_relations.verification_status,
+            "last_assessed_date": skill_with_relations.last_assessed_date,
+            "evidence_reference": skill_with_relations.evidence_reference,
+        }
+        return CandidateSkillResponse(**skill_data)
 
     def update_skill(self, user_id: uuid.UUID, skill_id: uuid.UUID, data):
+        from app.models.skills import Skill, SkillProficiencyLevel
+        from sqlalchemy.orm import selectinload
+        from app.schemas.candidates import CandidateSkillResponse
+        
         profile = self.get_or_create_profile(user_id)
-        skill = self.db.scalar(select(CandidateSkill).where(CandidateSkill.id == skill_id, CandidateSkill.candidate_id == profile.id))
+        skill = self.db.scalar(
+            select(CandidateSkill)
+            .where(CandidateSkill.id == skill_id, CandidateSkill.candidate_id == profile.id)
+            .options(
+                selectinload(CandidateSkill.skill),
+                selectinload(CandidateSkill.proficiency_level)
+            )
+        )
         if not skill:
             raise HTTPException(status_code=404, detail="Candidate skill not found")
         for key, value in data.model_dump(exclude_unset=True).items():
             setattr(skill, key, value)
         self.db.commit()
         self.db.refresh(skill)
-        return skill
+        
+        # Enrich with human-readable names
+        skill_data = {
+            "id": skill.id,
+            "candidate_id": skill.candidate_id,
+            "skill_id": skill.skill_id,
+            "skill_name": skill.skill.name if skill.skill else None,
+            "proficiency_level_id": skill.proficiency_level_id,
+            "proficiency_level_name": skill.proficiency_level.name if skill.proficiency_level else None,
+            "source": skill.source,
+            "verification_status": skill.verification_status,
+            "last_assessed_date": skill.last_assessed_date,
+            "evidence_reference": skill.evidence_reference,
+        }
+        return CandidateSkillResponse(**skill_data)
 
     def delete_skill(self, user_id: uuid.UUID, skill_id: uuid.UUID):
         profile = self.get_or_create_profile(user_id)
@@ -149,3 +232,45 @@ class CandidateService:
             raise HTTPException(status_code=404, detail="Candidate skill not found")
         self.db.delete(skill)
         self.db.commit()
+
+    def request_skill_verification(self, user_id: uuid.UUID, skill_id: uuid.UUID, data: SkillVerificationRequest):
+        from app.models.skills import Skill, SkillProficiencyLevel
+        from sqlalchemy.orm import selectinload
+        from app.schemas.candidates import CandidateSkillResponse
+        
+        profile = self.get_or_create_profile(user_id)
+        skill = self.db.scalar(
+            select(CandidateSkill)
+            .where(CandidateSkill.id == skill_id, CandidateSkill.candidate_id == profile.id)
+            .options(
+                selectinload(CandidateSkill.skill),
+                selectinload(CandidateSkill.proficiency_level)
+            )
+        )
+        if not skill:
+            raise HTTPException(status_code=404, detail="Candidate skill not found")
+        
+        # Update verification status to pending and optionally update evidence
+        skill.verification_status = "pending"
+        if data.evidence_reference:
+            skill.evidence_reference = data.evidence_reference
+        if data.last_assessed_date:
+            skill.last_assessed_date = data.last_assessed_date
+        
+        self.db.commit()
+        self.db.refresh(skill)
+        
+        # Enrich with human-readable names
+        skill_data = {
+            "id": skill.id,
+            "candidate_id": skill.candidate_id,
+            "skill_id": skill.skill_id,
+            "skill_name": skill.skill.name if skill.skill else None,
+            "proficiency_level_id": skill.proficiency_level_id,
+            "proficiency_level_name": skill.proficiency_level.name if skill.proficiency_level else None,
+            "source": skill.source,
+            "verification_status": skill.verification_status,
+            "last_assessed_date": skill.last_assessed_date,
+            "evidence_reference": skill.evidence_reference,
+        }
+        return CandidateSkillResponse(**skill_data)

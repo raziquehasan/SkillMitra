@@ -3,124 +3,89 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+
+// Force dynamic rendering to prevent SSR issues
+export const dynamic = 'force-dynamic';
+import { useMemo, useState, useEffect } from "react";
 import CandidateSidebar from "@/components/candidate/CandidateSidebar";
+import { JobDetailsModal } from "@/components/JobDetailsModal";
+import { api, type JobPosting } from "@/lib/api";
 
-const jobs = [
-  {
-    id: 1,
-    title: "EV Technician",
-    company: "Maharashtra Automotive Systems",
-    location: "Pune",
-    type: "Full Time",
-    experience: "1–3 Years",
-    salary: "₹3.5–5.5 LPA",
-    skills: ["EV Technology", "Battery Systems", "Vehicle Diagnostics"],
-    match: 94,
-    posted: "2 days ago",
-  },
-  {
-    id: 2,
-    title: "Software Developer",
-    company: "Digital Technology Solutions",
-    location: "Mumbai",
-    type: "Full Time",
-    experience: "0–2 Years",
-    salary: "₹4–7 LPA",
-    skills: ["React", "JavaScript", "SQL"],
-    match: 89,
-    posted: "3 days ago",
-  },
-  {
-    id: 3,
-    title: "Data Analyst",
-    company: "Industry Analytics Pvt. Ltd.",
-    location: "Nashik",
-    type: "Full Time",
-    experience: "1–2 Years",
-    salary: "₹4–6 LPA",
-    skills: ["Python", "SQL", "Data Analysis"],
-    match: 84,
-    posted: "4 days ago",
-  },
-  {
-    id: 4,
-    title: "UI/UX Designer",
-    company: "Digital Innovation Studio",
-    location: "Mumbai",
-    type: "Full Time",
-    experience: "0–2 Years",
-    salary: "₹3.5–6 LPA",
-    skills: ["Figma", "UI Design", "UX Research"],
-    match: 78,
-    posted: "5 days ago",
-  },
-  {
-    id: 5,
-    title: "Cloud Support Associate",
-    company: "Technology Services India",
-    location: "Pune",
-    type: "Full Time",
-    experience: "0–2 Years",
-    salary: "₹3–5 LPA",
-    skills: ["Cloud Computing", "Linux", "Networking"],
-    match: 76,
-    posted: "1 week ago",
-  },
-  {
-    id: 6,
-    title: "Manufacturing Technician",
-    company: "Advanced Manufacturing Solutions",
-    location: "Nagpur",
-    type: "Full Time",
-    experience: "1–3 Years",
-    salary: "₹3–5 LPA",
-    skills: ["Industrial Automation", "Electrical", "Quality Control"],
-    match: 73,
-    posted: "1 week ago",
-  },
-];
-
-const locations = ["All Locations", "Pune", "Mumbai", "Nashik", "Nagpur"];
 const jobTypes = ["All Types", "Full Time", "Part Time", "Internship"];
 
 export default function FindJobsPage() {
   const [search, setSearch] = useState("");
-  const [location, setLocation] = useState("All Locations");
+  const [location, setLocation] = useState<string>("");
   const [jobType, setJobType] = useState("All Types");
   const [minMatch, setMinMatch] = useState("All Matches");
+  const [jobs, setJobs] = useState<JobPosting[]>([]);
+  const [districts, setDistricts] = useState<Array<{ id: string; name: string }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedJob, setSelectedJob] = useState<JobPosting | null>(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Load districts and jobs in parallel
+        const [districtsData, jobsData] = await Promise.all([
+          api.districts(),
+          api.jobs(location ? { district_id: location } : {})
+        ]);
+        
+        setDistricts(districtsData);
+        setJobs(jobsData.items);
+      } catch (err) {
+        console.error("Failed to load data:", err);
+        setError("Unable to load jobs. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Reload jobs when location or search filter changes
+  useEffect(() => {
+    const loadJobs = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await api.jobs({
+          district_id: location || undefined,
+          search: search || undefined
+        });
+        setJobs(response.items);
+      } catch (err) {
+        console.error("Failed to load jobs:", err);
+        setError("Unable to load jobs. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (districts.length > 0) {
+      loadJobs();
+    }
+  }, [location, search]);
 
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
-      const searchText = search.toLowerCase();
-
-      const matchesSearch =
-        job.title.toLowerCase().includes(searchText) ||
-        job.company.toLowerCase().includes(searchText) ||
-        job.skills.some((skill) =>
-          skill.toLowerCase().includes(searchText)
-        );
-
-      const matchesLocation =
-        location === "All Locations" || job.location === location;
-
+      // Location and search filtering is now done at API level
+      // For now, filter by status only since job_type isn't in the schema
       const matchesType =
-        jobType === "All Types" || job.type === jobType;
+        jobType === "All Types" || job.status === jobType;
 
-      const matchesScore =
-        minMatch === "All Matches" ||
-        (minMatch === "90%+" && job.match >= 90) ||
-        (minMatch === "80%+" && job.match >= 80) ||
-        (minMatch === "70%+" && job.match >= 70);
+      // Since we don't have match scores from the API yet, show all jobs
+      const matchesScore = true;
 
-      return (
-        matchesSearch &&
-        matchesLocation &&
-        matchesType &&
-        matchesScore
-      );
+      return matchesType && matchesScore;
     });
-  }, [search, location, jobType, minMatch]);
+  }, [jobType, minMatch, jobs]);
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
@@ -244,9 +209,13 @@ export default function FindJobsPage() {
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-[#123b68]"
+                    disabled={loading}
                   >
-                    {locations.map((item) => (
-                      <option key={item}>{item}</option>
+                    <option value="">All Locations</option>
+                    {districts.map((district) => (
+                      <option key={district.id} value={district.id}>
+                        {district.name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -359,9 +328,21 @@ export default function FindJobsPage() {
 
               <div className="space-y-4">
 
-                {filteredJobs.length > 0 ? (
+                {loading ? (
+                  <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+                    <p className="text-slate-500">Loading jobs...</p>
+                  </div>
+                ) : error ? (
+                  <div className="rounded-xl border border-red-200 bg-white px-6 py-12 text-center shadow-sm">
+                    <p className="text-red-600">{error}</p>
+                  </div>
+                ) : filteredJobs.length > 0 ? (
                   filteredJobs.map((job) => (
-                    <JobCard key={job.id} job={job} />
+                    <JobCard 
+                      key={job.id} 
+                      job={job} 
+                      onViewDetails={() => setSelectedJob(job)}
+                    />
                   ))
                 ) : (
                   <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
@@ -371,11 +352,14 @@ export default function FindJobsPage() {
                     </div>
 
                     <h3 className="mt-4 font-semibold text-slate-700">
-                      No jobs found
+                      {location ? "No jobs available for this district" : "No jobs found"}
                     </h3>
 
                     <p className="mt-1 text-xs text-slate-500">
-                      Try changing your search or filters.
+                      {location 
+                        ? "Try selecting a different location or check back later."
+                        : "Try changing your search or filters."
+                      }
                     </p>
 
                   </div>
@@ -388,21 +372,21 @@ export default function FindJobsPage() {
             <div className="mt-7 grid gap-5 md:grid-cols-3">
 
               <InfoCard
-                title="Profile Match"
-                value="82%"
-                text="Your current profile is ready for suitable opportunities."
+                title="Available Jobs"
+                value={String(jobs.length)}
+                text="Total job opportunities available in the system."
               />
 
               <InfoCard
-                title="Skills Available"
-                value="14"
-                text="Skills are currently available in your candidate profile."
+                title="Filtered Results"
+                value={String(filteredJobs.length)}
+                text="Jobs matching your current search criteria."
               />
 
               <InfoCard
-                title="Recommended Jobs"
-                value="12"
-                text="Jobs have been identified as relevant to your profile."
+                title="Job Status"
+                value="Active"
+                text="Showing active and open job postings."
               />
 
             </div>
@@ -410,6 +394,18 @@ export default function FindJobsPage() {
           </div>
         </section>
       </div>
+
+      {/* Job Details Modal */}
+      {selectedJob && (
+        <JobDetailsModal
+          job={selectedJob}
+          onClose={() => setSelectedJob(null)}
+          onApplySuccess={() => {
+            // Refresh applications list if needed
+            setSelectedJob(null);
+          }}
+        />
+      )}
     </main>
   );
 }
@@ -418,9 +414,21 @@ export default function FindJobsPage() {
 
 function JobCard({
   job,
+  onViewDetails,
 }: {
-  job: (typeof jobs)[number];
+  job: JobPosting;
+  onViewDetails: () => void;
 }) {
+  // Extract skill names from the job posting
+  const skillNames = job.skills.map(skill =>
+    typeof skill === 'string' ? skill : (skill as any)?.skill?.name || ''
+  ).filter(Boolean);
+
+  // Format posted date
+  const postedDate = job.posted_date
+    ? new Date(job.posted_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+    : 'Recently';
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md">
 
@@ -436,17 +444,17 @@ function JobCard({
               </h3>
 
               <p className="mt-1 text-sm font-medium text-slate-700">
-                {job.company}
+                {job.company_name || job.employer_name || 'Company'}
               </p>
             </div>
 
             <div className="rounded-lg bg-green-50 px-3 py-2 text-center">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-green-600">
-                Skill Match
+                Status
               </p>
 
               <p className="text-lg font-bold text-green-700">
-                {job.match}%
+                {job.status}
               </p>
             </div>
 
@@ -454,27 +462,26 @@ function JobCard({
 
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
 
-            <span>📍 {job.location}</span>
-            <span>▣ {job.type}</span>
-            <span>◷ {job.experience}</span>
-            <span>₹ {job.salary}</span>
+            <span>📍 {job.district_name || 'Location not specified'}</span>
+            <span>▣ {job.job_role_title || 'Role not specified'}</span>
+            <span>Posted: {postedDate}</span>
 
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {job.skills.map((skill) => (
-              <span
-                key={skill}
-                className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600"
-              >
-                {skill}
-              </span>
-            ))}
+            {skillNames.length > 0 ? (
+              skillNames.map((skill, index) => (
+                <span
+                  key={index}
+                  className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600"
+                >
+                  {skill}
+                </span>
+              ))
+            ) : (
+              <span className="text-xs text-slate-400">No skills specified</span>
+            )}
           </div>
-
-          <p className="mt-4 text-[11px] text-slate-400">
-            Posted {job.posted}
-          </p>
 
         </div>
 
@@ -482,6 +489,7 @@ function JobCard({
 
           <button
             type="button"
+            onClick={onViewDetails}
             className="rounded-lg border border-[#123b68] px-4 py-2.5 text-xs font-semibold text-[#123b68] transition hover:bg-blue-50"
           >
             View Details
@@ -489,6 +497,7 @@ function JobCard({
 
           <button
             type="button"
+            onClick={onViewDetails}
             className="rounded-lg bg-[#123b68] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#0e3155]"
           >
             Apply Now

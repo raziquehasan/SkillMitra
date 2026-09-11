@@ -58,6 +58,8 @@ class JobPosting(TimestampMixin, Base):
     closed_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     experience_min: Mapped[str | None] = mapped_column(String(20), nullable=True)
     experience_max: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    job_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    employer_careers_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # Relationships
     employer: Mapped["Employer"] = relationship("Employer", back_populates="job_postings")

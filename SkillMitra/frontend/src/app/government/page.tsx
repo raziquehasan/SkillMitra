@@ -3,8 +3,20 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { GovernmentShell } from "@/app/government/GovernmentShell";
 import { api, type District, type IndustrySector } from "@/lib/api";
+
+// Force dynamic rendering to prevent SSR issues
+export const dynamic = 'force-dynamic';
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { 
+  GovernmentFilters, 
+  DEFAULT_GOVERNMENT_FILTERS, 
+  parseGovernmentFilters, 
+  governmentFiltersToQueryParams,
+  isFiltersActive,
+  getDateRangeFromTimePeriod,
+  getGovernmentApiParams
+} from "@/lib/governmentFilters";
 import { 
   TrendingUp, Users, Building2, GraduationCap, Award, 
   AlertTriangle, BarChart3, MapPin, Target, FileText, 
@@ -651,8 +663,9 @@ function applyFiltersToDashboard(
 ): GovDashboard | null {
   if (!data) return null;
 
-  // If no filters are applied, return original data
-  if (!districtId && !sectorId && (timePeriod === "last_30_days" || timePeriod === "current_month")) {
+  // If no district/sector filters are applied, return original data
+  // Time period filter alone doesn't change demo data
+  if (!districtId && !sectorId) {
     return data;
   }
 
@@ -704,52 +717,33 @@ function applyFiltersToDashboard(
     };
   }
 
-  // Apply time period scaling
-  const timeMultiplier = timePeriod === "current_month" ? 1 :
-                        timePeriod === "last_30_days" ? 0.3 :
-                        timePeriod === "last_quarter" ? 0.75 :
-                        timePeriod === "last_6_months" ? 0.6 :
-                        timePeriod === "last_12_months" ? 1.2 :
-                        timePeriod === "year_to_date" ? 0.9 : 1;
-
-  // Always apply time period scaling if it's not the default
-  if (timePeriod !== "last_30_days" && timePeriod !== "current_month") {
-    filteredData = {
-      ...filteredData,
-      kpis: {
-        ...filteredData.kpis,
-        active_demand_signals: Math.round(filteredData.kpis.active_demand_signals * timeMultiplier),
-        critical_gap_demand_records: Math.round(filteredData.kpis.critical_gap_demand_records * timeMultiplier)
-      },
-      district_intelligence: filteredData.district_intelligence ? {
-        ...filteredData.district_intelligence,
-        total_demand: Math.round(filteredData.district_intelligence.total_demand * timeMultiplier)
-      } : null,
-      training_capacity: filteredData.training_capacity ? {
-        ...filteredData.training_capacity,
-        total_demand: Math.round(filteredData.training_capacity.total_demand * timeMultiplier)
-      } : null,
-      skill_gaps: filteredData.skill_gaps.map(gap => ({
-        ...gap,
-        demand_count: gap.demand_count ? Math.round(gap.demand_count * timeMultiplier) : null
-      }))
-    };
-  }
-
   return filteredData;
 }
 
 function DashboardContent() {
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [districts, setDistricts] = useState<District[]>([]);
   const [sectors, setSectors] = useState<IndustrySector[]>([]);
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<GovDashboard | null>(DEMO_DASHBOARD_DATA);
   const [fetching, setFetching] = useState(false);
-  const [filterDistrict, setFilterDistrict] = useState("");
-  const [filterSector, setFilterSector] = useState("");
+  
+  // Initialize filters from URL params or defaults
+  const [filters, setFilters] = useState<GovernmentFilters>(() => {
+    const initialFilters = parseGovernmentFilters(searchParams);
+    return {
+      ...DEFAULT_GOVERNMENT_FILTERS,
+      ...initialFilters
+    };
+  });
+  
   const [filterTime, setFilterTime] = useState("last_30_days");
+  
+  // Extract individual filter values for UI
+  const filterDistrict = filters.district_id || "";
+  const filterSector = filters.sector_id || "";
 
   useEffect(() => {
     (async () => {
@@ -771,34 +765,72 @@ function DashboardContent() {
   const loadDashboard = useCallback(async () => {
     setFetching(true);
     try {
-      const data = await api.governmentDashboard({
-        district_id: filterDistrict || undefined,
-        sector_id: filterSector || undefined,
-      });
+      // Check if we should use demo data (no district/sector/job role filters)
+      const shouldUseDemoData = !isFiltersActive(filters);
+      
+      if (shouldUseDemoData) {
+        // Use demo data for unfiltered landing state
+        setDashboard(DEMO_DASHBOARD_DATA);
+        setFetching(false);
+        return;
+      }
+      
+      // Calculate date range from time period and fetch real data
+      const dateRange = getDateRangeFromTimePeriod(filterTime);
+      const filtersWithDate = {
+        ...filters,
+        start_date: dateRange?.start_date || filters.start_date,
+        end_date: dateRange?.end_date || filters.end_date,
+      };
+      
+      const apiParams = getGovernmentApiParams(filtersWithDate);
+      const data = await api.governmentDashboard(apiParams);
       setDashboard(data);
     } catch (error: any) {
-      // Silently fall back to demo data on permission errors
-      // Dashboard is already initialized with DEMO_DASHBOARD_DATA
-      if (error?.message !== 'DEMO_FALLBACK') {
-        console.log("API call failed, using demo data");
+      // Only fall back to demo data if no filters are active
+      if (!isFiltersActive(filters)) {
+        console.log("API call failed, using demo data for unfiltered view");
+        setDashboard(DEMO_DASHBOARD_DATA);
+      } else {
+        // When filters are active, show error instead of falling back to demo
+        console.error("API call failed with active filters:", error);
+        setDashboard(null); // Will show error state
       }
     } finally {
       setFetching(false);
     }
-  }, [filterDistrict, filterSector]);
+  }, [filters, filterTime]);
 
   useEffect(() => {
     loadDashboard();
   }, [loadDashboard]);
 
   const resetFilters = () => {
-    setFilterDistrict("");
-    setFilterSector("");
+    const resetFilters = DEFAULT_GOVERNMENT_FILTERS;
+    setFilters(resetFilters);
     setFilterTime("last_30_days");
+    
+    // Update URL
+    const queryParams = governmentFiltersToQueryParams(resetFilters);
+    router.push(`/government?${new URLSearchParams(queryParams).toString()}`);
   };
+  
+  const handleFilterChange = (key: keyof GovernmentFilters, value: string | null) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value || null
+    }));
+  };
+  
+  // Update URL when filters change (using replace to avoid history buildup)
+  useEffect(() => {
+    const queryParams = governmentFiltersToQueryParams(filters);
+    const queryString = new URLSearchParams(queryParams).toString();
+    router.replace(`/government${queryString ? `?${queryString}` : ''}`);
+  }, [filters, router]);
 
-  const selectedDistrictName = districts.find((d) => d.id === filterDistrict)?.name || "All Districts";
-  const selectedSectorName = sectors.find((s) => s.id === filterSector)?.name || "All Sectors";
+  const selectedDistrictName = districts.find((d) => d.id === filters.district_id)?.name || "All Districts";
+  const selectedSectorName = sectors.find((s) => s.id === filters.sector_id)?.name || "All Sectors";
 
   // Get display name for time period
   const getTimePeriodName = (value: string) => {
@@ -816,11 +848,11 @@ function DashboardContent() {
 
   // Apply filters to dashboard data
   const filteredDashboard = useMemo(() => {
-    return applyFiltersToDashboard(dashboard, filterDistrict, filterSector, filterTime, selectedDistrictName);
-  }, [dashboard, filterDistrict, filterSector, filterTime, selectedDistrictName]);
+    return applyFiltersToDashboard(dashboard, filters.district_id || "", filters.sector_id || "", filterTime, selectedDistrictName);
+  }, [dashboard, filters.district_id, filters.sector_id, filterTime, selectedDistrictName]);
 
   // Demo placement data calculation
-  const placementDemo = getDemoPlacementData(filterDistrict, filterSector);
+  const placementDemo = getDemoPlacementData(filters.district_id || "", filters.sector_id || "");
   const completionRate = (placementDemo.completed / placementDemo.enrolled * 100).toFixed(1);
   const assessmentRate = (placementDemo.assessed / placementDemo.completed * 100).toFixed(1);
   const placementRate = (placementDemo.placed / placementDemo.assessed * 100).toFixed(1);
@@ -881,7 +913,7 @@ function DashboardContent() {
         <div className="flex items-center gap-2 mb-3">
           <Filter className="h-4 w-4 text-[#1e3a8a]" />
           <span className="text-sm font-semibold text-slate-700">Filters</span>
-          {(filterDistrict || filterSector) && (
+          {(filters.district_id || filters.sector_id) && (
             <button
               onClick={resetFilters}
               className="text-xs text-[#1e3a8a] hover:text-[#1e3a8a]/80 flex items-center gap-1"
@@ -895,8 +927,8 @@ function DashboardContent() {
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">District</label>
             <select
-              value={filterDistrict}
-              onChange={(e) => setFilterDistrict(e.target.value)}
+              value={filters.district_id || ""}
+              onChange={(e) => handleFilterChange("district_id", e.target.value)}
               className="w-full border border-slate-300 bg-white px-3 py-2 text-sm rounded focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
             >
               <option value="">All Districts</option>
@@ -908,8 +940,8 @@ function DashboardContent() {
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Sector</label>
             <select
-              value={filterSector}
-              onChange={(e) => setFilterSector(e.target.value)}
+              value={filters.sector_id || ""}
+              onChange={(e) => handleFilterChange("sector_id", e.target.value)}
               className="w-full border border-slate-300 bg-white px-3 py-2 text-sm rounded focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
             >
               <option value="">All Sectors</option>
@@ -934,11 +966,11 @@ function DashboardContent() {
             </select>
           </div>
         </div>
-        {(filterDistrict || filterSector || filterTime !== "last_30_days") && (
+        {(filters.district_id || filters.sector_id || filterTime !== "last_30_days") && (
           <div className="mt-3 pt-3 border-t border-slate-100">
             <p className="text-xs text-slate-600">
               Active filters: <span className="font-medium text-[#1e3a8a]">{selectedDistrictName}</span>
-              {filterSector && <span className="font-medium text-[#1e3a8a]"> + {selectedSectorName}</span>}
+              {filters.sector_id && <span className="font-medium text-[#1e3a8a]"> + {selectedSectorName}</span>}
               {filterTime !== "last_30_days" && <span className="font-medium text-[#1e3a8a]"> + {selectedTimePeriodName}</span>}
             </p>
           </div>

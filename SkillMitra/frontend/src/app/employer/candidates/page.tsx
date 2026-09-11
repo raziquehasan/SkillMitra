@@ -1,70 +1,15 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
+
+// Force dynamic rendering to prevent SSR issues
+export const dynamic = 'force-dynamic';
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import EmployerSidebar from "@/components/employer/EmployerSidebar";
-
-type Candidate = {
-  id: number;
-  name: string;
-  role: string;
-  location: string;
-  experience: string;
-  education: string;
-  skills: string[];
-  status: "Job Ready" | "Needs Training" | "Available";
-  match: number;
-};
-
-const candidates: Candidate[] = [
-  {
-    id: 1,
-    name: "Aarav Patil",
-    role: "EV Technician",
-    location: "Pune",
-    experience: "2 Years",
-    education: "ITI – Automotive",
-    skills: ["EV Systems", "Battery", "Diagnostics"],
-    status: "Job Ready",
-    match: 94,
-  },
-  {
-    id: 2,
-    name: "Priya Sharma",
-    role: "Software Developer",
-    location: "Pune",
-    experience: "1 Year",
-    education: "B.Tech – CSE",
-    skills: ["React", "JavaScript", "SQL"],
-    status: "Job Ready",
-    match: 89,
-  },
-  {
-    id: 3,
-    name: "Rahul Deshmukh",
-    role: "Data Analyst",
-    location: "Nashik",
-    experience: "2 Years",
-    education: "B.Sc – Statistics",
-    skills: ["Python", "SQL", "Power BI"],
-    status: "Available",
-    match: 82,
-  },
-  {
-    id: 4,
-    name: "Sneha Kulkarni",
-    role: "UI/UX Designer",
-    location: "Mumbai",
-    experience: "1 Year",
-    education: "B.Des",
-    skills: ["Figma", "UI Design", "UX Research"],
-    status: "Needs Training",
-    match: 76,
-  },
-];
+import { api } from "@/lib/api";
 
 export default function CandidatesPage() {
   const { user } = useAuth();
@@ -72,29 +17,45 @@ export default function CandidatesPage() {
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("All Locations");
   const [status, setStatus] = useState("All Status");
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadCandidates = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await api.employerCandidates();
+        setCandidates(response);
+      } catch (err) {
+        console.error("Failed to load candidates:", err);
+        setError("Unable to load candidates. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCandidates();
+  }, []);
 
   const filteredCandidates = useMemo(() => {
     return candidates.filter((candidate) => {
       const searchText = search.toLowerCase();
 
       const matchesSearch =
-        candidate.name.toLowerCase().includes(searchText) ||
-        candidate.role.toLowerCase().includes(searchText) ||
-        candidate.skills.some((skill) =>
-          skill.toLowerCase().includes(searchText)
-        );
+        candidate.name?.toLowerCase().includes(searchText) ||
+        candidate.education_level?.toLowerCase().includes(searchText) ||
+        candidate.current_status?.toLowerCase().includes(searchText);
 
-      const matchesLocation =
-        location === "All Locations" ||
-        candidate.location === location;
-
+      // For now, we'll filter by status based on current_status
       const matchesStatus =
         status === "All Status" ||
-        candidate.status === status;
+        candidate.current_status === status;
 
-      return matchesSearch && matchesLocation && matchesStatus;
+      return matchesSearch && matchesStatus;
     });
-  }, [search, location, status]);
+  }, [search, location, status, candidates]);
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
@@ -199,32 +160,34 @@ export default function CandidatesPage() {
               />
 
               <SummaryCard
-                title="Job Ready"
+                title="Active Status"
                 value={
                   candidates.filter(
-                    (candidate) => candidate.status === "Job Ready"
+                    (candidate) => candidate.current_status === "Active"
                   ).length
                 }
-                description="Ready for employment"
+                description="Currently active"
               />
 
               <SummaryCard
-                title="Available"
+                title="High Match"
                 value={
                   candidates.filter(
-                    (candidate) => candidate.status === "Available"
+                    (candidate) => candidate.match_score >= 80
                   ).length
                 }
-                description="Currently available"
+                description="80%+ skill match"
               />
 
               <SummaryCard
                 title="Average Match"
                 value={`${Math.round(
-                  candidates.reduce(
-                    (total, candidate) => total + candidate.match,
-                    0
-                  ) / candidates.length
+                  candidates.length > 0
+                    ? candidates.reduce(
+                        (total, candidate) => total + candidate.match_score,
+                        0
+                      ) / candidates.length
+                    : 0
                 )}%`}
                 description="Skill-based matching"
               />
@@ -315,7 +278,15 @@ export default function CandidatesPage() {
               </div>
 
               <div className="divide-y divide-slate-100">
-                {filteredCandidates.length === 0 ? (
+                {loading ? (
+                  <div className="p-10 text-center">
+                    <p className="text-slate-500">Loading candidates...</p>
+                  </div>
+                ) : error ? (
+                  <div className="p-10 text-center">
+                    <p className="text-red-600">{error}</p>
+                  </div>
+                ) : filteredCandidates.length === 0 ? (
                   <div className="p-10 text-center">
                     <p className="font-semibold text-slate-700">
                       No candidates found
@@ -399,7 +370,7 @@ function SummaryCard({
 function CandidateCard({
   candidate,
 }: {
-  candidate: Candidate;
+  candidate: any;
 }) {
   return (
     <div className="p-5 transition hover:bg-slate-50">
@@ -407,46 +378,46 @@ function CandidateCard({
         {/* PROFILE */}
         <div className="flex min-w-0 items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#123b68] text-lg font-bold text-white">
-            {candidate.name.charAt(0)}
+            {candidate.name?.charAt(0) || 'C'}
           </div>
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="font-bold text-slate-900">
-                {candidate.name}
+                {candidate.name || 'Unknown Candidate'}
               </h3>
 
-              <StatusBadge status={candidate.status} />
+              <StatusBadge status={candidate.current_status || 'Available'} />
             </div>
 
             <p className="mt-1 text-sm font-medium text-[#123b68]">
-              {candidate.role}
+              {candidate.education_level || 'Education not specified'}
             </p>
 
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
               <span>
-                Location: {candidate.location}
+                Skills Matched: {candidate.matched_skills_count}/{candidate.total_required_skills}
               </span>
 
               <span>
-                Experience: {candidate.experience}
-              </span>
-
-              <span>
-                {candidate.education}
+                Match Score: {candidate.match_score}%
               </span>
             </div>
 
             {/* SKILLS */}
             <div className="mt-3 flex flex-wrap gap-2">
-              {candidate.skills.map((skill) => (
-                <span
-                  key={skill}
-                  className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600"
-                >
-                  {skill}
-                </span>
-              ))}
+              {candidate.skills && candidate.skills.length > 0 ? (
+                candidate.skills.slice(0, 3).map((skillId: string, index: number) => (
+                  <span
+                    key={index}
+                    className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600"
+                  >
+                    Skill {index + 1}
+                  </span>
+                ))
+              ) : (
+                <span className="text-xs text-slate-400">No skills specified</span>
+              )}
             </div>
           </div>
         </div>
@@ -459,7 +430,7 @@ function CandidateCard({
             </p>
 
             <p className="mt-1 text-2xl font-bold text-[#123b68]">
-              {candidate.match}%
+              {candidate.match_score}%
             </p>
 
             <p className="text-[10px] text-slate-400">
@@ -483,10 +454,10 @@ function CandidateCard({
 function StatusBadge({
   status,
 }: {
-  status: Candidate["status"];
+  status: string;
 }) {
   const classes =
-    status === "Job Ready"
+    status === "Active" || status === "Job Ready"
       ? "bg-green-50 text-green-700"
       : status === "Available"
       ? "bg-blue-50 text-blue-700"
@@ -496,7 +467,7 @@ function StatusBadge({
     <span
       className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${classes}`}
     >
-      {status}
+      {status || 'Unknown'}
     </span>
   );
 }

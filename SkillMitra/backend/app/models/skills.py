@@ -41,6 +41,9 @@ class SkillProficiencyLevel(Base):
     course_skills: Mapped[list["CourseSkill"]] = relationship(
         "CourseSkill", back_populates="proficiency_level"
     )
+    candidate_skills: Mapped[list["CandidateSkill"]] = relationship(
+        "CandidateSkill", back_populates="proficiency_level"
+    )
 
 
 class SkillCategory(Base):
@@ -91,6 +94,9 @@ class Skill(Base):
     )
     course_skills: Mapped[list["CourseSkill"]] = relationship(
         "CourseSkill", back_populates="skill"
+    )
+    candidate_skills: Mapped[list["CandidateSkill"]] = relationship(
+        "CandidateSkill", back_populates="skill"
     )
 
     __table_args__ = (

@@ -4,12 +4,13 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.auth import require_roles
-from app.models.identity import User
+from app.models.identity import User, CandidateProfile
 from app.schemas.candidates import (
     CandidateProfileResponse, CandidateProfileUpdate,
     CandidateEducationResponse, CandidateEducationCreate,
     CandidateInterestResponse, CandidateInterestCreate,
     SkillGapResponse, CandidateSkillResponse, CandidateSkillCreate, CandidateSkillUpdate,
+    SkillVerificationRequest,
 )
 from app.schemas.common import MessageResponse
 from app.services.candidate_service import CandidateService
@@ -23,7 +24,8 @@ def get_my_profile(
     current_user: User = Depends(require_roles("candidate")),
     db: Session = Depends(get_db),
 ):
-    return CandidateService(db).get_or_create_profile(current_user.id)
+    profile = CandidateService(db).get_or_create_profile(current_user.id)
+    return CandidateProfileResponse.from_profile_with_user(profile)
 
 
 @router.patch("/me", response_model=CandidateProfileResponse,
@@ -33,7 +35,8 @@ def update_my_profile(
     current_user: User = Depends(require_roles("candidate")),
     db: Session = Depends(get_db),
 ):
-    return CandidateService(db).update_profile(current_user.id, data)
+    profile = CandidateService(db).update_profile(current_user.id, data)
+    return CandidateProfileResponse.from_profile_with_user(profile)
 
 
 @router.get("/me/education", response_model=list[CandidateEducationResponse],
@@ -147,3 +150,64 @@ def delete_my_skill(
 ):
     CandidateService(db).delete_skill(current_user.id, skill_id)
     return {"message": "Deleted successfully"}
+
+
+@router.post("/me/skills/{skill_id}/verify", response_model=CandidateSkillResponse,
+             summary="Request verification for my skill")
+def request_skill_verification(
+    skill_id: uuid.UUID,
+    data: SkillVerificationRequest,
+    current_user: User = Depends(require_roles("candidate")),
+    db: Session = Depends(get_db),
+):
+    return CandidateService(db).request_skill_verification(current_user.id, skill_id, data)
+
+
+@router.get("/me/enrollments", response_model=list[dict],
+            summary="List my course enrollments")
+def get_my_enrollments(
+    current_user: User = Depends(require_roles("candidate")),
+    db: Session = Depends(get_db),
+):
+    """
+    Returns the candidate's course enrollments with course details.
+    """
+    from app.models.career import CourseEnrollment, Course
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    profile = db.scalar(
+        select(CandidateProfile)
+        .where(CandidateProfile.user_id == current_user.id)
+    )
+
+    if not profile:
+        return []
+
+    enrollments = db.scalars(
+        select(CourseEnrollment)
+        .where(CourseEnrollment.candidate_id == profile.id)
+        .options(selectinload(CourseEnrollment.course))
+    ).all()
+
+    result = []
+    for enrollment in enrollments:
+        course = enrollment.course
+        result.append({
+            "id": str(enrollment.id),
+            "course_id": str(enrollment.course_id),
+            "status": enrollment.status,
+            "enrollment_date": enrollment.enrollment_date.isoformat() if enrollment.enrollment_date else None,
+            "completion_date": enrollment.completion_date.isoformat() if enrollment.completion_date else None,
+            "grade_outcome": enrollment.grade_outcome,
+            "course": {
+                "id": str(course.id),
+                "title": course.title,
+                "description": course.description,
+                "duration_hours": course.duration_hours,
+                "delivery_mode": course.delivery_mode,
+                "status": course.status,
+            } if course else None
+        })
+
+    return result

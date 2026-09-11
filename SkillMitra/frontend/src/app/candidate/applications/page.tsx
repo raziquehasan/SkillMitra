@@ -3,66 +3,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import CandidateSidebar from "@/components/candidate/CandidateSidebar";
 
-const applications = [
-  {
-    id: 1,
-    company: "Maharashtra Automotive Systems",
-    role: "EV Technician",
-    location: "Pune",
-    type: "Full Time",
-    appliedDate: "02 Sep 2026",
-    status: "Under Review",
-    match: 94,
-    skills: ["EV Technology", "Battery Systems", "Diagnostics"],
-  },
-  {
-    id: 2,
-    company: "Digital Technology Solutions",
-    role: "Software Developer",
-    location: "Mumbai",
-    type: "Full Time",
-    appliedDate: "30 Aug 2026",
-    status: "Shortlisted",
-    match: 89,
-    skills: ["React", "JavaScript", "SQL"],
-  },
-  {
-    id: 3,
-    company: "Industry Analytics Pvt. Ltd.",
-    role: "Data Analyst",
-    location: "Nashik",
-    type: "Full Time",
-    appliedDate: "27 Aug 2026",
-    status: "Applied",
-    match: 84,
-    skills: ["Python", "SQL", "Data Analysis"],
-  },
-  {
-    id: 4,
-    company: "Advanced Manufacturing Solutions",
-    role: "Manufacturing Technician",
-    location: "Nagpur",
-    type: "Full Time",
-    appliedDate: "24 Aug 2026",
-    status: "Interview",
-    match: 81,
-    skills: ["Industrial Automation", "Electrical", "Quality Control"],
-  },
-  {
-    id: 5,
-    company: "Digital Innovation Studio",
-    role: "UI/UX Designer",
-    location: "Mumbai",
-    type: "Full Time",
-    appliedDate: "20 Aug 2026",
-    status: "Rejected",
-    match: 76,
-    skills: ["Figma", "UI Design", "UX Research"],
-  },
-];
+// Force dynamic rendering to prevent SSR issues
+export const dynamic = 'force-dynamic';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import CandidateSidebar from "@/components/candidate/CandidateSidebar";
+import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 const filters = [
   "All Applications",
@@ -74,7 +22,52 @@ const filters = [
 ];
 
 export default function MyApplicationsPage() {
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState("All Applications");
+  const [applications, setApplications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Redirect to login if not authenticated
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
+    const loadApplications = async () => {
+      if (!isAuthenticated) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await api.applications();
+        setApplications(response);
+      } catch (err) {
+        console.error("Failed to load applications:", err);
+        const errorMessage = err instanceof Error ? err.message : 'Unable to load applications. Please try again.';
+        
+        // If authentication error, redirect to login
+        if (errorMessage.includes('credentials') || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+          setError('Authentication expired. Please log in again.');
+          setTimeout(() => {
+            router.push('/login');
+          }, 2000);
+        } else {
+          setError(errorMessage);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isAuthenticated) {
+      loadApplications();
+    } else {
+      setLoading(false);
+    }
+  }, [isAuthenticated, authLoading, router]);
 
   const filteredApplications =
     activeFilter === "All Applications"
@@ -283,7 +276,15 @@ export default function MyApplicationsPage() {
 
               <div className="space-y-4">
 
-                {filteredApplications.length > 0 ? (
+                {loading ? (
+                  <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+                    <p className="text-slate-500">Loading applications...</p>
+                  </div>
+                ) : error ? (
+                  <div className="rounded-xl border border-red-200 bg-white px-6 py-12 text-center shadow-sm">
+                    <p className="text-red-600">{error}</p>
+                  </div>
+                ) : filteredApplications.length > 0 ? (
                   filteredApplications.map((application) => (
                     <ApplicationCard
                       key={application.id}
@@ -457,8 +458,13 @@ function SummaryCard({
 function ApplicationCard({
   application,
 }: {
-  application: (typeof applications)[number];
+  application: any;
 }) {
+  // Format applied date
+  const appliedDate = application.applied_at
+    ? new Date(application.applied_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    : 'Not specified';
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md">
 
@@ -470,11 +476,11 @@ function ApplicationCard({
 
             <div>
               <h3 className="text-base font-bold text-[#123b68]">
-                {application.role}
+                {application.job_title || 'Job Title Not Specified'}
               </h3>
 
               <p className="mt-1 text-sm font-medium text-slate-700">
-                {application.company}
+                {application.job_company_name || 'Company Not Specified'}
               </p>
             </div>
 
@@ -484,44 +490,17 @@ function ApplicationCard({
 
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
 
-            <span>📍 {application.location}</span>
-
-            <span>▣ {application.type}</span>
+            <span>📍 {application.job_district_name || 'Location not specified'}</span>
 
             <span>
-              Applied: {application.appliedDate}
+              Applied: {appliedDate}
             </span>
-
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-
-            {application.skills.map((skill) => (
-              <span
-                key={skill}
-                className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600"
-              >
-                {skill}
-              </span>
-            ))}
 
           </div>
 
         </div>
 
         <div className="flex shrink-0 items-center gap-3 lg:flex-col lg:items-end">
-
-          <div className="rounded-lg bg-blue-50 px-4 py-2 text-center">
-
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-              Skill Match
-            </p>
-
-            <p className="text-lg font-bold text-[#123b68]">
-              {application.match}%
-            </p>
-
-          </div>
 
           <button
             type="button"
@@ -550,6 +529,12 @@ function ApplicationStatus({
     Shortlisted: "bg-green-50 text-green-700",
     Interview: "bg-blue-50 text-blue-700",
     Rejected: "bg-red-50 text-red-700",
+    PENDING: "bg-slate-100 text-slate-600",
+    UNDER_REVIEW: "bg-amber-50 text-amber-700",
+    SHORTLISTED: "bg-green-50 text-green-700",
+    INTERVIEW: "bg-blue-50 text-blue-700",
+    REJECTED: "bg-red-50 text-red-700",
+    ACCEPTED: "bg-green-50 text-green-700",
   };
 
   return (

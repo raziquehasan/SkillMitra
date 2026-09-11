@@ -38,10 +38,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(currentUser);
         }
       } catch (error) {
-        // Token invalid or expired
-        if (!cancelled) {
-          sessionStorage.removeItem("skillmitra_access_token");
-          setUser(null);
+        // Token invalid or expired - try to refresh
+        console.error("Auth check failed, attempting refresh:", error);
+        try {
+          const result = await api.refresh();
+          if (!cancelled) {
+            sessionStorage.setItem("skillmitra_access_token", result.access_token);
+            setUser(result.user);
+          }
+        } catch (refreshError) {
+          // Refresh also failed, clear auth state
+          console.error("Token refresh failed:", refreshError);
+          if (!cancelled) {
+            sessionStorage.removeItem("skillmitra_access_token");
+            setUser(null);
+          }
         }
       } finally {
         if (!cancelled) {
