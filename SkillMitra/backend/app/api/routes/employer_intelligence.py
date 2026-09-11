@@ -209,11 +209,12 @@ def get_employer_roles(
     """Get job roles with demand intelligence for employers."""
     
     # Build query for job roles with demand data
+    # Use DISTINCT to ensure unique job roles
     roles_query = (
         select(
             JobRole.id,
             JobRole.title,
-            IndustrySector.name.label("sector_name"),
+            func.max(IndustrySector.name).label("sector_name"),
             func.count(JobPosting.id).label("posting_count"),
             func.sum(IndustryDemand.aggregate_demand_score).label("demand_sum")
         )
@@ -221,7 +222,7 @@ def get_employer_roles(
         .outerjoin(IndustrySector, IndustryDemand.industry_sector_id == IndustrySector.id)
         .outerjoin(JobPosting, and_(JobPosting.job_role_id == JobRole.id, JobPosting.status == "active"))
         .where(JobRole.is_active == True)
-        .group_by(JobRole.id, JobRole.title, IndustrySector.name)
+        .group_by(JobRole.id, JobRole.title)
         .order_by(func.sum(IndustryDemand.aggregate_demand_score).desc())
     )
     
