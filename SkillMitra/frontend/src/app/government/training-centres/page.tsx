@@ -24,176 +24,7 @@ type TrainingCentre = {
   verification_status: string;
 };
 
-const demoTrainingCentres: TrainingCentre[] = [
-  {
-    provider_id: "DEMO-TC001",
-    provider_name: "Maharashtra Skill Development Centre",
-    district_id: "d-pune",
-    district_name: "Pune",
-    course_count: 12,
-    trainer_count: 18,
-    equipment_count: 24,
-    total_capacity: 160,
-    filled_seats: 132,
-    available_seats: 28,
-    utilization: 82.5,
-    verification_status: "VERIFIED",
-  },
-  {
-    provider_id: "DEMO-TC002",
-    provider_name: "Nashik Industrial Training Institute",
-    district_id: "d-nashik",
-    district_name: "Nashik",
-    course_count: 8,
-    trainer_count: 11,
-    equipment_count: 15,
-    total_capacity: 120,
-    filled_seats: 76,
-    available_seats: 44,
-    utilization: 63.3,
-    verification_status: "VERIFIED",
-  },
-  {
-    provider_id: "DEMO-TC003",
-    provider_name: "Nagpur Skill Development Academy",
-    district_id: "d-nagpur",
-    district_name: "Nagpur",
-    course_count: 10,
-    trainer_count: 14,
-    equipment_count: 18,
-    total_capacity: 140,
-    filled_seats: 84,
-    available_seats: 56,
-    utilization: 60.0,
-    verification_status: "VERIFIED",
-  },
-  {
-    provider_id: "DEMO-TC004",
-    provider_name: "Mumbai Technical Training Centre",
-    district_id: "d-mumbai",
-    district_name: "Mumbai",
-    course_count: 15,
-    trainer_count: 22,
-    equipment_count: 30,
-    total_capacity: 200,
-    filled_seats: 185,
-    available_seats: 15,
-    utilization: 92.5,
-    verification_status: "VERIFIED",
-  },
-  {
-    provider_id: "DEMO-TC005",
-    provider_name: "Aurangabad Vocational Institute",
-    district_id: "d-aurangabad",
-    district_name: "Aurangabad",
-    course_count: 6,
-    trainer_count: 8,
-    equipment_count: 10,
-    total_capacity: 80,
-    filled_seats: 22,
-    available_seats: 58,
-    utilization: 27.5,
-    verification_status: "VERIFIED",
-  },
-  {
-    provider_id: "DEMO-TC006",
-    provider_name: "Solapur Healthcare Training Centre",
-    district_id: "d-solapur",
-    district_name: "Solapur",
-    course_count: 5,
-    trainer_count: 7,
-    equipment_count: 9,
-    total_capacity: 60,
-    filled_seats: 48,
-    available_seats: 12,
-    utilization: 80.0,
-    verification_status: "VERIFIED",
-  },
-  {
-    provider_id: "DEMO-TC007",
-    provider_name: "Kolhapur Tourism & Hospitality Institute",
-    district_id: "d-kolhapur",
-    district_name: "Kolhapur",
-    course_count: 7,
-    trainer_count: 9,
-    equipment_count: 12,
-    total_capacity: 90,
-    filled_seats: 52,
-    available_seats: 38,
-    utilization: 57.8,
-    verification_status: "VERIFIED",
-  },
-  {
-    provider_id: "DEMO-TC008",
-    provider_name: "Thane Digital Skills Academy",
-    district_id: "d-thane",
-    district_name: "Thane",
-    course_count: 9,
-    trainer_count: 12,
-    equipment_count: 20,
-    total_capacity: 100,
-    filled_seats: 95,
-    available_seats: 5,
-    utilization: 95.0,
-    verification_status: "VERIFIED",
-  },
-  {
-    provider_id: "DEMO-TC009",
-    provider_name: "Amravati Agricultural Training Centre",
-    district_id: "d-amravati",
-    district_name: "Amravati",
-    course_count: 4,
-    trainer_count: 5,
-    equipment_count: 6,
-    total_capacity: 50,
-    filled_seats: 18,
-    available_seats: 32,
-    utilization: 36.0,
-    verification_status: "PENDING",
-  },
-  {
-    provider_id: "DEMO-TC010",
-    provider_name: "Navi Mumbai Advanced Manufacturing Hub",
-    district_id: "d-navi-mumbai",
-    district_name: "Navi Mumbai",
-    course_count: 11,
-    trainer_count: 16,
-    equipment_count: 22,
-    total_capacity: 150,
-    filled_seats: 120,
-    available_seats: 30,
-    utilization: 80.0,
-    verification_status: "VERIFIED",
-  },
-  {
-    provider_id: "DEMO-TC011",
-    provider_name: "Ratnagiri Marine Training Institute",
-    district_id: "d-ratnagiri",
-    district_name: "Ratnagiri",
-    course_count: 3,
-    trainer_count: 4,
-    equipment_count: 5,
-    total_capacity: 40,
-    filled_seats: 12,
-    available_seats: 28,
-    utilization: 30.0,
-    verification_status: "PENDING",
-  },
-  {
-    provider_id: "DEMO-TC012",
-    provider_name: "Chhatrapati Sambhajinagar IT Centre",
-    district_id: "d-chh-sambhajinagar",
-    district_name: "Chhatrapati Sambhajinagar",
-    course_count: 8,
-    trainer_count: 10,
-    equipment_count: 14,
-    total_capacity: 110,
-    filled_seats: 78,
-    available_seats: 32,
-    utilization: 70.9,
-    verification_status: "VERIFIED",
-  },
-];
+
 
 export default function TrainingCentresPage() {
   const [districts, setDistricts] = useState<District[]>([]);
@@ -203,7 +34,7 @@ export default function TrainingCentresPage() {
   const [filterDistrict, setFilterDistrict] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [usingDemoData, setUsingDemoData] = useState(false);
+
 
   useEffect(() => {
     (async () => {
@@ -219,7 +50,6 @@ export default function TrainingCentresPage() {
   const loadCentres = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setUsingDemoData(false);
     try {
       const data = await api.trainingCentres({
         district_id: filterDistrict || undefined,
@@ -228,53 +58,10 @@ export default function TrainingCentresPage() {
       });
       
       let fetchedCentres = Array.isArray(data) ? data : [];
-      
-      if (fetchedCentres.length === 0) {
-        // Fall back to demo data only if no real data exists
-        let demoFiltered = [...demoTrainingCentres];
-        if (filterDistrict) {
-          demoFiltered = demoFiltered.filter((c) => c.district_id === filterDistrict);
-        }
-        if (filterStatus) {
-          demoFiltered = demoFiltered.filter((c) => {
-            const util = c.total_capacity > 0 ? (c.filled_seats / c.total_capacity) * 100 : 0;
-            const status = getCapacityStatusLabel(util);
-            return status === filterStatus;
-          });
-        }
-        if (searchQuery) {
-          demoFiltered = demoFiltered.filter((c) =>
-            c.provider_name.toLowerCase().includes(searchQuery.toLowerCase())
-          );
-        }
-        setCentres(demoFiltered);
-        setUsingDemoData(true);
-      } else {
-        // Use real data from Supabase
-        setCentres(fetchedCentres);
-        setUsingDemoData(false);
-      }
+      setCentres(fetchedCentres);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load training centres");
-      // Fall back to demo data on error
-      let demoFiltered = [...demoTrainingCentres];
-      if (filterDistrict) {
-        demoFiltered = demoFiltered.filter((c) => c.district_id === filterDistrict);
-      }
-      if (filterStatus) {
-        demoFiltered = demoFiltered.filter((c) => {
-          const util = c.total_capacity > 0 ? (c.filled_seats / c.total_capacity) * 100 : 0;
-          const status = getCapacityStatusLabel(util);
-          return status === filterStatus;
-        });
-      }
-      if (searchQuery) {
-        demoFiltered = demoFiltered.filter((c) =>
-          c.provider_name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      }
-      setCentres(demoFiltered);
-      setUsingDemoData(true);
+      setCentres([]);
     } finally {
       setLoading(false);
     }
@@ -564,7 +351,7 @@ export default function TrainingCentresPage() {
           </div>
 
           {/* Error State */}
-          {error && !usingDemoData && (
+          {error && (
             <div className="mb-5 rounded-md border border-red-200 bg-red-50 p-4">
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-red-600" />

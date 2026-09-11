@@ -49,131 +49,7 @@ import {
   Line
 } from "recharts";
 
-// Demo/Fallback dataset for reports
-const DEMO_REPORTS_DATA = {
-  kpis: {
-    total_reports: 7,
-    reports_available: 7,
-    generated_this_month: 24,
-    districts_covered: 36,
-    priority_insights: 12
-  },
-  report_coverage: {
-    district_intelligence: 92,
-    industry_demand: 88,
-    training_capacity: 95,
-    course_alignment: 86,
-    placement_outcomes: 82
-  },
-  report_status: {
-    available: 5,
-    generated: 2,
-    pending: 0
-  },
-  priority_reports: [
-    {
-      id: "district-skill-gap",
-      name: "District Skill Gap Report",
-      metric: "8 critical skill gaps",
-      priority: "High",
-      district: "Pune"
-    },
-    {
-      id: "training-capacity",
-      name: "Training Capacity Report",
-      metric: "4 capacity gaps",
-      priority: "High",
-      district: "Nashik"
-    },
-    {
-      id: "course-alignment",
-      name: "Course Alignment Report",
-      metric: "15 courses requiring review",
-      priority: "Medium",
-      district: "Mumbai"
-    }
-  ],
-  insights: [
-    "IT and advanced manufacturing show the strongest demand concentration.",
-    "8 skills currently have insufficient course coverage.",
-    "4 districts require additional training capacity.",
-    "Placement outcomes are strongest in automotive and healthcare.",
-    "Several courses require curriculum alignment review."
-  ],
-  recent_activity: [
-    {
-      report: "District Skill Gap Report",
-      district: "Pune",
-      type: "Skill Gap",
-      generated: "28 Aug 2026",
-      status: "Available"
-    },
-    {
-      report: "Industry Demand Report",
-      district: "Mumbai",
-      type: "Industry",
-      generated: "26 Aug 2026",
-      status: "Available"
-    },
-    {
-      report: "Training Capacity Report",
-      district: "Nashik",
-      type: "Capacity",
-      generated: "24 Aug 2026",
-      status: "Available"
-    },
-    {
-      report: "Course Alignment Report",
-      district: "Nagpur",
-      type: "Alignment",
-      generated: "22 Aug 2026",
-      status: "Available"
-    },
-    {
-      report: "Employer Demand Report",
-      district: "Thane",
-      type: "Employer",
-      generated: "20 Aug 2026",
-      status: "Available"
-    },
-    {
-      report: "Placement Outcome Report",
-      district: "Kolhapur",
-      type: "Placement",
-      generated: "18 Aug 2026",
-      status: "Available"
-    }
-  ],
-  generation_trend: [
-    { month: "Jan", reports: 8 },
-    { month: "Feb", reports: 11 },
-    { month: "Mar", reports: 9 },
-    { month: "Apr", reports: 14 },
-    { month: "May", reports: 17 },
-    { month: "Jun", reports: 15 },
-    { month: "Jul", reports: 21 },
-    { month: "Aug", reports: 24 }
-  ],
-  domain_coverage: [
-    { domain: "Skill Gaps", coverage: 85 },
-    { domain: "Industry Demand", coverage: 88 },
-    { domain: "Training Capacity", coverage: 95 },
-    { domain: "Course Alignment", coverage: 86 },
-    { domain: "Placement Outcomes", coverage: 82 }
-  ],
-  district_coverage: [
-    { district: "Pune", skill_gap: "Available", industry_demand: "Available", training_capacity: "Available", course_alignment: "Available", placement_outcomes: "Available", overall: "Available" },
-    { district: "Mumbai", skill_gap: "Available", industry_demand: "Available", training_capacity: "Available", course_alignment: "Available", placement_outcomes: "Available", overall: "Available" },
-    { district: "Nashik", skill_gap: "Available", industry_demand: "Available", training_capacity: "Partial", course_alignment: "Available", placement_outcomes: "Available", overall: "Available" },
-    { district: "Nagpur", skill_gap: "Available", industry_demand: "Partial", training_capacity: "Available", course_alignment: "Available", placement_outcomes: "Partial", overall: "Available" },
-    { district: "Thane", skill_gap: "Available", industry_demand: "Available", training_capacity: "Available", course_alignment: "Partial", placement_outcomes: "Available", overall: "Available" },
-    { district: "Kolhapur", skill_gap: "Partial", industry_demand: "Available", training_capacity: "Available", course_alignment: "Available", placement_outcomes: "Available", overall: "Available" },
-    { district: "Solapur", skill_gap: "Available", industry_demand: "Partial", training_capacity: "Available", course_alignment: "Available", placement_outcomes: "Partial", overall: "Partial" },
-    { district: "Aurangabad", skill_gap: "Available", industry_demand: "Available", training_capacity: "Partial", course_alignment: "Available", placement_outcomes: "Available", overall: "Available" },
-    { district: "Amravati", skill_gap: "Partial", industry_demand: "Available", training_capacity: "Available", course_alignment: "Partial", placement_outcomes: "Available", overall: "Partial" },
-    { district: "Navi Mumbai", skill_gap: "Available", industry_demand: "Available", training_capacity: "Available", course_alignment: "Available", placement_outcomes: "Available", overall: "Available" }
-  ]
-};
+
 
 const reportCatalog = [
   {
@@ -288,7 +164,7 @@ export default function ReportsPage() {
   const [generatingReports, setGeneratingReports] = useState<Set<string>>(new Set());
   const [reportData, setReportData] = useState<Record<string, any>>({});
   const [backendData, setBackendData] = useState<any>(null);
-  const [usingFallback, setUsingFallback] = useState(false);
+
 
   useEffect(() => {
     (async () => {
@@ -319,11 +195,9 @@ export default function ReportsPage() {
           status: filterStatus || undefined,
         });
         setBackendData(reportsData);
-        setUsingFallback(false);
       } catch (error) {
-        console.log("Using fallback data for reports:", error);
+        console.log("Error loading reports:", error);
         setBackendData(null);
-        setUsingFallback(true);
       }
     })();
   }, [filterDistrict, filterSector, filterReportType, filterTimePeriod, filterStatus]);
@@ -341,8 +215,25 @@ export default function ReportsPage() {
 
   // Filter logic - apply filters to the dataset
   const filteredData = useMemo(() => {
-    // Use backend data if available, otherwise use demo data
-    const sourceData = backendData || DEMO_REPORTS_DATA;
+    // Use backend data only, no demo fallback
+    const sourceData = backendData;
+
+    if (!sourceData) {
+      return {
+        kpis: {
+          total_reports: 0,
+          reports_available: 0,
+          generated_this_month: 0,
+          districts_covered: 0,
+          priority_insights: 0
+        },
+        district_coverage: [],
+        recent_activity: [],
+        priority_reports: [],
+        insights: [],
+        filteredCatalog: []
+      };
+    }
 
     let filtered = { ...sourceData };
 
@@ -354,7 +245,7 @@ export default function ReportsPage() {
     }
 
     // Filter recent activity based on filters
-    let filteredActivity = [...(sourceData.recent_activity || DEMO_REPORTS_DATA.recent_activity)];
+    let filteredActivity = [...(sourceData.recent_activity || [])];
     if (filterDistrict) {
       filteredActivity = filteredActivity.filter(
         (a: any) => a.district.toLowerCase() === selectedDistrictName.toLowerCase()
@@ -397,24 +288,24 @@ export default function ReportsPage() {
       total_reports: filteredCatalog.length,
       reports_available: filteredCatalog.filter(r => r.status === 'Available').length,
       generated_this_month: filterTimePeriod === 'last_30_days' ?
-        (sourceData.kpis?.generated_this_month || DEMO_REPORTS_DATA.kpis.generated_this_month) :
-        Math.floor((sourceData.kpis?.generated_this_month || DEMO_REPORTS_DATA.kpis.generated_this_month) * getTimePeriodMultiplier(filterTimePeriod)),
-      districts_covered: filterDistrict ? 1 : (sourceData.district_coverage?.length || DEMO_REPORTS_DATA.district_coverage.length),
-      priority_insights: (sourceData.priority_reports || DEMO_REPORTS_DATA.priority_reports).filter((r: any) =>
+        (sourceData.kpis?.generated_this_month || 0) :
+        Math.floor((sourceData.kpis?.generated_this_month || 0) * getTimePeriodMultiplier(filterTimePeriod)),
+      districts_covered: filterDistrict ? 1 : (sourceData.district_coverage?.length || 0),
+      priority_insights: (sourceData.priority_reports || []).filter((r: any) =>
         !filterDistrict || r.district.toLowerCase() === selectedDistrictName.toLowerCase()
       ).length
     };
 
     // Filter priority reports based on district
     if (filterDistrict) {
-      filtered.priority_reports = (sourceData.priority_reports || DEMO_REPORTS_DATA.priority_reports).filter(
+      filtered.priority_reports = (sourceData.priority_reports || []).filter(
         (r: any) => r.district.toLowerCase() === selectedDistrictName.toLowerCase()
       );
     }
 
     // Filter insights based on context
     if (filterDistrict || filterSector) {
-      filtered.insights = (sourceData.insights || DEMO_REPORTS_DATA.insights).slice(0, 3);
+      filtered.insights = (sourceData.insights || []).slice(0, 3);
     }
 
     return {

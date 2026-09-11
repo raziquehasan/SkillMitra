@@ -26,6 +26,39 @@ def list_courses(
         "pages": (total + pagination["page_size"] - 1) // pagination["page_size"]
     }
 
+
+class HomepageCourseResponse(BaseModel):
+    id: str
+    title: str
+    demandLevel: str
+    district: str | None
+    skills: list[str]
+    durationHours: int | None
+    courseUrl: str | None
+    providerUrl: str | None
+    providerName: str | None
+    relatedProgrammeName: str | None = None  # Name of related programme if isRelatedProgramme is true
+    isRelatedProgramme: bool = False  # True if this is a related pathway, not direct provider
+    isListingUrl: bool = False  # True if URL is a listing page, not course-specific
+
+
+@router.get("/homepage", response_model=list[HomepageCourseResponse])
+def get_homepage_courses(db: Session = Depends(get_db)):
+    """
+    Get recommended courses for the homepage with verified source mappings.
+    
+    Returns courses with verified official URLs from real providers:
+    - C-DAC PGCP-BDA (Big Data Analytics)
+    - C-DAC PGCP-AI (Artificial Intelligence)
+    - Government ITI Aundh Pune - Automotive CNC Machining Technician
+    - Maharashtra Government ITI - Solar PV Installer (Suryamitra)
+    
+    Excludes legacy and typing courses. Only shows courses with verified URLs.
+    """
+    svc = CourseService(db)
+    return svc.get_homepage_courses()
+
+
 @router.get("/{course_id}", response_model=CourseDetailResponse)
 def get_course(course_id: uuid.UUID, db: Session = Depends(get_db)):
     return CourseService(db).get_course(course_id)

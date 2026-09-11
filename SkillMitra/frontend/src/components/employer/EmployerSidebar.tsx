@@ -20,6 +20,8 @@ const menuSections = [
       { label: "Emerging Job Roles", href: "/employer/intelligence/roles", icon: "↗" },
       { label: "Required Skills", href: "/employer/intelligence/skills", icon: "◇" },
       { label: "Skill Trends", href: "/employer/intelligence/trends", icon: "⌁" },
+      { label: "Workforce", href: "/employer/intelligence/workforce", icon: "♢" },
+      { label: "Requirements", href: "/employer/intelligence/requirements", icon: "✓" },
     ],
   },
   {

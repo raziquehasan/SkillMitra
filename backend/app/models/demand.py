@@ -36,6 +36,7 @@ class IndustrySector(Base):
     # Relationships
     employers: Mapped[list["Employer"]] = relationship("Employer", back_populates="industry_sector")
     industry_demands: Mapped[list["IndustryDemand"]] = relationship("IndustryDemand", back_populates="industry_sector")
+    job_roles: Mapped[list["JobRole"]] = relationship("JobRole", back_populates="industry_sector")
 
 
 class DataSource(TimestampMixin, Base):

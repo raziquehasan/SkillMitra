@@ -2,39 +2,53 @@
 
 import Image from "next/image";
 import EmployerSidebar from "@/components/employer/EmployerSidebar";
+import { api } from "@/lib/api";
+import { useEffect, useState } from "react";
 
-const jobRoles = [
-  {
-    role: "EV Technician",
-    sector: "EV / Automotive",
-    demand: "High",
-    description:
-      "Technical role supporting electric vehicle service and maintenance.",
-  },
-  {
-    role: "Software Developer",
-    sector: "IT & Software",
-    demand: "High",
-    description:
-      "Software development role aligned with technology industry requirements.",
-  },
-  {
-    role: "Data Analyst",
-    sector: "IT & Software",
-    demand: "Growing",
-    description:
-      "Role focused on analysing data to support business and industry decisions.",
-  },
-  {
-    role: "UI/UX Designer",
-    sector: "IT & Software",
-    demand: "Growing",
-    description:
-      "Design role focused on user experience and digital product interfaces.",
-  },
-];
+type RoleData = {
+  id: string;
+  title: string;
+  sector: string | null;
+  open_postings: number;
+  demand_count: number;
+  demand_classification: string | null;
+};
 
 export default function EmergingJobRolesPage() {
+  const [roles, setRoles] = useState<RoleData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedSector, setSelectedSector] = useState("");
+
+  useEffect(() => {
+    async function loadRoles() {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const params: any = {};
+        if (selectedDistrict) params.district_id = selectedDistrict;
+        if (selectedSector) params.sector_id = selectedSector;
+        
+        const data = await api.employerIntelligenceRoles(params);
+        setRoles(data);
+      } catch (err) {
+        console.error("Failed to load roles:", err);
+        setError("Unable to load job roles data. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadRoles();
+  }, [selectedDistrict, selectedSector]);
+
+  // Calculate summary statistics
+  const emergingCount = roles.filter(r => r.demand_classification === "Low" && r.demand_count > 0).length;
+  const highDemandCount = roles.filter(r => r.demand_classification === "High").length;
+  const growingCount = roles.filter(r => r.demand_classification === "Moderate").length;
+
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
 
@@ -138,7 +152,7 @@ export default function EmergingJobRolesPage() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  —
+                  {loading ? "..." : emergingCount}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
@@ -152,7 +166,7 @@ export default function EmergingJobRolesPage() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  —
+                  {loading ? "..." : highDemandCount}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
@@ -166,7 +180,7 @@ export default function EmergingJobRolesPage() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  —
+                  {loading ? "..." : growingCount}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
@@ -190,12 +204,16 @@ export default function EmergingJobRolesPage() {
                     District
                   </span>
 
-                  <select className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]">
-                    <option>All Districts</option>
-                    <option>Pune</option>
-                    <option>Mumbai</option>
-                    <option>Nashik</option>
-                    <option>Nagpur</option>
+                  <select 
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]"
+                    value={selectedDistrict}
+                    onChange={(e) => setSelectedDistrict(e.target.value)}
+                  >
+                    <option value="">All Districts</option>
+                    <option value="pune-district-id">Pune</option>
+                    <option value="mumbai-district-id">Mumbai</option>
+                    <option value="nashik-district-id">Nashik</option>
+                    <option value="nagpur-district-id">Nagpur</option>
                   </select>
                 </label>
 
@@ -204,17 +222,33 @@ export default function EmergingJobRolesPage() {
                     Industry Sector
                   </span>
 
-                  <select className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]">
-                    <option>All Sectors</option>
-                    <option>EV / Automotive</option>
-                    <option>IT & Software</option>
-                    <option>Manufacturing</option>
-                    <option>Healthcare</option>
+                  <select 
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]"
+                    value={selectedSector}
+                    onChange={(e) => setSelectedSector(e.target.value)}
+                  >
+                    <option value="">All Sectors</option>
+                    <option value="ev-sector-id">EV / Automotive</option>
+                    <option value="it-sector-id">IT & Software</option>
+                    <option value="manufacturing-sector-id">Manufacturing</option>
+                    <option value="healthcare-sector-id">Healthcare</option>
                   </select>
                 </label>
 
               </div>
             </div>
+
+            {/* ERROR STATE */}
+            {error && (
+              <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-5">
+                <p className="font-semibold text-red-800">
+                  Error
+                </p>
+                <p className="mt-1 text-sm text-red-700">
+                  {error}
+                </p>
+              </div>
+            )}
 
             {/* JOB ROLES */}
             <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
@@ -234,54 +268,71 @@ export default function EmergingJobRolesPage() {
 
               </div>
 
-              <div className="mt-5 space-y-3">
+              {loading ? (
+                <div className="mt-5 text-center text-slate-500">
+                  Loading job roles...
+                </div>
+              ) : roles.length === 0 ? (
+                <div className="mt-5 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+                  <p className="text-sm text-slate-500">
+                    No job roles available for the selected filters.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-5 space-y-3">
 
-                {jobRoles.map((job) => (
-                  <div
-                    key={job.role}
-                    className="rounded-xl border border-slate-200 p-4 transition hover:border-blue-200 hover:bg-slate-50"
-                  >
+                  {roles.map((role) => (
+                    <div
+                      key={role.id}
+                      className="rounded-xl border border-slate-200 p-4 transition hover:border-blue-200 hover:bg-slate-50"
+                    >
 
-                    <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
 
-                      <div>
+                        <div>
 
-                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
 
-                          <h3 className="font-semibold text-slate-900">
-                            {job.role}
-                          </h3>
+                            <h3 className="font-semibold text-slate-900">
+                              {role.title}
+                            </h3>
 
-                          <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-700">
-                            {job.sector}
-                          </span>
+                            {role.sector && (
+                              <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-700">
+                                {role.sector}
+                              </span>
+                            )}
+
+                          </div>
+
+                          <div className="mt-2 flex flex-wrap gap-4 text-sm text-slate-500">
+                            <span>Openings: {role.open_postings}</span>
+                            <span>Demand Score: {role.demand_count}</span>
+                          </div>
 
                         </div>
 
-                        <p className="mt-2 text-sm text-slate-500">
-                          {job.description}
-                        </p>
+                        <div className="flex items-center gap-3">
 
-                      </div>
+                          {role.demand_classification && (
+                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                              role.demand_classification === "High" ? "bg-green-50 text-green-700" :
+                              role.demand_classification === "Moderate" ? "bg-blue-50 text-blue-700" :
+                              "bg-yellow-50 text-yellow-700"
+                            }`}>
+                              {role.demand_classification}
+                            </span>
+                          )}
 
-                      <div className="flex items-center gap-3">
-
-                        <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
-                          {job.demand}
-                        </span>
-
-                        <button className="text-sm font-semibold text-blue-600">
-                          View Details →
-                        </button>
+                        </div>
 
                       </div>
 
                     </div>
+                  ))}
 
-                  </div>
-                ))}
-
-              </div>
+                </div>
+              )}
 
             </div>
 
@@ -293,9 +344,7 @@ export default function EmergingJobRolesPage() {
               </h2>
 
               <p className="mt-1 text-sm text-slate-600">
-                Emerging job-role insights will be connected to
-                SkillMitra's backend intelligence services as the
-                required data becomes available.
+                Job-role insights are calculated from actual demand data and job postings in the labour market.
               </p>
 
             </div>

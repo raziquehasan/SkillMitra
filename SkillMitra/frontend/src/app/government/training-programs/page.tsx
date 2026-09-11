@@ -26,7 +26,6 @@ type FilterState = {
   status: string;
   provider: string;
   course: string;
-  include_demo: boolean;
 };
 
 const emptyFilters: FilterState = {
@@ -35,7 +34,6 @@ const emptyFilters: FilterState = {
   status: "",
   provider: "",
   course: "",
-  include_demo: false,
 };
 
 type TrainingProgram = {
@@ -55,136 +53,7 @@ type TrainingProgram = {
   source: string;
 };
 
-const fallbackPrograms: TrainingProgram[] = [
-  {
-    offering_id: "fallback-001",
-    course_id: "C101",
-    course_title: "Electric Vehicle Service Technician",
-    provider_id: "prov-001",
-    provider_name: "Maharashtra Skill Development Centre, Pune",
-    district_id: "dist-001",
-    district_name: "Pune",
-    sanctioned_seats: 120,
-    active_seats: 98,
-    utilized_seats: 98,
-    available_seats: 22,
-    status: "ACTIVE",
-    sector: "Automotive",
-    source: "demo",
-  },
-  {
-    offering_id: "fallback-002",
-    course_id: "C102",
-    course_title: "CNC Machine Operator",
-    provider_id: "prov-002",
-    provider_name: "Industrial Training Institute, Nashik",
-    district_id: "dist-002",
-    district_name: "Nashik",
-    sanctioned_seats: 80,
-    active_seats: 62,
-    utilized_seats: 62,
-    available_seats: 18,
-    status: "ACTIVE",
-    sector: "Manufacturing",
-    source: "demo",
-  },
-  {
-    offering_id: "fallback-003",
-    course_id: "C103",
-    course_title: "Solar Installation Technician",
-    provider_id: "prov-003",
-    provider_name: "Green Energy Training Academy, Nagpur",
-    district_id: "dist-003",
-    district_name: "Nagpur",
-    sanctioned_seats: 100,
-    active_seats: 74,
-    utilized_seats: 74,
-    available_seats: 26,
-    status: "ACTIVE",
-    sector: "Renewable Energy",
-    source: "demo",
-  },
-  {
-    offering_id: "fallback-004",
-    course_id: "C104",
-    course_title: "Industrial Safety Assistant",
-    provider_id: "prov-004",
-    provider_name: "Safety Skills Institute, Mumbai",
-    district_id: "dist-004",
-    district_name: "Mumbai",
-    sanctioned_seats: 60,
-    active_seats: 60,
-    utilized_seats: 60,
-    available_seats: 0,
-    status: "ACTIVE",
-    sector: "Safety",
-    source: "demo",
-  },
-  {
-    offering_id: "fallback-005",
-    course_id: "C105",
-    course_title: "Python Programming & Data Analytics",
-    provider_id: "prov-005",
-    provider_name: "Digital Skills Centre, Thane",
-    district_id: "dist-005",
-    district_name: "Thane",
-    sanctioned_seats: 150,
-    active_seats: 89,
-    utilized_seats: 89,
-    available_seats: 61,
-    status: "ACTIVE",
-    sector: "Information Technology",
-    source: "demo",
-  },
-  {
-    offering_id: "fallback-006",
-    course_id: "C106",
-    course_title: "Welding Technician (Advanced)",
-    provider_id: "prov-006",
-    provider_name: "Aurangabad Industrial Training Centre",
-    district_id: "dist-006",
-    district_name: "Aurangabad",
-    sanctioned_seats: 50,
-    active_seats: 0,
-    utilized_seats: 0,
-    available_seats: 50,
-    status: "UPCOMING",
-    sector: "Manufacturing",
-    source: "demo",
-  },
-  {
-    offering_id: "fallback-007",
-    course_id: "C107",
-    course_title: "Healthcare Assistant",
-    provider_id: "prov-007",
-    provider_name: "Solapur Medical Training Institute",
-    district_id: "dist-007",
-    district_name: "Solapur",
-    sanctioned_seats: 90,
-    active_seats: 71,
-    utilized_seats: 71,
-    available_seats: 19,
-    status: "ACTIVE",
-    sector: "Healthcare",
-    source: "demo",
-  },
-  {
-    offering_id: "fallback-008",
-    course_id: "C108",
-    course_title: "Hospitality & Tourism Management",
-    provider_id: "prov-008",
-    provider_name: "Kolhapur Tourism Training Centre",
-    district_id: "dist-008",
-    district_name: "Kolhapur",
-    sanctioned_seats: 70,
-    active_seats: 45,
-    utilized_seats: 45,
-    available_seats: 25,
-    status: "COMPLETED",
-    sector: "Hospitality",
-    source: "demo",
-  },
-];
+
 
 const toNumber = (value: unknown): number => {
   const num = Number(value);
@@ -261,7 +130,6 @@ export default function TrainingProgramsPage() {
         sector_id: filters.sector_id || undefined,
         status: filters.status || undefined,
         search: filters.provider || filters.course ? `${filters.provider} ${filters.course}`.trim() : undefined,
-        include_demo: filters.include_demo,
       });
 
       const normalized = Array.isArray(data) ? data.map(normalizeProgram) : [];
@@ -471,17 +339,6 @@ export default function TrainingProgramsPage() {
                   <X className="h-3.5 w-3.5" /> Reset
                 </button>
               )}
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="include-demo"
-                  checked={filters.include_demo}
-                  onChange={(event) => setFilters((prev) => ({ ...prev, include_demo: event.target.checked }))}
-                  className="h-4 w-4 rounded border-slate-300 text-[#1e3a8a] focus:ring-[#1e3a8a]"
-                />
-                <label htmlFor="include-demo" className="text-xs text-slate-600">Include Demo Data</label>
-              </div>
             </div>
           </div>
 

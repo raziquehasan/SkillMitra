@@ -6,13 +6,13 @@ services:
   # ──────────────────────────────────────────
   backend:
     build:
-      context: ./backend
+      context: ./SkillMitra/backend
       dockerfile: Dockerfile
     container_name: skillmitra-backend
     ports:
       - "8080:8080"
     volumes:
-      - ./backend:/app
+      - ./SkillMitra/backend:/app
     env_file:
       - .env
     command: uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
@@ -31,11 +31,15 @@ services:
     volumes:
       - ./SkillMitra/frontend:/app
       - /app/node_modules
+      - /app/.next
     env_file:
       - .env
     environment:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - INTERNAL_API_URL=http://backend:8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - backend
     restart: unless-stopped

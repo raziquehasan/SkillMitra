@@ -2,35 +2,65 @@
 
 import Image from "next/image";
 import EmployerSidebar from "@/components/employer/EmployerSidebar";
+import { api } from "@/lib/api";
+import { useEffect, useState } from "react";
 
-const skills = [
-  {
-    skill: "Electric Vehicle Maintenance",
-    sector: "EV / Automotive",
-    demand: "High",
-    proficiency: "Advanced",
-  },
-  {
-    skill: "JavaScript",
-    sector: "IT & Software",
-    demand: "High",
-    proficiency: "Intermediate",
-  },
-  {
-    skill: "Data Analysis",
-    sector: "IT & Software",
-    demand: "Growing",
-    proficiency: "Intermediate",
-  },
-  {
-    skill: "UI/UX Design",
-    sector: "IT & Software",
-    demand: "Growing",
-    proficiency: "Intermediate",
-  },
-];
+type SkillData = {
+  id: string;
+  name: string;
+  demand: number;
+  associated_roles: string[];
+  required_proficiency: string | null;
+  mapped_training_count: number;
+};
 
 export default function RequiredSkillsPage() {
+  const [skills, setSkills] = useState<SkillData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedSector, setSelectedSector] = useState("");
+  const [selectedDemand, setSelectedDemand] = useState("");
+
+  useEffect(() => {
+    async function loadSkills() {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const params: any = {};
+        if (selectedDistrict) params.district_id = selectedDistrict;
+        if (selectedSector) params.sector_id = selectedSector;
+        
+        const data = await api.employerIntelligenceSkills(params);
+        
+        // Filter by demand level if selected
+        let filteredData = data;
+        if (selectedDemand === "high") {
+          filteredData = data.filter(s => s.demand >= 100);
+        } else if (selectedDemand === "growing") {
+          filteredData = data.filter(s => s.demand >= 50 && s.demand < 100);
+        } else if (selectedDemand === "moderate") {
+          filteredData = data.filter(s => s.demand > 0 && s.demand < 50);
+        }
+        
+        setSkills(filteredData);
+      } catch (err) {
+        console.error("Failed to load skills:", err);
+        setError("Unable to load skills data. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadSkills();
+  }, [selectedDistrict, selectedSector, selectedDemand]);
+
+  // Calculate summary statistics
+  const requiredCount = skills.filter(s => s.demand > 0).length;
+  const highDemandCount = skills.filter(s => s.demand >= 100).length;
+  const growingCount = skills.filter(s => s.demand >= 50 && s.demand < 100).length;
+
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
 
@@ -135,7 +165,7 @@ export default function RequiredSkillsPage() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  —
+                  {loading ? "..." : requiredCount}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
@@ -149,7 +179,7 @@ export default function RequiredSkillsPage() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  —
+                  {loading ? "..." : highDemandCount}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
@@ -163,7 +193,7 @@ export default function RequiredSkillsPage() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  —
+                  {loading ? "..." : growingCount}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
@@ -187,12 +217,16 @@ export default function RequiredSkillsPage() {
                     District
                   </span>
 
-                  <select className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]">
-                    <option>All Districts</option>
-                    <option>Pune</option>
-                    <option>Mumbai</option>
-                    <option>Nashik</option>
-                    <option>Nagpur</option>
+                  <select 
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]"
+                    value={selectedDistrict}
+                    onChange={(e) => setSelectedDistrict(e.target.value)}
+                  >
+                    <option value="">All Districts</option>
+                    <option value="pune-district-id">Pune</option>
+                    <option value="mumbai-district-id">Mumbai</option>
+                    <option value="nashik-district-id">Nashik</option>
+                    <option value="nagpur-district-id">Nagpur</option>
                   </select>
                 </label>
 
@@ -201,12 +235,16 @@ export default function RequiredSkillsPage() {
                     Industry Sector
                   </span>
 
-                  <select className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]">
-                    <option>All Sectors</option>
-                    <option>EV / Automotive</option>
-                    <option>IT & Software</option>
-                    <option>Manufacturing</option>
-                    <option>Healthcare</option>
+                  <select 
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]"
+                    value={selectedSector}
+                    onChange={(e) => setSelectedSector(e.target.value)}
+                  >
+                    <option value="">All Sectors</option>
+                    <option value="ev-sector-id">EV / Automotive</option>
+                    <option value="it-sector-id">IT & Software</option>
+                    <option value="manufacturing-sector-id">Manufacturing</option>
+                    <option value="healthcare-sector-id">Healthcare</option>
                   </select>
                 </label>
 
@@ -215,16 +253,32 @@ export default function RequiredSkillsPage() {
                     Demand Level
                   </span>
 
-                  <select className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]">
-                    <option>All Levels</option>
-                    <option>High</option>
-                    <option>Growing</option>
-                    <option>Moderate</option>
+                  <select 
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]"
+                    value={selectedDemand}
+                    onChange={(e) => setSelectedDemand(e.target.value)}
+                  >
+                    <option value="">All Levels</option>
+                    <option value="high">High</option>
+                    <option value="growing">Growing</option>
+                    <option value="moderate">Moderate</option>
                   </select>
                 </label>
 
               </div>
             </div>
+
+            {/* ERROR STATE */}
+            {error && (
+              <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-5">
+                <p className="font-semibold text-red-800">
+                  Error
+                </p>
+                <p className="mt-1 text-sm text-red-700">
+                  {error}
+                </p>
+              </div>
+            )}
 
             {/* SKILLS LIST */}
             <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
@@ -240,56 +294,79 @@ export default function RequiredSkillsPage() {
                 </p>
               </div>
 
-              <div className="mt-5 space-y-3">
+              {loading ? (
+                <div className="mt-5 text-center text-slate-500">
+                  Loading skills...
+                </div>
+              ) : skills.length === 0 ? (
+                <div className="mt-5 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+                  <p className="text-sm text-slate-500">
+                    No skills available for the selected filters.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-5 space-y-3">
 
-                {skills.map((item) => (
-                  <div
-                    key={item.skill}
-                    className="rounded-xl border border-slate-200 p-4 transition hover:border-blue-200 hover:bg-slate-50"
-                  >
+                  {skills.map((skill) => (
+                    <div
+                      key={skill.id}
+                      className="rounded-xl border border-slate-200 p-4 transition hover:border-blue-200 hover:bg-slate-50"
+                    >
 
-                    <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
 
-                      <div>
+                        <div>
 
-                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
 
-                          <h3 className="font-semibold text-slate-900">
-                            {item.skill}
-                          </h3>
+                            <h3 className="font-semibold text-slate-900">
+                              {skill.name}
+                            </h3>
 
-                          <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-700">
-                            {item.sector}
-                          </span>
+                            <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-700">
+                              Demand: {skill.demand}
+                            </span>
+
+                          </div>
+
+                          <div className="mt-2 flex flex-wrap gap-4 text-sm text-slate-500">
+                            <span>Training Available: {skill.mapped_training_count} courses</span>
+                            {skill.associated_roles.length > 0 && (
+                              <span>Roles: {skill.associated_roles.slice(0, 3).join(", ")}</span>
+                            )}
+                          </div>
 
                         </div>
 
-                        <p className="mt-2 text-sm text-slate-500">
-                          Employer demand indicates this skill is
-                          relevant for current and emerging job
-                          requirements.
-                        </p>
+                        <div className="flex items-center gap-3">
 
-                      </div>
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                            skill.demand >= 100 ? "bg-green-50 text-green-700" :
+                            skill.demand >= 50 ? "bg-blue-50 text-blue-700" :
+                            skill.demand > 0 ? "bg-yellow-50 text-yellow-700" :
+                            "bg-slate-100 text-slate-600"
+                          }`}>
+                            {skill.demand >= 100 ? "High" :
+                             skill.demand >= 50 ? "Growing" :
+                             skill.demand > 0 ? "Moderate" : "Low"}
+                          </span>
 
-                      <div className="flex items-center gap-3">
+                          {skill.required_proficiency && (
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                              {skill.required_proficiency}
+                            </span>
+                          )}
 
-                        <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
-                          {item.demand}
-                        </span>
-
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                          {item.proficiency}
-                        </span>
+                        </div>
 
                       </div>
 
                     </div>
+                  ))}
 
-                  </div>
-                ))}
+                </div>
+              )}
 
-              </div>
             </div>
 
             {/* INTELLIGENCE NOTICE */}
@@ -300,9 +377,7 @@ export default function RequiredSkillsPage() {
               </h2>
 
               <p className="mt-1 text-sm text-slate-600">
-                Required-skill insights will be connected to
-                SkillMitra&apos;s labour-market intelligence services
-                as the required backend data becomes available.
+                Required-skill insights are calculated from actual demand data and job postings in the labour market.
               </p>
 
             </div>

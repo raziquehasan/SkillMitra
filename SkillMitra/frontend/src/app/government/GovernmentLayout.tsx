@@ -28,6 +28,7 @@ export function GovernmentLayout({ children }: GovernmentLayoutProps) {
       'industry-demand': 'industry',
       'skill-gaps': 'reports',
       'emerging-jobs': 'industry',
+      'training-plan': 'planning',
     };
     return sectionMapping[pathSection] || pathSection;
   };

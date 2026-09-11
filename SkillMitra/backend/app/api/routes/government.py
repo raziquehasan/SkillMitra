@@ -7,17 +7,17 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.database import get_db
 from app.core.auth import require_roles, require_government_user
 from app.models.identity import User
-from app.models.market import Application, Placement
-from app.models.career import CourseEnrollment
+from app.models.market import Application, Placement, JobPosting, JobPostingSkill
+from app.models.career import CourseEnrollment, JobRole, CourseSkill
 from app.models.phase4 import (
     CourseOffering, DistrictTrainingPlanItem, TrainingProvider,
-    CourseEquipmentRequirement, Equipment, Trainer, TrainerSkill,
+    CourseEquipmentRequirement, Equipment, Trainer, TrainerSkill, CandidateSkill,
 )
 from app.models.identity import CandidateProfile
 from app.models.phase8 import GovernmentOfficial
 from app.models.geography import District
 from app.models.career import Course
-from app.models.demand import DataSource, IndustryDemand
+from app.models.demand import DataSource, IndustryDemand, IndustrySector
 from app.models.skills import Skill
 from app.services.training_alignment_service import (
     DistrictRecommendationService, TrainingProviderReferenceService,
@@ -48,6 +48,7 @@ class DashboardSkillGap(BaseModel):
     demand_count: float | None
     training_coverage: str | None
     gap_signal: str | None
+    course_count: int = 0
 
 
 class DashboardTrainingCapacity(BaseModel):
@@ -263,89 +264,7 @@ def get_government_dashboard(
         end_date=end_date
     )
     
-    # Check if we're in demo mode (no filters) or live mode (filters active)
-    is_live_mode = filters.is_active()
-    
-    # If no filters are active, return demo data for landing experience
-    if not is_live_mode:
-        demo_skill_gaps = [
-            {"skill_id": "skill-1", "skill_name": "Electrical Technology", "demand_count": 8.5, "training_coverage": "Limited", "gap_signal": "High"},
-            {"skill_id": "skill-2", "skill_name": "CNC Machine Operation", "demand_count": 7.2, "training_coverage": "Available", "gap_signal": "Moderate"},
-            {"skill_id": "skill-3", "skill_name": "Industrial Safety", "demand_count": 6.8, "training_coverage": "Available", "gap_signal": "Low"},
-            {"skill_id": "skill-4", "skill_name": "EV Technology", "demand_count": 6.5, "training_coverage": "Limited", "gap_signal": "High"},
-            {"skill_id": "skill-5", "skill_name": "Python Programming", "demand_count": 6.2, "training_coverage": "Available", "gap_signal": "Moderate"},
-            {"skill_id": "skill-6", "skill_name": "Diagnostics", "demand_count": 5.8, "training_coverage": "Limited", "gap_signal": "High"},
-            {"skill_id": "skill-7", "skill_name": "Digital Tools", "demand_count": 5.5, "training_coverage": "Available", "gap_signal": "Low"},
-            {"skill_id": "skill-8", "skill_name": "Solar Installation", "demand_count": 5.2, "training_coverage": "Limited", "gap_signal": "Moderate"},
-        ]
-        
-        demo_training_capacity = {
-            "district_id": "demo-district",
-            "district_name": "All Maharashtra",
-            "total_demand": 52000,
-            "verified_providers": 145,
-            "course_offerings": 89,
-            "total_capacity": 38000,
-            "capacity_status": "insufficient"
-        }
-        
-        demo_district_intelligence = {
-            "district_id": "demo-district",
-            "district_name": "All Maharashtra",
-            "source_type": "job_postings",
-            "total_demand": 52000,
-            "verified_providers": 145,
-            "total_capacity": 38000,
-            "capacity_status": "insufficient"
-        }
-        
-        demo_course_alignment = [
-            {
-                "course_id": "course-1",
-                "course_title": "Advanced Electrical Systems",
-                "alignment_status": "aligned",
-                "skills_covered": ["Electrical Technology", "Industrial Safety"],
-                "skills_demanded": ["Electrical Technology", "Industrial Safety", "CNC Operation"],
-                "gaps": ["CNC Operation"]
-            },
-            {
-                "course_id": "course-2",
-                "course_title": "Python for Data Science",
-                "alignment_status": "aligned",
-                "skills_covered": ["Python Programming", "Digital Tools"],
-                "skills_demanded": ["Python Programming", "Digital Tools", "Machine Learning"],
-                "gaps": ["Machine Learning"]
-            }
-        ]
-        
-        demo_employer_demand = [
-            {"sector": "Manufacturing", "job_role": "CNC Operator", "required_skills": ["CNC Machine Operation", "Industrial Safety"], "posting_count": 2500},
-            {"sector": "Automotive", "job_role": "EV Technician", "required_skills": ["EV Technology", "Electrical Technology"], "posting_count": 1800},
-            {"sector": "IT", "job_role": "Python Developer", "required_skills": ["Python Programming", "Digital Tools"], "posting_count": 1200},
-            {"sector": "Renewable Energy", "job_role": "Solar Installer", "required_skills": ["Solar Installation", "Electrical Technology"], "posting_count": 900}
-        ]
-        
-        return {
-            "kpis": {
-                "districts_covered": 36,
-                "active_demand_signals": 52000,
-                "high_demand_skills": 15,
-                "critical_skill_gaps": 8,
-                "critical_gap_demand_records": 14000,
-                "training_capacity_gaps": 4,
-                "courses_requiring_review": 12
-            },
-            "district_intelligence": demo_district_intelligence,
-            "skill_gaps": demo_skill_gaps,
-            "training_capacity": demo_training_capacity,
-            "course_alignment": demo_course_alignment,
-            "employer_demand": demo_employer_demand,
-            "district_training_plan": None,
-            "filters": filters.get_filter_metadata(),
-            "mode": "demo"
-        }
-    
-    # LIVE MODE: Use real Supabase data with filters
+    # Always use real Supabase data
     # Build filter conditions for Supabase queries
     district_filter = build_district_filter(district_id)
     sector_filter = build_sector_filter(sector_id)
@@ -467,9 +386,11 @@ def get_government_dashboard(
     for skill_id, demand_score in top_skill_ids:
         skill = db.scalar(select(Skill).where(Skill.id == skill_id))
         if skill:
-            # Check if this skill has training coverage
-            skill_courses = 0  # Simplified for now - will implement proper join
-            
+            # Check if this skill has training coverage using course_skills table
+            skill_courses = db.scalar(
+                select(func.count()).select_from(CourseSkill).where(CourseSkill.skill_id == skill_id)
+            ) or 0
+
             skill_gaps.append(
                 DashboardSkillGap(
                     skill_id=str(skill_id),
@@ -477,6 +398,7 @@ def get_government_dashboard(
                     demand_count=demand_score,
                     training_coverage="Available" if skill_courses > 0 else "Limited",
                     gap_signal="High" if demand_score > high_demand_threshold else "Moderate",
+                    course_count=skill_courses,
                 )
             )
     
@@ -614,36 +536,56 @@ def get_training_programs(
     district_id: uuid.UUID | None = None,
     sector_id: uuid.UUID | None = None,
     status: str | None = None,
-    current_user: User = Depends(require_roles("government_admin")),
+    current_user: User = Depends(require_roles("government_admin", "government_official")),
     db: Session = Depends(get_db),
 ):
-    stmt = select(CourseOffering)
+    # Build query with joins to get real data
+    stmt = select(
+        CourseOffering,
+        Course.title.label("course_title"),
+        TrainingProvider.name.label("provider_name"),
+        District.name.label("district_name"),
+        IndustrySector.name.label("sector_name")
+    ).join(
+        Course, CourseOffering.course_id == Course.id
+    ).join(
+        TrainingProvider, CourseOffering.provider_id == TrainingProvider.id
+    ).join(
+        District, CourseOffering.district_id == District.id
+    ).outerjoin(
+        IndustrySector, Course.industry_sector_id == IndustrySector.id
+    )
+    
     if district_id:
         stmt = stmt.where(CourseOffering.district_id == district_id)
     if sector_id:
-        stmt = stmt.join(Course, CourseOffering.course_id == Course.id).where(Course.industry_sector_id == sector_id)
+        stmt = stmt.where(Course.industry_sector_id == sector_id)
     if status:
         stmt = stmt.where(CourseOffering.status == status)
     
-    offerings = db.scalars(stmt).all()
+    results = db.execute(stmt).all()
     
-    return [
-        TrainingProgramOut(
-            offering_id=str(offering.id),
-            course_id=str(offering.course_id),
-            course_title="Course Title",  # Would need to join with courses table
-            provider_id=str(offering.provider_id) if offering.provider_id else "",
-            provider_name="Provider Name",  # Would need to join with providers table
-            district_id=str(offering.district_id) if offering.district_id else "",
-            district_name="District Name",  # Would need to join with districts table
-            active_seats=offering.active_seats,
-            utilized_seats=offering.utilized_seats,
-            available_seats=max(offering.active_seats - offering.utilized_seats, 0),
-            status=offering.status,
-            sector="Sector"  # Would need to join with courses/sectors table
+    result = []
+    for offering, course_title, provider_name, district_name, sector_name in results:
+        
+        result.append(
+            TrainingProgramOut(
+                offering_id=str(offering.id),
+                course_id=str(offering.course_id),
+                course_title=course_title,
+                provider_id=str(offering.provider_id) if offering.provider_id else "",
+                provider_name=provider_name,
+                district_id=str(offering.district_id) if offering.district_id else "",
+                district_name=district_name,
+                active_seats=offering.active_seats,
+                utilized_seats=offering.utilized_seats,
+                available_seats=max(offering.active_seats - offering.utilized_seats, 0),
+                status=offering.status,
+                sector=sector_name
+            )
         )
-        for offering in offerings
-    ]
+    
+    return result
 
 
 @router.get("/placement-analytics", response_model=PlacementAnalyticsOut)
@@ -1096,6 +1038,20 @@ def get_government_candidates(
     # Execute query
     profiles = db.scalars(query).all()
     
+    # Get all candidate skills in a single query
+    profile_ids = [p.id for p in profiles]
+    all_candidate_skills = {}
+    if profile_ids:
+        skills_query = select(CandidateSkill, Skill.name.label("skill_name")).join(
+            Skill, CandidateSkill.skill_id == Skill.id
+        ).where(CandidateSkill.candidate_id.in_(profile_ids))
+        
+        skills_results = db.execute(skills_query).all()
+        for cs, skill_name in skills_results:
+            if cs.candidate_id not in all_candidate_skills:
+                all_candidate_skills[cs.candidate_id] = []
+            all_candidate_skills[cs.candidate_id].append(skill_name)
+    
     candidates = []
     for profile in profiles:
         # Get district name
@@ -1110,9 +1066,8 @@ def get_government_candidates(
         if profile.user:
             name = profile.user.full_name
         
-        # Get candidate skills
-        skills = []
-        # Would need to join with candidate_skills table
+        # Get candidate skills from pre-fetched data
+        skills = all_candidate_skills.get(profile.id, [])
         
         candidates.append(
             GovernmentCandidateOut(
@@ -1153,3 +1108,142 @@ def get_government_candidates(
             "employment_status": employment_status,
         }
     )
+
+
+class EmployerInsightOut(BaseModel):
+    district_id: str
+    district_name: str
+    sector_id: str
+    sector_name: str
+    job_role_id: str
+    job_role_title: str
+    posting_count: int
+    required_skills: list[str]
+    employers: list[dict]
+
+
+@router.get("/employer-insights", response_model=list[EmployerInsightOut])
+def get_employer_insights(
+    district_id: uuid.UUID | None = None,
+    job_role_id: uuid.UUID | None = None,
+    current_user: User = Depends(require_government_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get employer demand insights from job postings and industry demand.
+    This provides Government intelligence about employer hiring patterns.
+    """
+    from app.models.market import JobPosting
+    from app.models.career import JobRole
+    
+    # Build query for job postings with joins
+    query = select(
+        JobPosting,
+        District.name.label("district_name"),
+        JobRole.title.label("job_role_title")
+    ).join(
+        District, JobPosting.district_id == District.id
+    ).join(
+        JobRole, JobPosting.job_role_id == JobRole.id
+    ).options(
+        selectinload(JobPosting.job_posting_skills).selectinload(JobPostingSkill.skill)
+    )
+    
+    if district_id:
+        query = query.where(JobPosting.district_id == district_id)
+    if job_role_id:
+        query = query.where(JobPosting.job_role_id == job_role_id)
+    
+    results = db.execute(query).all()
+    
+    # Group by district and job role
+    insights_map = {}
+    for posting, district_name, job_role_title in results:
+        key = f"{posting.district_id}:{posting.job_role_id}"
+        
+        if key not in insights_map:
+            insights_map[key] = {
+                "district_id": str(posting.district_id) if posting.district_id else "",
+                "district_name": district_name or "Unknown District",
+                "sector_id": "",
+                "sector_name": "Unknown Sector",
+                "job_role_id": str(posting.job_role_id) if posting.job_role_id else "",
+                "job_role_title": job_role_title or "Unknown Role",
+                "posting_count": 0,
+                "required_skills": set(),
+                "employers": set()
+            }
+        
+        insights_map[key]["posting_count"] += 1
+        
+        # Add required skills
+        if posting.job_posting_skills:
+            for jps in posting.job_posting_skills:
+                if jps.skill:
+                    insights_map[key]["required_skills"].add(jps.skill.name)
+        
+        # Add employer
+        if posting.employer_id:
+            insights_map[key]["employers"].add(str(posting.employer_id))
+    
+    # Convert to response format
+    insights = []
+    for key, data in insights_map.items():
+        insights.append(
+            EmployerInsightOut(
+                district_id=data["district_id"],
+                district_name=data["district_name"],
+                sector_id=data["sector_id"],
+                sector_name=data["sector_name"],
+                job_role_id=data["job_role_id"],
+                job_role_title=data["job_role_title"],
+                posting_count=data["posting_count"],
+                required_skills=list(data["required_skills"]),
+                employers=[{"employer_id": eid} for eid in data["employers"]]
+            )
+        )
+    
+    return insights
+
+
+class DemandEvidenceOut(BaseModel):
+    district_id: str
+    industry_sector_id: str
+    job_role_id: str | None
+    skill_id: str
+    demand_value: float | None
+
+
+@router.get("/demand-evidence", response_model=list[DemandEvidenceOut])
+def get_demand_evidence(
+    district_id: uuid.UUID | None = None,
+    skill_id: uuid.UUID | None = None,
+    job_role_id: uuid.UUID | None = None,
+    current_user: User = Depends(require_government_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get demand evidence from industry_demand table.
+    This provides evidence-based demand signals for Government analysis.
+    """
+    query = select(IndustryDemand)
+    
+    if district_id:
+        query = query.where(IndustryDemand.district_id == district_id)
+    if skill_id:
+        query = query.where(IndustryDemand.skill_id == skill_id)
+    if job_role_id:
+        query = query.where(IndustryDemand.job_role_id == job_role_id)
+    
+    demand_records = db.scalars(query).all()
+    
+    return [
+        DemandEvidenceOut(
+            district_id=str(record.district_id) if record.district_id else "",
+            industry_sector_id=str(record.industry_sector_id) if record.industry_sector_id else "",
+            job_role_id=str(record.job_role_id) if record.job_role_id else None,
+            skill_id=str(record.skill_id) if record.skill_id else "",
+            demand_value=record.aggregate_demand_score
+        )
+        for record in demand_records
+    ]

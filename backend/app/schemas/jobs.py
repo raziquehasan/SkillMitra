@@ -29,6 +29,14 @@ class JobResponse(BaseModel):
     title: str
     status: str
     posted_date: date | None = None
+    company_name: str | None = None
+    district_name: str | None = None
+    job_role_title: str | None = None
+    skills: list[str] = []
+    employer_website: str | None = None
+    job_url: str | None = None
+    employer_careers_url: str | None = None
+    is_verified: bool = False
     model_config = ConfigDict(from_attributes=True)
 
 

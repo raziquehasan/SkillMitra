@@ -41,6 +41,9 @@ class JobRole(Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    industry_sector_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("industry_sectors.id", ondelete="SET NULL"), nullable=True
+    )
 
     # Relationships
     job_role_skills: Mapped[list["JobRoleSkill"]] = relationship(
@@ -51,6 +54,9 @@ class JobRole(Base):
     )
     job_postings: Mapped[list["JobPosting"]] = relationship(
         "JobPosting", back_populates="job_role"
+    )
+    industry_sector: Mapped["IndustrySector | None"] = relationship(
+        "IndustrySector", back_populates="job_roles"
     )
 
     __table_args__ = (

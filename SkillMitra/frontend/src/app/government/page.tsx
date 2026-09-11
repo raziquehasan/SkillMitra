@@ -54,6 +54,7 @@ interface GovDashboard {
     demand_count: number | null;
     training_coverage: string | null;
     gap_signal: string | null;
+    course_count: number;
   }>;
   training_capacity: { 
     district_id: string; 
@@ -98,628 +99,6 @@ interface GovDashboard {
   } | null;
 }
 
-// Demo placement data (deterministic, never inserted into database)
-const DEMO_PLACEMENT_DATA = {
-  all_maharashtra: {
-    enrolled: 1240,
-    completed: 980,
-    assessed: 820,
-    placed: 615
-  },
-  pune: {
-    enrolled: 320,
-    completed: 265,
-    assessed: 210,
-    placed: 165
-  },
-  pune_automotive: {
-    enrolled: 85,
-    completed: 72,
-    assessed: 58,
-    placed: 48
-  },
-  pune_it: {
-    enrolled: 95,
-    completed: 82,
-    assessed: 70,
-    placed: 58
-  },
-  mumbai: {
-    enrolled: 280,
-    completed: 225,
-    assessed: 185,
-    placed: 140
-  },
-  mumbai_healthcare: {
-    enrolled: 75,
-    completed: 62,
-    assessed: 52,
-    placed: 40
-  },
-  nashik: {
-    enrolled: 180,
-    completed: 145,
-    assessed: 120,
-    placed: 95
-  },
-  nashik_manufacturing: {
-    enrolled: 65,
-    completed: 55,
-    assessed: 45,
-    placed: 38
-  },
-  thane: {
-    enrolled: 150,
-    completed: 120,
-    assessed: 98,
-    placed: 78
-  },
-  nagpur: {
-    enrolled: 120,
-    completed: 95,
-    assessed: 78,
-    placed: 60
-  },
-  aurangabad: {
-    enrolled: 90,
-    completed: 72,
-    assessed: 58,
-    placed: 45
-  },
-  kolhapur: {
-    enrolled: 70,
-    completed: 56,
-    assessed: 45,
-    placed: 35
-  },
-  solapur: {
-    enrolled: 60,
-    completed: 48,
-    assessed: 38,
-    placed: 28
-  }
-};
-
-function getDemoPlacementData(districtId: string, sectorId: string) {
-  // Map sector IDs to demo data keys
-  const sectorKey = sectorId?.toLowerCase().includes('it') ? 'it' :
-                   sectorId?.toLowerCase().includes('automotive') ? 'automotive' :
-                   sectorId?.toLowerCase().includes('healthcare') ? 'healthcare' :
-                   sectorId?.toLowerCase().includes('manufacturing') ? 'manufacturing' : null;
-
-  // Map district IDs to demo data keys
-  const districtKey = districtId?.toLowerCase().includes('pune') ? 'pune' :
-                      districtId?.toLowerCase().includes('mumbai') ? 'mumbai' :
-                      districtId?.toLowerCase().includes('nashik') ? 'nashik' :
-                      districtId?.toLowerCase().includes('thane') ? 'thane' :
-                      districtId?.toLowerCase().includes('nagpur') ? 'nagpur' :
-                      districtId?.toLowerCase().includes('aurangabad') ? 'aurangabad' :
-                      districtId?.toLowerCase().includes('kolhapur') ? 'kolhapur' :
-                      districtId?.toLowerCase().includes('solapur') ? 'solapur' : null;
-
-  if (districtKey && sectorKey) {
-    const combinedKey = `${districtKey}_${sectorKey}`;
-    if (DEMO_PLACEMENT_DATA[combinedKey as keyof typeof DEMO_PLACEMENT_DATA]) {
-      return DEMO_PLACEMENT_DATA[combinedKey as keyof typeof DEMO_PLACEMENT_DATA];
-    }
-    // Fallback to district-only if specific combination doesn't exist
-    return DEMO_PLACEMENT_DATA[districtKey as keyof typeof DEMO_PLACEMENT_DATA];
-  } else if (districtKey) {
-    return DEMO_PLACEMENT_DATA[districtKey as keyof typeof DEMO_PLACEMENT_DATA];
-  } else {
-    return DEMO_PLACEMENT_DATA.all_maharashtra;
-  }
-}
-
-// Comprehensive fallback dataset with district, sector, and time period fields
-const DEMO_DASHBOARD_DATA: GovDashboard = {
-  kpis: {
-    districts_covered: 36,
-    active_demand_signals: 52000,
-    high_demand_skills: 156,
-    critical_skill_gaps: 24,
-    critical_gap_demand_records: 14500,
-    training_capacity_gaps: 8,
-    courses_requiring_review: 42
-  },
-  district_intelligence: {
-    district_id: "all",
-    district_name: "All Maharashtra",
-    source_type: "aggregate",
-    total_demand: 52000,
-    verified_providers: 245,
-    total_capacity: 38000,
-    capacity_status: "ADEQUATE"
-  },
-  skill_gaps: [
-    { skill_id: "s1", skill_name: "Python Programming", demand_count: 5200, training_coverage: "Available", gap_signal: "Moderate Gap" },
-    { skill_id: "s2", skill_name: "Digital Tools", demand_count: 4800, training_coverage: "Available", gap_signal: "Moderate Gap" },
-    { skill_id: "s3", skill_name: "EV Technology", demand_count: 4200, training_coverage: "Limited", gap_signal: "Critical Gap" },
-    { skill_id: "s4", skill_name: "CNC Machine Operation", demand_count: 3800, training_coverage: "Available", gap_signal: "Moderate Gap" },
-    { skill_id: "s5", skill_name: "Solar Installation", demand_count: 3500, training_coverage: "Limited", gap_signal: "Critical Gap" },
-    { skill_id: "s6", skill_name: "Industrial Safety", demand_count: 3200, training_coverage: "Available", gap_signal: "Moderate Gap" },
-    { skill_id: "s7", skill_name: "Machine Learning", demand_count: 2800, training_coverage: "None", gap_signal: "Critical Gap" },
-    { skill_id: "s8", skill_name: "Welding Techniques", demand_count: 2600, training_coverage: "Available", gap_signal: "Moderate Gap" },
-    { skill_id: "s9", skill_name: "Healthcare Assistance", demand_count: 2400, training_coverage: "Available", gap_signal: "Moderate Gap" },
-    { skill_id: "s10", skill_name: "Battery Diagnostics", demand_count: 2200, training_coverage: "None", gap_signal: "Critical Gap" }
-  ],
-  training_capacity: {
-    district_id: "all",
-    district_name: "All Maharashtra",
-    total_demand: 52000,
-    verified_providers: 245,
-    course_offerings: 380,
-    total_capacity: 38000,
-    capacity_status: "ADEQUATE"
-  },
-  course_alignment: [
-    {
-      course_id: "c1",
-      course_title: "Electric Vehicle Service Technician",
-      alignment_status: "ALIGNED",
-      skills_covered: ["Electrical Technology", "EV Maintenance", "Safety", "Battery Basics"],
-      skills_demanded: ["Electrical Technology", "EV Maintenance", "Safety", "Battery Basics", "Battery Diagnostics"],
-      gaps: ["Battery Diagnostics"]
-    },
-    {
-      course_id: "c2",
-      course_title: "CNC Machine Operator",
-      alignment_status: "ALIGNED",
-      skills_covered: ["CNC Machine Operation", "Blueprint Reading", "Quality Control", "Safety"],
-      skills_demanded: ["CNC Machine Operation", "Blueprint Reading", "Quality Control", "Safety", "CAM Programming"],
-      gaps: ["CAM Programming"]
-    },
-    {
-      course_id: "c3",
-      course_title: "Python Programming & Data Analytics",
-      alignment_status: "PARTIAL",
-      skills_covered: ["Python Programming", "Data Analysis", "Pandas", "NumPy"],
-      skills_demanded: ["Python Programming", "Data Analysis", "Pandas", "NumPy", "Machine Learning", "SQL"],
-      gaps: ["Machine Learning", "SQL"]
-    },
-    {
-      course_id: "c4",
-      course_title: "Solar Installation Technician",
-      alignment_status: "PARTIAL",
-      skills_covered: ["Solar Installation", "Electrical Safety", "Panel Configuration"],
-      skills_demanded: ["Solar Installation", "Electrical Safety", "Panel Configuration", "Battery Storage"],
-      gaps: ["Battery Storage"]
-    },
-    {
-      course_id: "c5",
-      course_title: "Industrial Safety Assistant",
-      alignment_status: "ALIGNED",
-      skills_covered: ["Industrial Safety", "Hazard Identification", "Emergency Response", "Safety Equipment"],
-      skills_demanded: ["Industrial Safety", "Hazard Identification", "Emergency Response", "Safety Equipment"],
-      gaps: []
-    }
-  ],
-  employer_demand: [
-    { sector: "IT & ITES", job_role: "Python Developer", required_skills: ["Python", "Data Analysis", "Machine Learning"], posting_count: 850 },
-    { sector: "IT & ITES", job_role: "Data Analyst", required_skills: ["SQL", "Python", "Data Visualization"], posting_count: 720 },
-    { sector: "Manufacturing", job_role: "CNC Operator", required_skills: ["CNC Operation", "Blueprint Reading", "Quality Control"], posting_count: 640 },
-    { sector: "Automotive", job_role: "EV Technician", required_skills: ["EV Technology", "Electrical Systems", "Battery Diagnostics"], posting_count: 580 },
-    { sector: "Renewable Energy", job_role: "Solar Technician", required_skills: ["Solar Installation", "Electrical Safety", "Panel Configuration"], posting_count: 520 }
-  ],
-  district_training_plan: {
-    district_id: "all",
-    district_name: "All Maharashtra",
-    plan_id: "plan-001",
-    plan_status: "ACTIVE",
-    total_recommendations: 12,
-    recommendations: [
-      {
-        plan_item_id: "rec1",
-        skill_id: "EV Technology",
-        job_role_id: "ev-tech",
-        demand_value: 4200,
-        gap_value: 2100,
-        recommended_action: "INCREASE_CAPACITY",
-        review_status: "PENDING",
-        rationale: "High demand for EV technicians in Pune and Mumbai with limited training capacity",
-        course_id: "c1"
-      },
-      {
-        plan_item_id: "rec2",
-        skill_id: "Machine Learning",
-        job_role_id: "ml-eng",
-        demand_value: 2800,
-        gap_value: 1900,
-        recommended_action: "ADD_COURSE",
-        review_status: "PENDING",
-        rationale: "Critical gap in ML skills with no current course coverage",
-        course_id: null
-      },
-      {
-        plan_item_id: "rec3",
-        skill_id: "CNC Machine Operation",
-        job_role_id: "cnc-op",
-        demand_value: 3800,
-        gap_value: 800,
-        recommended_action: "INCREASE_CAPACITY",
-        review_status: "APPROVED",
-        rationale: "Moderate gap in Nashik manufacturing sector",
-        course_id: "c2"
-      },
-      {
-        plan_item_id: "rec4",
-        skill_id: "Battery Diagnostics",
-        job_role_id: "ev-tech",
-        demand_value: 2200,
-        gap_value: 2200,
-        recommended_action: "ADD_MODULE",
-        review_status: "PENDING",
-        rationale: "Complete coverage gap for battery diagnostics in EV courses",
-        course_id: "c1"
-      }
-    ]
-  }
-};
-
-// District-specific demo data
-const DISTRICT_DEMO_DATA: Record<string, GovDashboard> = {
-  pune: {
-    kpis: {
-      districts_covered: 1,
-      active_demand_signals: 12450,
-      high_demand_skills: 42,
-      critical_skill_gaps: 7,
-      critical_gap_demand_records: 2840,
-      training_capacity_gaps: 3,
-      courses_requiring_review: 12
-    },
-    district_intelligence: {
-      district_id: "pune",
-      district_name: "Pune",
-      source_type: "district",
-      total_demand: 12450,
-      verified_providers: 45,
-      total_capacity: 9200,
-      capacity_status: "INADEQUATE"
-    },
-    skill_gaps: [
-      { skill_id: "s1", skill_name: "Python Programming", demand_count: 1450, training_coverage: "Available", gap_signal: "Moderate Gap" },
-      { skill_id: "s3", skill_name: "EV Technology", demand_count: 1200, training_coverage: "Limited", gap_signal: "Critical Gap" },
-      { skill_id: "s5", skill_name: "Solar Installation", demand_count: 950, training_coverage: "Limited", gap_signal: "Critical Gap" },
-      { skill_id: "s7", skill_name: "Machine Learning", demand_count: 850, training_coverage: "None", gap_signal: "Critical Gap" },
-      { skill_id: "s10", skill_name: "Battery Diagnostics", demand_count: 720, training_coverage: "None", gap_signal: "Critical Gap" }
-    ],
-    training_capacity: {
-      district_id: "pune",
-      district_name: "Pune",
-      total_demand: 12450,
-      verified_providers: 45,
-      course_offerings: 68,
-      total_capacity: 9200,
-      capacity_status: "INADEQUATE"
-    },
-    course_alignment: [
-      {
-        course_id: "c1",
-        course_title: "Electric Vehicle Service Technician",
-        alignment_status: "ALIGNED",
-        skills_covered: ["Electrical Technology", "EV Maintenance", "Safety", "Battery Basics"],
-        skills_demanded: ["Electrical Technology", "EV Maintenance", "Safety", "Battery Basics", "Battery Diagnostics"],
-        gaps: ["Battery Diagnostics"]
-      },
-      {
-        course_id: "c3",
-        course_title: "Python Programming & Data Analytics",
-        alignment_status: "PARTIAL",
-        skills_covered: ["Python Programming", "Data Analysis", "Pandas", "NumPy"],
-        skills_demanded: ["Python Programming", "Data Analysis", "Pandas", "NumPy", "Machine Learning", "SQL"],
-        gaps: ["Machine Learning", "SQL"]
-      }
-    ],
-    employer_demand: [
-      { sector: "IT & ITES", job_role: "Python Developer", required_skills: ["Python", "Data Analysis", "Machine Learning"], posting_count: 320 },
-      { sector: "Automotive", job_role: "EV Technician", required_skills: ["EV Technology", "Electrical Systems", "Battery Diagnostics"], posting_count: 280 }
-    ],
-    district_training_plan: {
-      district_id: "pune",
-      district_name: "Pune",
-      plan_id: "plan-pune",
-      plan_status: "ACTIVE",
-      total_recommendations: 4,
-      recommendations: [
-        {
-          plan_item_id: "rec1",
-          skill_id: "EV Technology",
-          job_role_id: "ev-tech",
-          demand_value: 1200,
-          gap_value: 600,
-          recommended_action: "INCREASE_CAPACITY",
-          review_status: "PENDING",
-          rationale: "High demand for EV technicians in Pune with limited training capacity",
-          course_id: "c1"
-        },
-        {
-          plan_item_id: "rec2",
-          skill_id: "Machine Learning",
-          job_role_id: "ml-eng",
-          demand_value: 850,
-          gap_value: 850,
-          recommended_action: "ADD_COURSE",
-          review_status: "PENDING",
-          rationale: "Critical gap in ML skills with no current course coverage",
-          course_id: null
-        }
-      ]
-    }
-  },
-  mumbai: {
-    kpis: {
-      districts_covered: 1,
-      active_demand_signals: 9800,
-      high_demand_skills: 38,
-      critical_skill_gaps: 5,
-      critical_gap_demand_records: 2100,
-      training_capacity_gaps: 2,
-      courses_requiring_review: 8
-    },
-    district_intelligence: {
-      district_id: "mumbai",
-      district_name: "Mumbai",
-      source_type: "district",
-      total_demand: 9800,
-      verified_providers: 52,
-      total_capacity: 8500,
-      capacity_status: "ADEQUATE"
-    },
-    skill_gaps: [
-      { skill_id: "s1", skill_name: "Python Programming", demand_count: 1100, training_coverage: "Available", gap_signal: "Moderate Gap" },
-      { skill_id: "s9", skill_name: "Healthcare Assistance", demand_count: 950, training_coverage: "Available", gap_signal: "Moderate Gap" },
-      { skill_id: "s3", skill_name: "EV Technology", demand_count: 800, training_coverage: "Limited", gap_signal: "Critical Gap" }
-    ],
-    training_capacity: {
-      district_id: "mumbai",
-      district_name: "Mumbai",
-      total_demand: 9800,
-      verified_providers: 52,
-      course_offerings: 75,
-      total_capacity: 8500,
-      capacity_status: "ADEQUATE"
-    },
-    course_alignment: [
-      {
-        course_id: "c3",
-        course_title: "Python Programming & Data Analytics",
-        alignment_status: "PARTIAL",
-        skills_covered: ["Python Programming", "Data Analysis", "Pandas", "NumPy"],
-        skills_demanded: ["Python Programming", "Data Analysis", "Pandas", "NumPy", "Machine Learning", "SQL"],
-        gaps: ["Machine Learning", "SQL"]
-      }
-    ],
-    employer_demand: [
-      { sector: "IT & ITES", job_role: "Data Analyst", required_skills: ["SQL", "Python", "Data Visualization"], posting_count: 280 },
-      { sector: "Healthcare", job_role: "Healthcare Assistant", required_skills: ["Patient Care", "Medical Terminology"], posting_count: 240 }
-    ],
-    district_training_plan: {
-      district_id: "mumbai",
-      district_name: "Mumbai",
-      plan_id: "plan-mumbai",
-      plan_status: "ACTIVE",
-      total_recommendations: 3,
-      recommendations: [
-        {
-          plan_item_id: "rec1",
-          skill_id: "Healthcare Assistance",
-          job_role_id: "health-assist",
-          demand_value: 950,
-          gap_value: 300,
-          recommended_action: "INCREASE_CAPACITY",
-          review_status: "APPROVED",
-          rationale: "Growing healthcare demand in Mumbai metropolitan area",
-          course_id: null
-        }
-      ]
-    }
-  },
-  nashik: {
-    kpis: {
-      districts_covered: 1,
-      active_demand_signals: 6200,
-      high_demand_skills: 28,
-      critical_skill_gaps: 4,
-      critical_gap_demand_records: 1800,
-      training_capacity_gaps: 2,
-      courses_requiring_review: 6
-    },
-    district_intelligence: {
-      district_id: "nashik",
-      district_name: "Nashik",
-      source_type: "district",
-      total_demand: 6200,
-      verified_providers: 28,
-      total_capacity: 4800,
-      capacity_status: "INADEQUATE"
-    },
-    skill_gaps: [
-      { skill_id: "s4", skill_name: "CNC Machine Operation", demand_count: 950, training_coverage: "Available", gap_signal: "Moderate Gap" },
-      { skill_id: "s8", skill_name: "Welding Techniques", demand_count: 850, training_coverage: "Available", gap_signal: "Moderate Gap" }
-    ],
-    training_capacity: {
-      district_id: "nashik",
-      district_name: "Nashik",
-      total_demand: 6200,
-      verified_providers: 28,
-      course_offerings: 42,
-      total_capacity: 4800,
-      capacity_status: "INADEQUATE"
-    },
-    course_alignment: [
-      {
-        course_id: "c2",
-        course_title: "CNC Machine Operator",
-        alignment_status: "ALIGNED",
-        skills_covered: ["CNC Machine Operation", "Blueprint Reading", "Quality Control", "Safety"],
-        skills_demanded: ["CNC Machine Operation", "Blueprint Reading", "Quality Control", "Safety", "CAM Programming"],
-        gaps: ["CAM Programming"]
-      }
-    ],
-    employer_demand: [
-      { sector: "Manufacturing", job_role: "CNC Operator", required_skills: ["CNC Operation", "Blueprint Reading", "Quality Control"], posting_count: 240 }
-    ],
-    district_training_plan: {
-      district_id: "nashik",
-      district_name: "Nashik",
-      plan_id: "plan-nashik",
-      plan_status: "ACTIVE",
-      total_recommendations: 2,
-      recommendations: [
-        {
-          plan_item_id: "rec1",
-          skill_id: "CNC Machine Operation",
-          job_role_id: "cnc-op",
-          demand_value: 950,
-          gap_value: 400,
-          recommended_action: "INCREASE_CAPACITY",
-          review_status: "APPROVED",
-          rationale: "Strong manufacturing base in Nashik with growing CNC demand",
-          course_id: "c2"
-        }
-      ]
-    }
-  }
-};
-
-// Generic district fallback for districts without specific data
-const GENERIC_DISTRICT_DATA: GovDashboard = {
-  kpis: {
-    districts_covered: 1,
-    active_demand_signals: 1500,
-    high_demand_skills: 8,
-    critical_skill_gaps: 3,
-    critical_gap_demand_records: 450,
-    training_capacity_gaps: 1,
-    courses_requiring_review: 2
-  },
-  district_intelligence: {
-    district_id: "generic",
-    district_name: "District",
-    source_type: "district",
-    total_demand: 1500,
-    verified_providers: 8,
-    total_capacity: 1100,
-    capacity_status: "INADEQUATE"
-  },
-  skill_gaps: [
-    { skill_id: "s1", skill_name: "Digital Tools", demand_count: 450, training_coverage: "Available", gap_signal: "Moderate Gap" },
-    { skill_id: "s2", skill_name: "Basic IT Skills", demand_count: 380, training_coverage: "Limited", gap_signal: "Critical Gap" },
-    { skill_id: "s3", skill_name: "Industrial Safety", demand_count: 320, training_coverage: "Available", gap_signal: "Moderate Gap" }
-  ],
-  training_capacity: {
-    district_id: "generic",
-    district_name: "District",
-    total_demand: 1500,
-    verified_providers: 8,
-    course_offerings: 12,
-    total_capacity: 1100,
-    capacity_status: "INADEQUATE"
-  },
-  course_alignment: [
-    {
-      course_id: "c1",
-      course_title: "Digital Skills Training",
-      alignment_status: "PARTIAL",
-      skills_covered: ["Digital Tools", "Basic IT"],
-      skills_demanded: ["Digital Tools", "Basic IT", "Advanced IT"],
-      gaps: ["Advanced IT"]
-    }
-  ],
-  employer_demand: [
-    { sector: "Manufacturing", job_role: "Machine Operator", required_skills: ["Basic IT", "Safety"], posting_count: 120 },
-    { sector: "Retail", job_role: "Sales Associate", required_skills: ["Digital Tools", "Communication"], posting_count: 85 }
-  ],
-  district_training_plan: {
-    district_id: "generic",
-    district_name: "District",
-    plan_id: "plan-generic",
-    plan_status: "ACTIVE",
-    total_recommendations: 2,
-    recommendations: [
-      {
-        plan_item_id: "rec1",
-        skill_id: "Digital Tools",
-        job_role_id: "generic",
-        demand_value: 450,
-        gap_value: 150,
-        recommended_action: "INCREASE_CAPACITY",
-        review_status: "PENDING",
-        rationale: "Growing demand for digital skills across sectors",
-        course_id: "c1"
-      }
-    ]
-  }
-};
-
-// Filter function that works for both backend and fallback data
-function applyFiltersToDashboard(
-  data: GovDashboard | null,
-  districtId: string,
-  sectorId: string,
-  timePeriod: string,
-  districtName: string
-): GovDashboard | null {
-  if (!data) return null;
-
-  // If no district/sector filters are applied, return original data
-  // Time period filter alone doesn't change demo data
-  if (!districtId && !sectorId) {
-    return data;
-  }
-
-  // Map district name to demo data key (use the display name for matching)
-  const districtKey = districtName?.toLowerCase().replace(/[^a-z]/g, '');
-  const districtDataKey = Object.keys(DISTRICT_DEMO_DATA).find(key =>
-    districtName?.toLowerCase().includes(key) || key.includes(districtKey || '')
-  );
-
-  let filteredData = { ...data };
-
-  // If we have district-specific demo data, use it
-  if (districtDataKey && DISTRICT_DEMO_DATA[districtDataKey]) {
-    const districtData = DISTRICT_DEMO_DATA[districtDataKey];
-    filteredData = districtData;
-  } else if (districtName && districtName !== "All Districts") {
-    // Use generic district data for districts without specific data
-    const genericData = { ...GENERIC_DISTRICT_DATA };
-    if (genericData.district_intelligence) {
-      genericData.district_intelligence.district_name = districtName;
-    }
-    if (genericData.district_training_plan) {
-      genericData.district_training_plan.district_name = districtName;
-    }
-    if (genericData.training_capacity) {
-      genericData.training_capacity.district_name = districtName;
-    }
-    filteredData = genericData;
-  }
-
-  // Apply sector filter if specified
-  if (sectorId) {
-    const sectorLower = sectorId.toLowerCase();
-    const filteredEmployerDemand = filteredData.employer_demand.filter(
-      ed => ed.sector?.toLowerCase().includes(sectorLower) || sectorLower.includes(ed.sector?.toLowerCase() || '')
-    );
-
-    filteredData = {
-      ...filteredData,
-      employer_demand: filteredEmployerDemand.length > 0 ? filteredEmployerDemand : filteredData.employer_demand,
-      // Adjust KPIs based on sector filter
-      kpis: {
-        ...filteredData.kpis,
-        active_demand_signals: Math.round(filteredData.kpis.active_demand_signals * 0.6),
-        high_demand_skills: Math.round(filteredData.kpis.high_demand_skills * 0.5),
-        critical_skill_gaps: Math.round(filteredData.kpis.critical_skill_gaps * 0.7),
-        critical_gap_demand_records: Math.round(filteredData.kpis.critical_gap_demand_records * 0.6)
-      }
-    };
-  }
-
-  return filteredData;
-}
-
 function DashboardContent() {
   const { user } = useAuth();
   const router = useRouter();
@@ -727,7 +106,7 @@ function DashboardContent() {
   const [districts, setDistricts] = useState<District[]>([]);
   const [sectors, setSectors] = useState<IndustrySector[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dashboard, setDashboard] = useState<GovDashboard | null>(DEMO_DASHBOARD_DATA);
+  const [dashboard, setDashboard] = useState<GovDashboard | null>(null);
   const [fetching, setFetching] = useState(false);
   
   // Initialize filters from URL params or defaults
@@ -739,7 +118,7 @@ function DashboardContent() {
     };
   });
   
-  const [filterTime, setFilterTime] = useState("last_30_days");
+  const [filterTime, setFilterTime] = useState("all_available");
   
   // Extract individual filter values for UI
   const filterDistrict = filters.district_id || "";
@@ -765,16 +144,6 @@ function DashboardContent() {
   const loadDashboard = useCallback(async () => {
     setFetching(true);
     try {
-      // Check if we should use demo data (no district/sector/job role filters)
-      const shouldUseDemoData = !isFiltersActive(filters);
-      
-      if (shouldUseDemoData) {
-        // Use demo data for unfiltered landing state
-        setDashboard(DEMO_DASHBOARD_DATA);
-        setFetching(false);
-        return;
-      }
-      
       // Calculate date range from time period and fetch real data
       const dateRange = getDateRangeFromTimePeriod(filterTime);
       const filtersWithDate = {
@@ -782,20 +151,13 @@ function DashboardContent() {
         start_date: dateRange?.start_date || filters.start_date,
         end_date: dateRange?.end_date || filters.end_date,
       };
-      
+
       const apiParams = getGovernmentApiParams(filtersWithDate);
       const data = await api.governmentDashboard(apiParams);
       setDashboard(data);
     } catch (error: any) {
-      // Only fall back to demo data if no filters are active
-      if (!isFiltersActive(filters)) {
-        console.log("API call failed, using demo data for unfiltered view");
-        setDashboard(DEMO_DASHBOARD_DATA);
-      } else {
-        // When filters are active, show error instead of falling back to demo
-        console.error("API call failed with active filters:", error);
-        setDashboard(null); // Will show error state
-      }
+      console.error("API call failed:", error);
+      setDashboard(null); // Will show error state
     } finally {
       setFetching(false);
     }
@@ -808,7 +170,7 @@ function DashboardContent() {
   const resetFilters = () => {
     const resetFilters = DEFAULT_GOVERNMENT_FILTERS;
     setFilters(resetFilters);
-    setFilterTime("last_30_days");
+    setFilterTime("all_available");
     
     // Update URL
     const queryParams = governmentFiltersToQueryParams(resetFilters);
@@ -835,6 +197,7 @@ function DashboardContent() {
   // Get display name for time period
   const getTimePeriodName = (value: string) => {
     switch (value) {
+      case "all_available": return "All Available Data";
       case "current_month": return "Current Month";
       case "last_30_days": return "Last 30 Days";
       case "last_quarter": return "Last Quarter";
@@ -846,19 +209,11 @@ function DashboardContent() {
   };
   const selectedTimePeriodName = getTimePeriodName(filterTime);
 
-  // Apply filters to dashboard data
-  const filteredDashboard = useMemo(() => {
-    return applyFiltersToDashboard(dashboard, filters.district_id || "", filters.sector_id || "", filterTime, selectedDistrictName);
-  }, [dashboard, filters.district_id, filters.sector_id, filterTime, selectedDistrictName]);
-
-  // Demo placement data calculation
-  const placementDemo = getDemoPlacementData(filters.district_id || "", filters.sector_id || "");
-  const completionRate = (placementDemo.completed / placementDemo.enrolled * 100).toFixed(1);
-  const assessmentRate = (placementDemo.assessed / placementDemo.completed * 100).toFixed(1);
-  const placementRate = (placementDemo.placed / placementDemo.assessed * 100).toFixed(1);
+  // Backend handles filtering via API, so use dashboard directly
+  const currentDashboard = dashboard;
 
   // Skill demand ranking data (horizontal bar chart)
-  const skillDemandData = filteredDashboard?.skill_gaps
+  const skillDemandData = currentDashboard?.skill_gaps
     .filter(gap => gap.demand_count !== null)
     .sort((a, b) => (b.demand_count || 0) - (a.demand_count || 0))
     .slice(0, 8)
@@ -869,10 +224,10 @@ function DashboardContent() {
     })) || [];
 
   // Capacity data
-  const capacityData = filteredDashboard?.training_capacity ? [
-    { name: 'Demand', value: filteredDashboard.training_capacity.total_demand },
-    { name: 'Verified Capacity', value: filteredDashboard.training_capacity.total_capacity },
-    { name: 'Capacity Gap', value: Math.max(0, filteredDashboard.training_capacity.total_demand - filteredDashboard.training_capacity.total_capacity) }
+  const capacityData = currentDashboard?.training_capacity ? [
+    { name: 'Demand', value: currentDashboard.training_capacity.total_demand },
+    { name: 'Verified Capacity', value: currentDashboard.training_capacity.total_capacity },
+    { name: 'Capacity Gap', value: Math.max(0, currentDashboard.training_capacity.total_demand - currentDashboard.training_capacity.total_capacity) }
   ] : [];
 
   // Government Blue Color Palette
@@ -896,13 +251,47 @@ function DashboardContent() {
     );
   }
 
+  if (!currentDashboard && !fetching) {
+    return (
+      <GovernmentShell>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="text-center">
+            <AlertTriangle className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+            <p className="text-sm text-slate-600">Unable to load data. Please try again.</p>
+            <button
+              onClick={loadDashboard}
+              className="mt-4 px-4 py-2 bg-[#1e3a8a] text-white text-sm rounded-lg hover:bg-[#1e3a8a]/90"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </GovernmentShell>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f8fafc]">
+      {/* Subtle top loading bar when fetching */}
+      {fetching && (
+        <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-[#1e3a8a]/20 overflow-hidden">
+          <div className="h-full bg-[#1e3a8a] animate-pulse" style={{ width: '100%' }} />
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#1e293b]">
-          Job Intelligence Dashboard
-        </h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-[#1e293b]">
+            Job Intelligence Dashboard
+          </h1>
+          {fetching && (
+            <span className="flex items-center gap-1.5 text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-solid border-[#1e3a8a] border-r-transparent" />
+              Updating...
+            </span>
+          )}
+        </div>
         <p className="mt-1 text-sm text-slate-600">
           Monitor job-market demand, skill gaps, training capacity and employment outcomes across Maharashtra.
         </p>
@@ -957,6 +346,7 @@ function DashboardContent() {
               onChange={(e) => setFilterTime(e.target.value)}
               className="w-full border border-slate-300 bg-white px-3 py-2 text-sm rounded focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent"
             >
+              <option value="all_available">All Available Data</option>
               <option value="current_month">Current Month</option>
               <option value="last_30_days">Last 30 Days</option>
               <option value="last_quarter">Last Quarter</option>
@@ -966,62 +356,56 @@ function DashboardContent() {
             </select>
           </div>
         </div>
-        {(filters.district_id || filters.sector_id || filterTime !== "last_30_days") && (
+        {(filters.district_id || filters.sector_id || filterTime !== "all_available") && (
           <div className="mt-3 pt-3 border-t border-slate-100">
             <p className="text-xs text-slate-600">
               Active filters: <span className="font-medium text-[#1e3a8a]">{selectedDistrictName}</span>
               {filters.sector_id && <span className="font-medium text-[#1e3a8a]"> + {selectedSectorName}</span>}
-              {filterTime !== "last_30_days" && <span className="font-medium text-[#1e3a8a]"> + {selectedTimePeriodName}</span>}
+              {filterTime !== "all_available" && <span className="font-medium text-[#1e3a8a]"> + {selectedTimePeriodName}</span>}
             </p>
           </div>
         )}
       </div>
 
-      {fetching && (
-        <div className="mb-6 text-sm text-slate-600 flex items-center gap-2">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-[#1e3a8a] border-r-transparent" />
-          Loading intelligence for {selectedDistrictName}...
-        </div>
-      )}
 
-      {!fetching && filteredDashboard && (
+      {currentDashboard && (
         <div className="space-y-6">
           {/* KPI Grid */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
             <KpiCard
               label="Districts Covered"
-              value={filteredDashboard.kpis.districts_covered}
+              value={currentDashboard.kpis.districts_covered}
               icon={<MapPin className="h-5 w-5" />}
             />
             <KpiCard
               label="Active Demand Signals"
-              value={filteredDashboard.kpis.active_demand_signals}
+              value={currentDashboard.kpis.active_demand_signals}
               icon={<TrendingUp className="h-5 w-5" />}
             />
             <KpiCard
               label="High-Demand Skills"
-              value={filteredDashboard.kpis.high_demand_skills}
+              value={currentDashboard.kpis.high_demand_skills}
               icon={<Zap className="h-5 w-5" />}
             />
             <KpiCard
               label="Critical Skill Gaps"
-              value={filteredDashboard.kpis.critical_skill_gaps}
+              value={currentDashboard.kpis.critical_skill_gaps}
               icon={<AlertTriangle className="h-5 w-5" />}
               subtitle="Unique skills without coverage"
-              critical={filteredDashboard.kpis.critical_skill_gaps > 0}
+              critical={currentDashboard.kpis.critical_skill_gaps > 0}
             />
             <KpiCard
               label="Gap Demand Records"
-              value={filteredDashboard.kpis.critical_gap_demand_records}
+              value={currentDashboard.kpis.critical_gap_demand_records}
               icon={<AlertTriangle className="h-5 w-5" />}
               subtitle="Demand records for uncovered skills"
-              critical={filteredDashboard.kpis.critical_gap_demand_records > 0}
+              critical={currentDashboard.kpis.critical_gap_demand_records > 0}
             />
             <KpiCard
               label="Training Capacity Gaps"
-              value={filteredDashboard.kpis.training_capacity_gaps}
+              value={currentDashboard.kpis.training_capacity_gaps}
               icon={<BarChart3 className="h-5 w-5" />}
-              critical={filteredDashboard.kpis.training_capacity_gaps > 0}
+              critical={currentDashboard.kpis.training_capacity_gaps > 0}
             />
           </div>
 
@@ -1036,7 +420,7 @@ function DashboardContent() {
               <PipelineStage
                 stage="01"
                 title="Industry Demand"
-                value={filteredDashboard.kpis.active_demand_signals}
+                value={currentDashboard.kpis.active_demand_signals}
                 subtitle="signals"
                 icon={<TrendingUp className="h-4 w-4" />}
                 alert={false}
@@ -1044,15 +428,15 @@ function DashboardContent() {
               <PipelineStage
                 stage="02"
                 title="Skill Gap"
-                value={filteredDashboard.kpis.critical_skill_gaps}
+                value={currentDashboard.kpis.critical_skill_gaps}
                 subtitle="critical skills"
                 icon={<AlertTriangle className="h-4 w-4" />}
-                alert={filteredDashboard.kpis.critical_skill_gaps > 0}
+                alert={currentDashboard.kpis.critical_skill_gaps > 0}
               />
               <PipelineStage
                 stage="03"
                 title="Course Alignment"
-                value={filteredDashboard.course_alignment.length}
+                value={currentDashboard.course_alignment.length}
                 subtitle="courses aligned"
                 icon={<GraduationCap className="h-4 w-4" />}
                 alert={false}
@@ -1060,18 +444,10 @@ function DashboardContent() {
               <PipelineStage
                 stage="04"
                 title="Training Capacity"
-                value={filteredDashboard.training_capacity?.total_capacity || 0}
+                value={currentDashboard?.training_capacity?.total_capacity || 0}
                 subtitle="verified seats"
                 icon={<Users2 className="h-4 w-4" />}
-                alert={filteredDashboard.kpis.training_capacity_gaps > 0}
-              />
-              <PipelineStage
-                stage="05"
-                title="Placement Outcomes"
-                value={placementDemo.placed}
-                subtitle="placed candidates"
-                icon={<Award className="h-4 w-4" />}
-                alert={false}
+                alert={currentDashboard?.kpis.training_capacity_gaps > 0}
               />
             </div>
           </div>
@@ -1131,9 +507,9 @@ function DashboardContent() {
                   View Details <ArrowRight className="h-3 w-3" />
                 </button>
               </div>
-              {filteredDashboard.training_capacity ? (
+              {currentDashboard.training_capacity ? (
                 <>
-                  {filteredDashboard.training_capacity.total_capacity === 0 && (
+                  {currentDashboard.training_capacity.total_capacity === 0 && (
                     <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                       <p className="text-xs text-amber-800">
                         <strong>Note:</strong> No verified training capacity is currently recorded for this selection.
@@ -1169,7 +545,7 @@ function DashboardContent() {
                 View All <ArrowRight className="h-3 w-3" />
               </button>
             </div>
-            {filteredDashboard.skill_gaps.length > 0 ? (
+            {currentDashboard.skill_gaps.length > 0 ? (
               <div className="overflow-x-auto -mx-6 px-6 pb-2">
                 <div className="overflow-x-auto w-full">
             <table data-wrapped="true" className="w-full text-sm">
@@ -1183,7 +559,7 @@ function DashboardContent() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredDashboard.skill_gaps.slice(0, 8).map((gap, index) => (
+                    {currentDashboard.skill_gaps.slice(0, 8).map((gap, index) => (
                       <tr key={`${gap.skill_id}-${index}`} className="border-b border-slate-100">
                         <td className="py-2 px-3 font-medium text-[#1e293b] whitespace-nowrap">{gap.skill_name || gap.skill_id}</td>
                         <td className="py-2 px-3 whitespace-nowrap">{gap.demand_count || 0}</td>
@@ -1205,7 +581,9 @@ function DashboardContent() {
                             {gap.gap_signal || "Unknown"}
                           </span>
                         </td>
-                        <td className="py-2 px-3 whitespace-nowrap">{gap.training_coverage === "Available" ? "Available" : "None"}</td>
+                        <td className="py-2 px-3 whitespace-nowrap">
+                          {gap.course_count > 0 ? `${gap.course_count} courses` : "None"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1231,9 +609,9 @@ function DashboardContent() {
                 View Details <ArrowRight className="h-3 w-3" />
               </button>
             </div>
-            {filteredDashboard.course_alignment.length > 0 ? (
+            {currentDashboard.course_alignment.length > 0 ? (
               <div className="space-y-3">
-                {filteredDashboard.course_alignment.slice(0, 5).map((course) => (
+                {currentDashboard.course_alignment.slice(0, 5).map((course) => (
                   <div key={course.course_id} className="p-4 bg-slate-50 rounded-lg">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                       <span className="text-sm font-medium text-[#1e293b]">{course.course_title}</span>
@@ -1274,9 +652,9 @@ function DashboardContent() {
                 View Details <ArrowRight className="h-3 w-3" />
               </button>
             </div>
-            {filteredDashboard.employer_demand.length > 0 ? (
+            {currentDashboard.employer_demand.length > 0 ? (
               <div className="space-y-3">
-                {filteredDashboard.employer_demand.slice(0, 5).map((ed, index) => (
+                {currentDashboard.employer_demand.slice(0, 5).map((ed, index) => (
                   <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 rounded-lg gap-4">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-[#1e293b] truncate">{ed.job_role || "—"}</p>
@@ -1312,19 +690,19 @@ function DashboardContent() {
               </div>
               <Activity className="h-4 w-4 text-[#1e3a8a] flex-shrink-0" />
             </div>
-            {filteredDashboard.district_intelligence ? (
+            {currentDashboard.district_intelligence ? (
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="p-4 bg-slate-50 rounded-lg">
                   <p className="text-xs text-slate-500 mb-1">Total Demand</p>
-                  <p className="text-2xl font-bold text-[#1e3a8a]">{filteredDashboard.district_intelligence.total_demand?.toLocaleString() || 0}</p>
+                  <p className="text-2xl font-bold text-[#1e3a8a]">{currentDashboard.district_intelligence.total_demand?.toLocaleString() || 0}</p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-lg">
                   <p className="text-xs text-slate-500 mb-1">Verified Providers</p>
-                  <p className="text-2xl font-bold text-[#1e3a8a]">{filteredDashboard.district_intelligence.verified_providers || 0}</p>
+                  <p className="text-2xl font-bold text-[#1e3a8a]">{currentDashboard.district_intelligence.verified_providers || 0}</p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-lg">
                   <p className="text-xs text-slate-500 mb-1">Total Training Capacity</p>
-                  <p className="text-2xl font-bold text-[#1e3a8a]">{filteredDashboard.district_intelligence.total_capacity?.toLocaleString() || 0}</p>
+                  <p className="text-2xl font-bold text-[#1e3a8a]">{currentDashboard.district_intelligence.total_capacity?.toLocaleString() || 0}</p>
                 </div>
               </div>
             ) : (
@@ -1340,30 +718,10 @@ function DashboardContent() {
                 <p className="text-xs text-slate-500 mt-1">Training-to-employment pipeline</p>
               </div>
             </div>
-            <div className="grid gap-4 md:grid-cols-4">
-              <div className="p-4 bg-slate-50 rounded-lg text-center">
-                <Users className="h-6 w-6 mx-auto mb-2 text-[#1e3a8a]" />
-                <p className="text-2xl font-bold text-[#1e3a8a]">{placementDemo.enrolled.toLocaleString()}</p>
-                <p className="text-xs text-slate-500 mt-1">Enrolled</p>
-              </div>
-              <div className="p-4 bg-slate-50 rounded-lg text-center">
-                <CheckCircle className="h-6 w-6 mx-auto mb-2 text-green-600" />
-                <p className="text-2xl font-bold text-green-600">{placementDemo.completed.toLocaleString()}</p>
-                <p className="text-xs text-slate-500 mt-1">Completed</p>
-                <p className="text-xs text-slate-400 mt-1">{completionRate}% completion rate</p>
-              </div>
-              <div className="p-4 bg-slate-50 rounded-lg text-center">
-                <ClipboardCheck className="h-6 w-6 mx-auto mb-2 text-[#3b82f6]" />
-                <p className="text-2xl font-bold text-[#3b82f6]">{placementDemo.assessed.toLocaleString()}</p>
-                <p className="text-xs text-slate-500 mt-1">Assessed</p>
-                <p className="text-xs text-slate-400 mt-1">{assessmentRate}% assessment rate</p>
-              </div>
-              <div className="p-4 bg-slate-50 rounded-lg text-center">
-                <Award className="h-6 w-6 mx-auto mb-2 text-[#1e3a8a]" />
-                <p className="text-2xl font-bold text-[#1e3a8a]">{placementDemo.placed.toLocaleString()}</p>
-                <p className="text-xs text-slate-500 mt-1">Placed</p>
-                <p className="text-xs text-slate-400 mt-1">{placementRate}% placement rate</p>
-              </div>
+            <div className="p-8 text-center text-slate-500">
+              <Award className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+              <p className="text-sm">No placement data available yet.</p>
+              <p className="text-xs text-slate-400 mt-1">Placement tracking will be available once candidates complete training.</p>
             </div>
           </div>
 
@@ -1381,9 +739,9 @@ function DashboardContent() {
                 View All <ArrowRight className="h-3 w-3" />
               </button>
             </div>
-            {filteredDashboard.district_training_plan?.recommendations && filteredDashboard.district_training_plan.recommendations.length > 0 ? (
+            {currentDashboard.district_training_plan?.recommendations && currentDashboard.district_training_plan.recommendations.length > 0 ? (
               <div className="space-y-3">
-                {filteredDashboard.district_training_plan.recommendations.slice(0, 4).map((rec) => (
+                {currentDashboard.district_training_plan.recommendations.slice(0, 4).map((rec) => (
                   <div key={rec.plan_item_id} className="flex items-start gap-3 p-4 bg-slate-50 rounded-lg">
                     <div className="flex-shrink-0 mt-0.5">
                       <Lightbulb className="h-4 w-4 text-[#1e3a8a]" />
