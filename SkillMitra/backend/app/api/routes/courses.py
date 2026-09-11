@@ -43,9 +43,11 @@ def list_courses(
 @router.get("/homepage", response_model=list[HomepageCourseOut])
 def get_homepage_course_recommendations(db: Session = Depends(get_db)):
     """
-    Returns top 4 active courses with URLs for homepage display.
-    Filters: active status, non-null course_url, excludes legacy/demo courses.
+    Returns top 4 active courses for homepage display.
+    Filters: active status, excludes legacy/demo courses.
+    Includes courses with and without URLs (defaults to CDAC for high-demand AI courses).
     Ranked by demand intelligence signals.
+    Deduplicates by course title to avoid showing same course multiple times.
     """
     from app.models.career import Course, CourseSkill
     from app.models.demand import IndustryDemand
@@ -53,12 +55,11 @@ def get_homepage_course_recommendations(db: Session = Depends(get_db)):
     from sqlalchemy import select, func, desc
     
     # Get active courses with URLs, excluding legacy/demo
+    # Also include high-demand courses without URLs to ensure AI courses appear
     stmt = (
         select(Course)
         .where(
             Course.status == "active",
-            Course.course_url.isnot(None),
-            Course.course_url != "",
             ~Course.title.ilike("%Typing and Office Basics%")
         )
         .options(selectinload(Course.course_skills).selectinload(CourseSkill.skill))
@@ -87,8 +88,25 @@ def get_homepage_course_recommendations(db: Session = Depends(get_db)):
         key=lambda c: (-course_demand_scores.get(c.id, 0), c.title)
     )
     
-    # Take top 4
-    top_courses = sorted_courses[:4]
+    # Deduplicate by course title (keep first occurrence)
+    seen_titles = set()
+    deduplicated_courses = []
+    for course in sorted_courses:
+        if course.title not in seen_titles:
+            seen_titles.add(course.title)
+            deduplicated_courses.append(course)
+    
+    # Take top 4 from deduplicated list, but ensure PGCP-AI course is included
+    top_courses = deduplicated_courses[:4]
+    
+    # Check if PGCP-AI is in top 4, if not, replace the lowest demand course
+    pgcp_ai_courses = [c for c in deduplicated_courses if "PGCP-AI" in c.title or "PG Certificate Programme in Artificial Intelligence" in c.title]
+    pgcp_ai_in_top_4 = any("PGCP-AI" in c.title or "PG Certificate Programme in Artificial Intelligence" in c.title for c in top_courses)
+    
+    if not pgcp_ai_in_top_4 and pgcp_ai_courses:
+        # Replace the lowest demand course in top 4 with PGCP-AI
+        lowest_demand_idx = min(range(len(top_courses)), key=lambda i: course_demand_scores.get(top_courses[i].id, 0))
+        top_courses[lowest_demand_idx] = pgcp_ai_courses[0]
     
     # Format response
     result = []
