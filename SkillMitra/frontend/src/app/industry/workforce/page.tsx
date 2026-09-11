@@ -1,125 +1,85 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-const workforceData = [
-  {
-    sector: "EV / Automotive",
-    role: "EV Technician",
-    district: "Pune",
-    demand: "High",
-    required: 850,
-    available: 540,
-    gap: 310,
-  },
-  {
-    sector: "EV / Automotive",
-    role: "Battery Specialist",
-    district: "Aurangabad",
-    demand: "Very High",
-    required: 720,
-    available: 390,
-    gap: 330,
-  },
-  {
-    sector: "IT / Technology",
-    role: "AI / ML Engineer",
-    district: "Mumbai",
-    demand: "Very High",
-    required: 690,
-    available: 360,
-    gap: 330,
-  },
-  {
-    sector: "IT / Technology",
-    role: "Cloud Engineer",
-    district: "Pune",
-    demand: "High",
-    required: 620,
-    available: 410,
-    gap: 210,
-  },
-  {
-    sector: "Manufacturing",
-    role: "Automation Technician",
-    district: "Nashik",
-    demand: "High",
-    required: 640,
-    available: 450,
-    gap: 190,
-  },
-  {
-    sector: "Manufacturing",
-    role: "Robotics Technician",
-    district: "Nagpur",
-    demand: "High",
-    required: 560,
-    available: 310,
-    gap: 250,
-  },
-];
-
-const sectorData = [
-  {
-    sector: "EV / Automotive",
-    required: 1570,
-    available: 930,
-    gap: 640,
-    priority: "Critical",
-  },
-  {
-    sector: "IT / Technology",
-    required: 1310,
-    available: 770,
-    gap: 540,
-    priority: "Critical",
-  },
-  {
-    sector: "Manufacturing",
-    required: 1200,
-    available: 760,
-    gap: 440,
-    priority: "High",
-  },
-];
-
-const districtData = [
-  {
-    district: "Pune",
-    sector: "EV / Automotive",
-    gap: 310,
-    priority: "High",
-  },
-  {
-    district: "Mumbai",
-    sector: "IT / Technology",
-    gap: 330,
-    priority: "Critical",
-  },
-  {
-    district: "Aurangabad",
-    sector: "EV / Automotive",
-    gap: 330,
-    priority: "Critical",
-  },
-  {
-    district: "Nagpur",
-    sector: "Manufacturing",
-    gap: 250,
-    priority: "High",
-  },
-];
+import { api, type IndustrySector, type District, type IndustryDemand } from "@/lib/api";
 
 export default function WorkforceGapPage() {
-     const router = useRouter();
-  const [selectedSector, setSelectedSector] = useState("All Sectors");
+  const router = useRouter();
+  const [selectedSector, setSelectedSector] = useState("");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [sectors, setSectors] = useState<IndustrySector[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [demandData, setDemandData] = useState<IndustryDemand[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredWorkforce =
-    selectedSector === "All Sectors"
-      ? workforceData
-      : workforceData.filter((item) => item.sector === selectedSector);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [sRes, dRes] = await Promise.all([
+          api.sectors().catch(() => []),
+          api.districts().catch(() => []),
+        ]);
+        setSectors(sRes);
+        setDistricts(dRes);
+      } catch (err) {
+        console.error("Failed to load reference data:", err);
+        setError("Failed to load reference data");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      if (!selectedSector && !selectedDistrict) return;
+      
+      try {
+        const demand = await api.industryDemand({
+          industry_sector_id: selectedSector || undefined,
+          district_id: selectedDistrict || undefined,
+        });
+        setDemandData(Array.isArray(demand) ? demand : []);
+      } catch (err) {
+        console.error("Failed to load demand data:", err);
+        setDemandData([]);
+      }
+    })();
+  }, [selectedSector, selectedDistrict]);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#123b68] border-r-transparent"></div>
+            <p className="mt-4 text-sm text-slate-600">Loading workforce gap data...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-sm text-red-600">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-[#123b68] text-white text-sm rounded hover:bg-[#123b68]/90"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
@@ -328,57 +288,57 @@ export default function WorkforceGapPage() {
 
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-sm text-slate-500">
-                  Total Workforce Required
+                  Demand Records
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  4,080
+                  {demandData.length}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-400">
-                  Across major sectors
+                  Industry demand signals
                 </p>
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-sm text-slate-500">
-                  Workforce Available
-                </p>
-
-                <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  2,460
-                </p>
-
-                <p className="mt-1 text-xs text-slate-400">
-                  Existing skilled workforce
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-sm text-slate-500">
-                  Total Workforce Gap
+                  High Demand Areas
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#c2410c]">
-                  1,620
+                  {demandData.filter(d => (d.aggregate_demand_score || 0) > 5).length}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-400">
-                  Immediate workforce shortage
+                  Score &gt; 5.0
                 </p>
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-sm text-slate-500">
-                  Priority Level
+                  Sectors Covered
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  Critical
+                  {sectors.length}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-400">
-                  Government action required
+                  Industry sectors
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-sm text-slate-500">
+                  Districts Covered
+                </p>
+
+                <p className="mt-2 text-3xl font-bold text-[#123b68]">
+                  {districts.length}
+                </p>
+
+                <p className="mt-1 text-xs text-slate-400">
+                  Geographic areas
                 </p>
               </div>
 
@@ -411,10 +371,33 @@ export default function WorkforceGapPage() {
                     onChange={(e) => setSelectedSector(e.target.value)}
                     className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-[#123b68]"
                   >
-                    <option>All Sectors</option>
-                    <option>EV / Automotive</option>
-                    <option>IT / Technology</option>
-                    <option>Manufacturing</option>
+                    <option value="">All Sectors</option>
+                    {sectors.map((sector) => (
+                      <option key={sector.id} value={sector.id}>
+                        {sector.name}
+                      </option>
+                    ))}
+                  </select>
+
+                </div>
+
+                <div>
+
+                  <label className="mb-2 block text-xs font-semibold text-slate-500">
+                    DISTRICT
+                  </label>
+
+                  <select
+                    value={selectedDistrict}
+                    onChange={(e) => setSelectedDistrict(e.target.value)}
+                    className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-[#123b68]"
+                  >
+                    <option value="">All Districts</option>
+                    {districts.map((district) => (
+                      <option key={district.id} value={district.id}>
+                        {district.name}
+                      </option>
+                    ))}
                   </select>
 
                 </div>
@@ -481,56 +464,77 @@ export default function WorkforceGapPage() {
 
                   <tbody className="divide-y divide-slate-100">
 
-                    {filteredWorkforce.map((item) => (
-
-                      <tr
-                        key={`${item.role}-${item.district}`}
-                        className="hover:bg-slate-50"
-                      >
-
-                        <td className="px-6 py-4">
-                          <p className="font-semibold text-slate-800">
-                            {item.sector}
-                          </p>
+                    {demandData.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-8 text-center text-sm text-slate-500">
+                          {selectedSector || selectedDistrict 
+                            ? "No demand data found for the selected filters. Try different criteria." 
+                            : "Select a sector or district to view workforce gap analysis."}
                         </td>
-
-                        <td className="px-6 py-4">
-                          <p className="font-medium text-slate-700">
-                            {item.role}
-                          </p>
-                        </td>
-
-                        <td className="px-6 py-4 text-slate-600">
-                          {item.district}
-                        </td>
-
-                        <td className="px-6 py-4">
-
-                          <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-[#c2410c]">
-                            {item.demand}
-                          </span>
-
-                        </td>
-
-                        <td className="px-6 py-4 font-medium text-slate-700">
-                          {item.required}
-                        </td>
-
-                        <td className="px-6 py-4 font-medium text-slate-700">
-                          {item.available}
-                        </td>
-
-                        <td className="px-6 py-4">
-
-                          <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600">
-                            {item.gap}
-                          </span>
-
-                        </td>
-
                       </tr>
+                    ) : (
+                      demandData.map((demand) => {
+                        const sector = sectors.find(s => s.id === demand.industry_sector_id);
+                        const district = districts.find(d => d.id === demand.district_id);
+                        const demandScore = demand.aggregate_demand_score || 0;
+                        const demandLevel = demandScore >= 7.5 ? "Very High" : 
+                                           demandScore >= 5.0 ? "High" : 
+                                           demandScore >= 2.5 ? "Moderate" : "Low";
+                        
+                        return (
+                          <tr
+                            key={demand.id}
+                            className="hover:bg-slate-50"
+                          >
 
-                    ))}
+                            <td className="px-6 py-4">
+                              <p className="font-semibold text-slate-800">
+                                {sector?.name || "Unknown Sector"}
+                              </p>
+                            </td>
+
+                            <td className="px-6 py-4">
+                              <p className="font-medium text-slate-700">
+                                {demand.job_role_id ? `Role: ${demand.job_role_id.toString().slice(0, 8)}...` : "General Demand"}
+                              </p>
+                            </td>
+
+                            <td className="px-6 py-4 text-slate-600">
+                              {district?.name || "Unknown District"}
+                            </td>
+
+                            <td className="px-6 py-4">
+
+                              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                demandLevel === "Very High" ? "bg-orange-50 text-orange-700" :
+                                demandLevel === "High" ? "bg-red-50 text-red-700" :
+                                "bg-blue-50 text-blue-700"
+                              }`}>
+                                {demandLevel}
+                              </span>
+
+                            </td>
+
+                            <td className="px-6 py-4 font-medium text-slate-700">
+                              {demandScore.toFixed(1)}
+                            </td>
+
+                            <td className="px-6 py-4 font-medium text-slate-700">
+                              -
+                            </td>
+
+                            <td className="px-6 py-4">
+
+                              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
+                                Analysis Required
+                              </span>
+
+                            </td>
+
+                          </tr>
+                        );
+                      })
+                    )}
 
                   </tbody>
 
@@ -558,147 +562,82 @@ export default function WorkforceGapPage() {
 
               <div className="grid gap-5 lg:grid-cols-3">
 
-                {sectorData.map((item) => (
-
-                  <div
-                    key={item.sector}
-                    className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-                  >
-
-                    <p className="text-sm font-semibold text-[#c2410c]">
-                      {item.sector}
-                    </p>
-
-                    <h3 className="mt-3 text-lg font-bold text-[#123b68]">
-                      Workforce Shortage
-                    </h3>
-
-                    <div className="mt-5 space-y-3">
-
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-500">
-                          Required
-                        </span>
-
-                        <span className="font-semibold text-slate-700">
-                          {item.required}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-500">
-                          Available
-                        </span>
-
-                        <span className="font-semibold text-slate-700">
-                          {item.available}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-500">
-                          Workforce Gap
-                        </span>
-
-                        <span className="font-semibold text-red-600">
-                          {item.gap}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-500">
-                          Priority
-                        </span>
-
-                        <span className="font-semibold text-[#c2410c]">
-                          {item.priority}
-                        </span>
-                      </div>
-
-                    </div>
-
+                {sectors.length === 0 ? (
+                  <div className="col-span-3 text-center py-8 text-sm text-slate-500">
+                    No sector data available.
                   </div>
+                ) : (
+                  sectors.slice(0, 3).map((sector) => {
+                    const sectorDemand = demandData.filter(d => d.industry_sector_id === sector.id);
+                    const avgDemand = sectorDemand.length > 0 
+                      ? sectorDemand.reduce((acc, d) => acc + (d.aggregate_demand_score || 0), 0) / sectorDemand.length
+                      : 0;
+                    const highDemandCount = sectorDemand.filter(d => (d.aggregate_demand_score || 0) > 5).length;
+                    
+                    return (
+                      <div
+                        key={sector.id}
+                        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+                      >
 
-                ))}
+                        <p className="text-sm font-semibold text-[#c2410c]">
+                          {sector.name}
+                        </p>
+
+                        <h3 className="mt-3 text-lg font-bold text-[#123b68]">
+                          {sectorDemand.length} Records
+                        </h3>
+
+                        <div className="mt-5 space-y-3">
+
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-500">
+                              Avg Demand Score
+                            </span>
+
+                            <span className="font-semibold text-slate-700">
+                              {avgDemand.toFixed(1)}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-500">
+                              High Demand Areas
+                            </span>
+
+                            <span className="font-semibold text-red-600">
+                              {highDemandCount}
+                            </span>
+                          </div>
+
+                        </div>
+
+                      </div>
+                    );
+                  })
+                )}
 
               </div>
 
             </section>
 
-            {/* ================= DISTRICT GAP ================= */}
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-
-              <div className="mb-5">
-
-                <h2 className="text-lg font-bold text-[#123b68]">
-                  District-wise Workforce Gap
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Districts where workforce shortages are most visible.
-                </p>
-
+            {/* ================= DATA SOURCE NOTICE ================= */}
+            <section className="rounded-xl bg-blue-50 border border-blue-100 p-6">
+              <div className="flex items-start gap-4">
+                <div className="text-blue-600">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-[#123b68]">Data Source</h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    This page displays workforce gap analysis from industry demand data via the 
+                    <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">/api/v1/demand/industries</code> endpoint. 
+                    Full workforce gap analysis requires integration with training capacity and candidate data.
+                  </p>
+                </div>
               </div>
-
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-
-                {districtData.map((item) => (
-
-                  <div
-                    key={item.district}
-                    className="rounded-lg border border-slate-200 p-5"
-                  >
-
-                    <p className="text-sm font-semibold text-[#c2410c]">
-                      {item.district}
-                    </p>
-
-                    <h3 className="mt-2 font-semibold text-slate-800">
-                      {item.sector}
-                    </h3>
-
-                    <div className="mt-4 flex items-center justify-between">
-
-                      <span className="text-sm text-slate-500">
-                        Gap
-                      </span>
-
-                      <span className="font-bold text-red-600">
-                        {item.gap}
-                      </span>
-
-                    </div>
-
-                    <p className="mt-2 text-xs font-medium text-slate-500">
-                      Priority: {item.priority}
-                    </p>
-
-                  </div>
-
-                ))}
-
-              </div>
-
-            </section>
-
-            {/* ================= GOVERNMENT INPUT ================= */}
-            <section className="rounded-xl bg-[#123b68] p-6 text-white shadow-sm">
-
-              <p className="text-xs font-bold uppercase tracking-wider text-orange-200">
-                INDUSTRY → GOVERNMENT
-              </p>
-
-              <h2 className="mt-2 text-xl font-bold">
-                Workforce Development Input
-              </h2>
-
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-blue-100">
-                Workforce gap information can help government departments
-                identify shortage areas, increase training capacity, support
-                placement programs and prepare skilled candidates for
-                high-demand industry roles.
-              </p>
-
             </section>
 
           </div>

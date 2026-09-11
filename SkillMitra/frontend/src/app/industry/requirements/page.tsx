@@ -1,152 +1,110 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { api, type District, type IndustrySector } from "@/lib/api";
 
-const requirementData = [
-  {
-    sector: "EV / Automotive",
-    role: "EV Technician",
-    district: "Pune",
-    priority: "High",
-    required: 850,
-    available: 540,
-    gap: 310,
-    timeline: "0–2 Years",
-  },
-  {
-    sector: "EV / Automotive",
-    role: "Battery Specialist",
-    district: "Aurangabad",
-    priority: "Very High",
-    required: 720,
-    available: 390,
-    gap: 330,
-    timeline: "0–2 Years",
-  },
-  {
-    sector: "IT / Technology",
-    role: "AI / ML Engineer",
-    district: "Mumbai",
-    priority: "Very High",
-    required: 690,
-    available: 360,
-    gap: 330,
-    timeline: "0–2 Years",
-  },
-  {
-    sector: "IT / Technology",
-    role: "Cloud Engineer",
-    district: "Pune",
-    priority: "High",
-    required: 620,
-    available: 410,
-    gap: 210,
-    timeline: "0–2 Years",
-  },
-  {
-    sector: "Manufacturing",
-    role: "Automation Technician",
-    district: "Nashik",
-    priority: "High",
-    required: 640,
-    available: 450,
-    gap: 190,
-    timeline: "2–5 Years",
-  },
-  {
-    sector: "Manufacturing",
-    role: "Robotics Technician",
-    district: "Nagpur",
-    priority: "High",
-    required: 560,
-    available: 310,
-    gap: 250,
-    timeline: "2–5 Years",
-  },
-];
+export default function IndustryRequirementsPage() {
+  const router = useRouter();
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedSector, setSelectedSector] = useState("");
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [sectors, setSectors] = useState<IndustrySector[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [demandData, setDemandData] = useState<any[]>([]);
+  const [sectorData, setSectorData] = useState<any[]>([]);
+  const [trainingData, setTrainingData] = useState<any[]>([]);
 
-const sectorData = [
-  {
-    sector: "EV / Automotive",
-    workforce: "1,570",
-    current: "930",
-    gap: "640",
-    priority: "Critical",
-    focus: "EV Technicians & Battery Specialists",
-  },
-  {
-    sector: "IT / Technology",
-    workforce: "1,310",
-    current: "770",
-    gap: "540",
-    priority: "Critical",
-    focus: "AI/ML & Cloud Engineers",
-  },
-  {
-    sector: "Manufacturing",
-    workforce: "1,200",
-    current: "760",
-    gap: "440",
-    priority: "High",
-    focus: "Automation & Robotics",
-  },
-];
+  useEffect(() => {
+    (async () => {
+      try {
+        const [dRes, sRes] = await Promise.all([
+          api.districts().catch(() => []),
+          api.sectors().catch(() => []),
+        ]);
+        setDistricts(dRes);
+        setSectors(sRes);
+      } catch (err) {
+        console.error("Failed to load reference data:", err);
+        setError("Failed to load reference data");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
-const trainingData = [
-  {
-    program: "EV Technician Training",
-    duration: "6 Months",
-    target: 320,
-    priority: "Very High",
-  },
-  {
-    program: "AI & Machine Learning",
-    duration: "8 Months",
-    target: 280,
-    priority: "Very High",
-  },
-  {
-    program: "Industrial Automation",
-    duration: "6 Months",
-    target: 240,
-    priority: "High",
-  },
-];
+  useEffect(() => {
+    (async () => {
+      try {
+        const demandRes = await api.industryDemand({
+          district_id: selectedDistrict || undefined,
+          industry_sector_id: selectedSector || undefined,
+        });
+        
+        if (Array.isArray(demandRes)) {
+          setDemandData(demandRes);
+        } else {
+          setDemandData([]);
+        }
+      } catch (err) {
+        console.error("Failed to load demand data:", err);
+        setDemandData([]);
+      }
+    })();
+  }, [selectedDistrict, selectedSector]);
 
-export default function WorkforceRequirementsPage() {
-  const [selectedSector, setSelectedSector] = useState("All Sectors");
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#123b68] border-r-transparent"></div>
+            <p className="mt-4 text-sm text-slate-600">Loading industry requirements...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
-  const filteredData =
-    selectedSector === "All Sectors"
-      ? requirementData
-      : requirementData.filter((item) => item.sector === selectedSector);
+  if (error) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-sm text-red-600">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-[#123b68] text-white text-sm rounded hover:bg-[#123b68]/90"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
-      {/* Government Header */}
-      <header className="fixed left-0 right-0 top-0 z-50 bg-[#123b68] text-white">
-        <div className="flex h-[60px] items-center justify-between px-6 lg:px-10">
+      {/* Header */}
+      <header className="fixed left-0 right-0 top-0 z-50 bg-[#123b68] text-white shadow-md">
+        <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="relative h-10 w-10">
+            <div className="relative h-10 w-10 shrink-0">
               <Image
-                src="/government-logo.png"
-                alt="Government Logo"
+                src="/skillmitra-logo.png"
+                alt="SkillMitra"
                 fill
                 className="object-contain"
               />
             </div>
-
             <div>
-              <p className="text-sm font-semibold">
-                Government of Maharashtra
-              </p>
-              <p className="text-[11px] text-blue-100">
-                Skill Development & Workforce Intelligence
-              </p>
+              <h1 className="text-lg font-bold">SkillMitra</h1>
+              <p className="text-[11px] text-blue-100">Industry Requirements Portal</p>
             </div>
           </div>
-
           <div className="hidden text-right sm:block">
             <p className="text-xs font-medium">Industry Portal</p>
             <p className="text-[11px] text-blue-100">
@@ -288,7 +246,7 @@ export default function WorkforceRequirementsPage() {
                   Total Workforce Required
                 </p>
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  4,080
+                  {demandData.reduce((sum, d) => sum + (d.aggregate_demand_score || 0), 0).toLocaleString()}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
                   Across priority sectors
@@ -300,7 +258,7 @@ export default function WorkforceRequirementsPage() {
                   Current Workforce
                 </p>
                 <p className="mt-2 text-3xl font-bold text-emerald-600">
-                  2,460
+                  0
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
                   Currently available
@@ -312,7 +270,7 @@ export default function WorkforceRequirementsPage() {
                   Additional Workforce
                 </p>
                 <p className="mt-2 text-3xl font-bold text-orange-600">
-                  1,620
+                  {demandData.reduce((sum, d) => sum + (d.aggregate_demand_score || 0), 0).toLocaleString()}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
                   Additional workers required
@@ -324,10 +282,10 @@ export default function WorkforceRequirementsPage() {
                   Planning Priority
                 </p>
                 <p className="mt-2 text-3xl font-bold text-red-600">
-                  Critical
+                  {demandData.filter(d => d.aggregate_demand_score > 100).length > 0 ? "Critical" : "Moderate"}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Immediate action required
+                  {demandData.filter(d => d.aggregate_demand_score > 100).length > 0 ? "Immediate action required" : "Monitor demand"}
                 </p>
               </div>
             </div>
@@ -350,10 +308,10 @@ export default function WorkforceRequirementsPage() {
                   onChange={(e) => setSelectedSector(e.target.value)}
                   className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-[#123b68]"
                 >
-                  <option>All Sectors</option>
-                  <option>EV / Automotive</option>
-                  <option>IT / Technology</option>
-                  <option>Manufacturing</option>
+                  <option value="">All Sectors</option>
+                  {sectors.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -409,52 +367,62 @@ export default function WorkforceRequirementsPage() {
                   </thead>
 
                   <tbody className="divide-y divide-slate-100">
-                    {filteredData.map((item) => (
-                      <tr
-                        key={`${item.role}-${item.district}`}
-                        className="hover:bg-slate-50"
-                      >
-                        <td className="px-6 py-4 text-sm font-medium text-slate-700">
-                          {item.sector}
-                        </td>
+                    {demandData.length > 0 ? (
+                      demandData.map((item) => (
+                        <tr
+                          key={item.id}
+                          className="hover:bg-slate-50"
+                        >
+                          <td className="px-6 py-4 text-sm font-semibold text-slate-700">
+                            {sectors.find(s => s.id === item.industry_sector_id)?.name || "Unknown Sector"}
+                          </td>
 
-                        <td className="px-6 py-4 text-sm font-semibold text-[#123b68]">
-                          {item.role}
-                        </td>
+                          <td className="px-6 py-4 text-sm font-semibold text-[#123b68]">
+                            {item.job_role_title || "Unknown Role"}
+                          </td>
 
-                        <td className="px-6 py-4 text-sm text-slate-600">
-                          {item.district}
-                        </td>
+                          <td className="px-6 py-4 text-sm text-slate-600">
+                            {districts.find(d => d.id === item.district_id)?.name || "Unknown District"}
+                          </td>
 
-                        <td className="px-6 py-4">
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                              item.priority === "Very High"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-orange-100 text-orange-700"
-                            }`}
-                          >
-                            {item.priority}
-                          </span>
-                        </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                item.aggregate_demand_score > 100
+                                  ? "bg-red-100 text-red-700"
+                                  : item.aggregate_demand_score > 50
+                                  ? "bg-orange-100 text-orange-700"
+                                  : "bg-yellow-100 text-yellow-700"
+                              }`}
+                            >
+                              {item.aggregate_demand_score > 100 ? "Very High" : item.aggregate_demand_score > 50 ? "High" : "Moderate"}
+                            </span>
+                          </td>
 
-                        <td className="px-6 py-4 text-sm font-semibold text-slate-700">
-                          {item.required}
-                        </td>
+                          <td className="px-6 py-4 text-sm font-semibold text-slate-700">
+                            {item.aggregate_demand_score || 0}
+                          </td>
 
-                        <td className="px-6 py-4 text-sm font-semibold text-emerald-600">
-                          {item.available}
-                        </td>
+                          <td className="px-6 py-4 text-sm text-slate-600">
+                            0
+                          </td>
 
-                        <td className="px-6 py-4 text-sm font-bold text-red-600">
-                          {item.gap}
-                        </td>
+                          <td className="px-6 py-4 text-sm font-bold text-orange-600">
+                            {item.aggregate_demand_score || 0}
+                          </td>
 
-                        <td className="px-6 py-4 text-sm text-slate-600">
-                          {item.timeline}
+                          <td className="px-6 py-4 text-sm text-slate-600">
+                            Insufficient data
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={8} className="px-6 py-8 text-center text-sm text-slate-400">
+                          No workforce requirements data available for the selected filters.
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>

@@ -2,8 +2,50 @@
 
 import Image from "next/image";
 import EmployerSidebar from "@/components/employer/EmployerSidebar";
+import { api } from "@/lib/api";
+import { useEffect, useState } from "react";
+
+type DemandData = {
+  total_demand: number;
+  open_job_postings: number;
+  districts_covered: number;
+  top_roles: Array<{ id: string; title: string; demand: number }>;
+  top_sectors: Array<{ id: string; name: string; demand: number }>;
+  top_skills: Array<{ id: string; name: string; demand: number }>;
+};
 
 export default function IndustryDemandPage() {
+  const [demandData, setDemandData] = useState<DemandData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedSector, setSelectedSector] = useState("");
+  const [selectedRole, setSelectedRole] = useState("");
+
+  useEffect(() => {
+    async function loadDemandData() {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const params: any = {};
+        if (selectedDistrict) params.district_id = selectedDistrict;
+        if (selectedSector) params.sector_id = selectedSector;
+        if (selectedRole) params.job_role_id = selectedRole;
+        
+        const data = await api.employerIntelligenceDemand(params);
+        setDemandData(data);
+      } catch (err) {
+        console.error("Failed to load demand data:", err);
+        setError("Unable to load demand intelligence. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDemandData();
+  }, [selectedDistrict, selectedSector, selectedRole]);
+
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
 
@@ -108,12 +150,17 @@ export default function IndustryDemandPage() {
                     District
                   </span>
 
-                  <select className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
-                    <option>Pune</option>
-                    <option>Mumbai</option>
-                    <option>Nashik</option>
-                    <option>Nagpur</option>
-                    <option>Aurangabad</option>
+                  <select 
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"
+                    value={selectedDistrict}
+                    onChange={(e) => setSelectedDistrict(e.target.value)}
+                  >
+                    <option value="">All Districts</option>
+                    <option value="pune-district-id">Pune</option>
+                    <option value="mumbai-district-id">Mumbai</option>
+                    <option value="nashik-district-id">Nashik</option>
+                    <option value="nagpur-district-id">Nagpur</option>
+                    <option value="aurangabad-district-id">Aurangabad</option>
                   </select>
                 </label>
 
@@ -122,11 +169,16 @@ export default function IndustryDemandPage() {
                     Industry Sector
                   </span>
 
-                  <select className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
-                    <option>EV / Automotive</option>
-                    <option>IT & Software</option>
-                    <option>Manufacturing</option>
-                    <option>Healthcare</option>
+                  <select 
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"
+                    value={selectedSector}
+                    onChange={(e) => setSelectedSector(e.target.value)}
+                  >
+                    <option value="">All Sectors</option>
+                    <option value="ev-sector-id">EV / Automotive</option>
+                    <option value="it-sector-id">IT & Software</option>
+                    <option value="manufacturing-sector-id">Manufacturing</option>
+                    <option value="healthcare-sector-id">Healthcare</option>
                   </select>
                 </label>
 
@@ -135,16 +187,33 @@ export default function IndustryDemandPage() {
                     Job Role
                   </span>
 
-                  <select className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm">
-                    <option>EV Technician</option>
-                    <option>Software Developer</option>
-                    <option>Data Analyst</option>
-                    <option>UI/UX Designer</option>
+                  <select 
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"
+                    value={selectedRole}
+                    onChange={(e) => setSelectedRole(e.target.value)}
+                  >
+                    <option value="">All Roles</option>
+                    <option value="ev-technician-id">EV Technician</option>
+                    <option value="software-developer-id">Software Developer</option>
+                    <option value="data-analyst-id">Data Analyst</option>
+                    <option value="ui-ux-designer-id">UI/UX Designer</option>
                   </select>
                 </label>
 
               </div>
             </div>
+
+            {/* ERROR STATE */}
+            {error && (
+              <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-5">
+                <p className="font-semibold text-red-800">
+                  Error
+                </p>
+                <p className="mt-1 text-sm text-red-700">
+                  {error}
+                </p>
+              </div>
+            )}
 
             {/* DEMAND OVERVIEW */}
             <div className="mt-6 grid gap-6 md:grid-cols-3">
@@ -155,7 +224,7 @@ export default function IndustryDemandPage() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  —
+                  {loading ? "..." : demandData?.open_job_postings ?? "—"}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
@@ -169,7 +238,7 @@ export default function IndustryDemandPage() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  —
+                  {loading ? "..." : demandData?.top_skills.length ?? "—"}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
@@ -179,15 +248,15 @@ export default function IndustryDemandPage() {
 
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-xs text-slate-500">
-                  Demand Trend
+                  Total Demand Score
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  —
+                  {loading ? "..." : demandData?.total_demand ?? "—"}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
-                  Based on available intelligence
+                  Aggregate demand across all sectors
                 </p>
               </div>
 
@@ -204,12 +273,45 @@ export default function IndustryDemandPage() {
                 Skills currently required by industry.
               </p>
 
-              <div className="mt-5 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-                <p className="text-sm text-slate-500">
-                  Skill demand data will appear here from the
-                  labour-market intelligence API.
-                </p>
-              </div>
+              {loading ? (
+                <div className="mt-5 text-center text-slate-500">
+                  Loading skill demand data...
+                </div>
+              ) : demandData?.top_skills && demandData.top_skills.length > 0 ? (
+                <div className="mt-5 space-y-3">
+                  {demandData.top_skills.slice(0, 5).map((skill) => (
+                    <div
+                      key={skill.id}
+                      className="flex items-center gap-3"
+                    >
+                      <div className="w-40 text-sm font-medium">
+                        {skill.name}
+                      </div>
+
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+
+                        <div
+                          className="h-full rounded-full bg-blue-600"
+                          style={{
+                            width: `${Math.min((skill.demand / (demandData.top_skills[0]?.demand || 1)) * 100, 100)}%`,
+                          }}
+                        />
+
+                      </div>
+
+                      <span className="w-20 text-right text-xs text-slate-500">
+                        {skill.demand}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-5 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+                  <p className="text-sm text-slate-500">
+                    No skill demand data available for the selected filters.
+                  </p>
+                </div>
+              )}
 
             </div>
 
@@ -225,12 +327,55 @@ export default function IndustryDemandPage() {
                 sector and job role.
               </p>
 
-              <div className="mt-5 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-                <p className="text-sm text-slate-500">
-                  Detailed demand analysis will be connected to the
-                  backend intelligence API.
-                </p>
-              </div>
+              {loading ? (
+                <div className="mt-5 text-center text-slate-500">
+                  Loading demand analysis...
+                </div>
+              ) : demandData ? (
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                  
+                  {/* Top Roles */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900 mb-3">Top Job Roles</h3>
+                    {demandData.top_roles.length > 0 ? (
+                      <div className="space-y-2">
+                        {demandData.top_roles.slice(0, 5).map((role) => (
+                          <div key={role.id} className="flex justify-between text-sm">
+                            <span className="text-slate-700">{role.title}</span>
+                            <span className="font-medium text-slate-900">{role.demand}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500">No role data available</p>
+                    )}
+                  </div>
+
+                  {/* Top Sectors */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900 mb-3">Top Sectors</h3>
+                    {demandData.top_sectors.length > 0 ? (
+                      <div className="space-y-2">
+                        {demandData.top_sectors.slice(0, 5).map((sector) => (
+                          <div key={sector.id} className="flex justify-between text-sm">
+                            <span className="text-slate-700">{sector.name}</span>
+                            <span className="font-medium text-slate-900">{sector.demand}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500">No sector data available</p>
+                    )}
+                  </div>
+
+                </div>
+              ) : (
+                <div className="mt-5 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+                  <p className="text-sm text-slate-500">
+                    No demand analysis data available for the selected filters.
+                  </p>
+                </div>
+              )}
 
             </div>
 

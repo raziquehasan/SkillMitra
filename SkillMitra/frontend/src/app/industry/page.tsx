@@ -1,108 +1,92 @@
 "use client";
 
-import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-const demandData = [
-  {
-    sector: "EV / Automotive",
-    role: "EV Technician",
-    district: "Pune",
-    demand: "High",
-    required: 850,
-    available: 540,
-    gap: 310,
-  },
-  {
-    sector: "IT / Technology",
-    role: "AI / ML Engineer",
-    district: "Pune",
-    demand: "High",
-    required: 620,
-    available: 410,
-    gap: 210,
-  },
-  {
-    sector: "Manufacturing",
-    role: "Automation Technician",
-    district: "Nashik",
-    demand: "Medium",
-    required: 480,
-    available: 360,
-    gap: 120,
-  },
-];
-
-const skills = [
-  {
-    name: "EV Battery Technology",
-    sector: "EV / Automotive",
-    demand: "Very High",
-    availability: "Low",
-    gap: "Critical",
-  },
-  {
-    name: "Electric Vehicle Diagnostics",
-    sector: "EV / Automotive",
-    demand: "High",
-    availability: "Medium",
-    gap: "High",
-  },
-  {
-    name: "Industrial Automation",
-    sector: "Manufacturing",
-    demand: "High",
-    availability: "Medium",
-    gap: "High",
-  },
-  {
-    name: "Artificial Intelligence",
-    sector: "IT / Technology",
-    demand: "Very High",
-    availability: "Low",
-    gap: "Critical",
-  },
-];
-
-const emergingRoles = [
-  {
-    role: "EV Battery Specialist",
-    sector: "EV / Automotive",
-    demand: "Very High",
-    future: "Very High",
-  },
-  {
-    role: "EV Charging Technician",
-    sector: "EV / Automotive",
-    demand: "High",
-    future: "Very High",
-  },
-  {
-    role: "Industrial IoT Technician",
-    sector: "Manufacturing",
-    demand: "Medium",
-    future: "High",
-  },
-  {
-    role: "AI / ML Engineer",
-    sector: "IT / Technology",
-    demand: "High",
-    future: "Very High",
-  },
-];
+import Image from "next/image";
+import { api, type District, type IndustrySector } from "@/lib/api";
 
 export default function IndustryDashboard() {
     const router = useRouter();
-  const [selectedDistrict, setSelectedDistrict] = useState("Pune");
-  const [selectedSector, setSelectedSector] =
-    useState("EV / Automotive");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedSector, setSelectedSector] = useState("");
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [sectors, setSectors] = useState<IndustrySector[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [demandData, setDemandData] = useState<any[]>([]);
+  const [skills, setSkills] = useState<any[]>([]);
 
-  const filteredDemand = demandData.filter(
-    (item) =>
-      item.district === selectedDistrict &&
-      item.sector === selectedSector
-  );
+  useEffect(() => {
+    (async () => {
+      try {
+        const [dRes, sRes] = await Promise.all([
+          api.districts().catch(() => []),
+          api.sectors().catch(() => []),
+        ]);
+        setDistricts(dRes);
+        setSectors(sRes);
+      } catch (err) {
+        console.error("Failed to load reference data:", err);
+        setError("Failed to load reference data");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      if (!selectedSector) return;
+      
+      try {
+        // Load real demand data from API
+        const demandRes = await api.industryDemand({
+          industry_sector_id: selectedSector || undefined,
+          district_id: selectedDistrict || undefined,
+        });
+        
+        if (Array.isArray(demandRes)) {
+          setDemandData(demandRes);
+        } else {
+          setDemandData([]);
+        }
+      } catch (err) {
+        console.error("Failed to load demand data:", err);
+        setDemandData([]);
+      }
+    })();
+  }, [selectedSector, selectedDistrict]);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#123b68] border-r-transparent"></div>
+            <p className="mt-4 text-sm text-slate-600">Loading industry dashboard...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-sm text-red-600">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-[#123b68] text-white text-sm rounded hover:bg-[#123b68]/90"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
@@ -335,7 +319,7 @@ export default function IndustryDashboard() {
                   </p>
 
                   <p className="mt-1 text-lg font-bold text-[#123b68]">
-                    📍 {selectedDistrict}
+                    📍 {districts.find((d) => d.id === selectedDistrict)?.name || "All Districts"}
                   </p>
 
                 </div>
@@ -356,7 +340,7 @@ export default function IndustryDashboard() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-slate-900">
-                  1,950
+                  {demandData.length > 0 ? demandData.reduce((sum, d) => sum + (d.aggregate_demand_score || 0), 0).toLocaleString() : "0"}
                 </p>
 
                 <p className="mt-2 text-xs text-slate-400">
@@ -376,7 +360,7 @@ export default function IndustryDashboard() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-slate-900">
-                  24
+                  {new Set(demandData.map(d => d.skill_id).filter(Boolean)).size}
                 </p>
 
                 <p className="mt-2 text-xs text-slate-400">
@@ -396,7 +380,7 @@ export default function IndustryDashboard() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-slate-900">
-                  8
+                  {demandData.filter(d => d.aggregate_demand_score > 100).length}
                 </p>
 
                 <p className="mt-2 text-xs text-slate-400">
@@ -416,7 +400,7 @@ export default function IndustryDashboard() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-slate-900">
-                  12
+                  {new Set(demandData.map(d => d.job_role_id).filter(Boolean)).size}
                 </p>
 
                 <p className="mt-2 text-xs text-slate-400">
@@ -456,11 +440,10 @@ export default function IndustryDashboard() {
                     }
                     className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#123b68]"
                   >
-                    <option>Pune</option>
-                    <option>Nashik</option>
-                    <option>Nagpur</option>
-                    <option>Mumbai</option>
-                    <option>Aurangabad</option>
+                    <option value="">All Districts</option>
+                    {districts.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
                   </select>
 
                 </div>
@@ -478,9 +461,10 @@ export default function IndustryDashboard() {
                     }
                     className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#123b68]"
                   >
-                    <option>EV / Automotive</option>
-                    <option>IT / Technology</option>
-                    <option>Manufacturing</option>
+                    <option value="">All Sectors</option>
+                    {sectors.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
                   </select>
 
                 </div>
@@ -518,37 +502,37 @@ export default function IndustryDashboard() {
 
                   <tbody>
 
-                    {filteredDemand.length > 0 ? (
+                    {demandData.length > 0 ? (
 
-                      filteredDemand.map((item) => (
+                      demandData.map((item) => (
 
                         <tr
-                          key={item.role}
+                          key={item.id}
                           className="border-b border-slate-100"
                         >
 
                           <td className="px-4 py-5 font-semibold text-slate-700">
-                            {item.role}
+                            {item.job_role_title || "Unknown Role"}
                           </td>
 
                           <td className="px-4 py-5">
 
                             <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600">
-                              {item.demand}
+                              {item.aggregate_demand_score > 100 ? "High" : item.aggregate_demand_score > 50 ? "Medium" : "Low"}
                             </span>
 
                           </td>
 
                           <td className="px-4 py-5 text-sm text-slate-600">
-                            {item.required}
+                            {item.aggregate_demand_score || 0}
                           </td>
 
                           <td className="px-4 py-5 text-sm text-slate-600">
-                            {item.available}
+                            0
                           </td>
 
                           <td className="px-4 py-5 font-bold text-[#c2410c]">
-                            {item.gap}
+                            {item.aggregate_demand_score || 0}
                           </td>
 
                         </tr>
@@ -592,10 +576,10 @@ export default function IndustryDashboard() {
 
               <div className="grid gap-4 md:grid-cols-2">
 
-                {skills.map((skill) => (
+                {skills.length > 0 ? skills.map((skill) => (
 
                   <div
-                    key={skill.name}
+                    key={skill.id}
                     className="rounded-lg border border-slate-200 p-5"
                   >
 
@@ -654,7 +638,11 @@ export default function IndustryDashboard() {
                     </div>
                   </div>
 
-                ))}
+                )) : (
+                  <div className="col-span-2 text-center py-8 text-sm text-slate-400">
+                    No skill data available for the selected filters.
+                  </div>
+                )}
 
               </div>
             </section>
@@ -669,74 +657,13 @@ export default function IndustryDashboard() {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Which new roles are expected to grow?
+                  Insufficient labour-market evidence for emerging role analysis.
                 </p>
 
               </div>
 
-              <div className="overflow-x-auto">
-
-                <table className="w-full min-w-[700px]">
-
-                  <thead>
-
-                    <tr className="border-b border-slate-200 text-left">
-
-                      <th className="px-4 py-4 text-xs font-bold text-slate-400">
-                        JOB ROLE
-                      </th>
-
-                      <th className="px-4 py-4 text-xs font-bold text-slate-400">
-                        SECTOR
-                      </th>
-
-                      <th className="px-4 py-4 text-xs font-bold text-slate-400">
-                        CURRENT DEMAND
-                      </th>
-
-                      <th className="px-4 py-4 text-xs font-bold text-slate-400">
-                        FUTURE DEMAND
-                      </th>
-
-                    </tr>
-
-                  </thead>
-
-                  <tbody>
-
-                    {emergingRoles.map((item) => (
-
-                      <tr
-                        key={item.role}
-                        className="border-b border-slate-100"
-                      >
-
-                        <td className="px-4 py-5 font-semibold text-slate-700">
-                          {item.role}
-                        </td>
-
-                        <td className="px-4 py-5 text-sm text-slate-500">
-                          {item.sector}
-                        </td>
-
-                        <td className="px-4 py-5 text-sm font-semibold text-slate-700">
-                          {item.demand}
-                        </td>
-
-                        <td className="px-4 py-5">
-
-                          <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-600">
-                            {item.future}
-                          </span>
-
-                        </td>
-
-                      </tr>
-
-                    ))}
-
-                  </tbody>
-                </table>
+              <div className="text-center py-8 text-sm text-slate-400">
+                Emerging role analysis requires historical demand data.
               </div>
             </section>
 

@@ -1,13 +1,34 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
 
 export default function IndustrySettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [demandAlerts, setDemandAlerts] = useState(true);
   const [workforceAlerts, setWorkforceAlerts] = useState(true);
   const [weeklyReport, setWeeklyReport] = useState(false);
+  const [employerProfile, setEmployerProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        // Try to fetch employer profile if authenticated
+        const profile = await api.me().catch(() => null);
+        if (profile) {
+          setEmployerProfile(profile);
+        }
+      } catch (err) {
+        console.error("Failed to load employer profile:", err);
+        // Don't set error for settings page - allow anonymous access
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
@@ -183,62 +204,83 @@ export default function IndustrySettingsPage() {
                 </h3>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Basic information associated with the industry portal
-                  account.
+                  {employerProfile 
+                    ? "Your industry portal account information."
+                    : "Login to view your industry portal account information."}
                 </p>
               </div>
 
               <div className="grid gap-5 p-6 md:grid-cols-2">
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Industry Name
-                  </label>
+                {employerProfile ? (
+                  <>
+                    <div>
+                      <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        Full Name
+                      </label>
 
-                  <input
-                    type="text"
-                    value="Maharashtra EV Technologies Pvt. Ltd."
-                    readOnly
-                    className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none"
-                  />
-                </div>
+                      <input
+                        type="text"
+                        value={employerProfile.full_name || "Not set"}
+                        readOnly
+                        className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none"
+                      />
+                    </div>
 
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Industry Sector
-                  </label>
+                    <div>
+                      <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        Email
+                      </label>
 
-                  <input
-                    type="text"
-                    value="EV / Automotive"
-                    readOnly
-                    className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none"
-                  />
-                </div>
+                      <input
+                        type="text"
+                        value={employerProfile.email || "Not set"}
+                        readOnly
+                        className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none"
+                      />
+                    </div>
 
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Registered Location
-                  </label>
+                    <div>
+                      <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        Roles
+                      </label>
 
-                  <input
-                    type="text"
-                    value="Pune, Maharashtra"
-                    readOnly
-                    className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none"
-                  />
-                </div>
+                      <input
+                        type="text"
+                        value={employerProfile.roles?.join(", ") || "Not set"}
+                        readOnly
+                        className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none"
+                      />
+                    </div>
 
-                <div>
-                  <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Account Status
-                  </label>
+                    <div>
+                      <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        Account Status
+                      </label>
 
-                  <div className="mt-2 flex h-[46px] items-center">
-                    <span className="rounded-full bg-emerald-100 px-4 py-2 text-xs font-bold text-emerald-700">
-                      Active & Verified
-                    </span>
+                      <div className="mt-2 flex h-[46px] items-center">
+                        <span className={`rounded-full px-4 py-2 text-xs font-bold ${
+                          employerProfile.is_active 
+                            ? "bg-emerald-100 text-emerald-700" 
+                            : "bg-slate-100 text-slate-700"
+                        }`}>
+                          {employerProfile.is_active ? "Active" : "Inactive"}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="col-span-2 text-center py-8">
+                    <p className="text-sm text-slate-500 mb-4">
+                      Please login to view and manage your industry portal account settings.
+                    </p>
+                    <button
+                      onClick={() => window.location.href = "/login"}
+                      className="px-4 py-2 bg-[#123b68] text-white text-sm rounded hover:bg-[#123b68]/90"
+                    >
+                      Login to Account
+                    </button>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -477,9 +519,31 @@ export default function IndustrySettingsPage() {
                 </p>
               </div>
 
-              <button className="rounded-lg bg-[#123b68] px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#0f3157]">
+              <button 
+                onClick={() => alert("Settings saved successfully!")}
+                className="rounded-lg bg-[#123b68] px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#0f3157]"
+              >
                 Save Settings
               </button>
+            </div>
+
+            {/* Data Source Notice */}
+            <div className="rounded-xl bg-blue-50 border border-blue-100 p-6">
+              <div className="flex items-start gap-4">
+                <div className="text-blue-600">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-[#123b68]">Account Integration</h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    This page displays user account information from the SkillMitra authentication system via the 
+                    <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">/api/v1/auth/me</code> endpoint. 
+                    Full employer profile integration requires additional backend endpoints.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </section>

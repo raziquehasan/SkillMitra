@@ -3,7 +3,7 @@ function getApiBase(): string {
     // Server-side (inside Docker)
     return process.env.INTERNAL_API_URL || "http://backend:8080";
   }
-  // Client-side (browser)
+  // Client-side (browser) - use the same URL as server for Docker environment
   return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 }
 
@@ -99,6 +99,10 @@ export type JobPosting = {
     importance: string | null;
     skill: { id: string; name: string; category: { id: string; name: string } | null } | null;
   }>;
+  employment_type?: string;
+  skill_match_score?: number;
+  salary_range?: string;
+  required_skills?: string[];
 };
 
 export type IndustryDemand = {
@@ -238,6 +242,23 @@ export const api = {
     const queryString = params.toString();
     return apiFetch<JobRole[]>(
       `/api/v1/industry/job-roles${queryString ? `?${queryString}` : ""}`,
+    );
+  },
+  industryDemand: (params?: {
+    industry_sector_id?: string;
+    district_id?: string;
+    job_role_id?: string;
+    skill_id?: string;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params?.industry_sector_id) qs.set("industry_sector_id", params.industry_sector_id);
+    if (params?.district_id) qs.set("district_id", params.district_id);
+    if (params?.job_role_id) qs.set("job_role_id", params.job_role_id);
+    if (params?.skill_id) qs.set("skill_id", params.skill_id);
+    qs.set("page", "1");
+    qs.set("page_size", "50");
+    return apiFetch<IndustryDemand[]>(
+      `/api/v1/demand/industries?${qs.toString()}`,
     );
   },
   careerRecommendation: (params: {
@@ -427,6 +448,7 @@ export const api = {
         demand_count: number | null;
         training_coverage: string | null;
         gap_signal: string | null;
+        course_count: number;
       }>;
       training_capacity: {
         district_id: string;
@@ -477,14 +499,12 @@ export const api = {
     sector_id?: string;
     status?: string;
     search?: string;
-    include_demo?: boolean;
   }) => {
     const qs = new URLSearchParams();
     if (params.district_id) qs.set("district_id", params.district_id);
     if (params.sector_id) qs.set("sector_id", params.sector_id);
     if (params.status) qs.set("status", params.status);
     if (params.search) qs.set("search", params.search);
-    if (params.include_demo) qs.set("include_demo", "true");
     return apiFetch<any[]>(`/api/v1/government/training-programs?${qs.toString()}`);
   },
 
@@ -522,7 +542,7 @@ export const api = {
     apiFetch<any>(`/api/v1/government/districts${districtId ? `?district_id=${encodeURIComponent(districtId)}` : ""}`),
 
   districtRecommendations: (districtId?: string) =>
-    apiFetch<any>(`/api/v1/government/recommendations${districtId ? `?district_id=${encodeURIComponent(districtId)}` : ""}`),
+    apiFetch<any>(`/api/v1/government/district-recommendations/${districtId}`),
 
   emergingTechnologies: (params: Record<string, any> = {}) => {
     const qs = new URLSearchParams();
@@ -602,7 +622,7 @@ export const api = {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
     });
-    return apiFetch<any>(`/api/v1/government/district-plans${qs.toString() ? `?${qs.toString()}` : ""}`);
+    return apiFetch<any>(`/api/v1/government/district-recommendations/${params.district_id || ''}`);
   },
 
   trainingSupplyBySkill: (params: Record<string, any> = {}) => {
@@ -965,4 +985,174 @@ export const api = {
   employerCandidates: () => apiFetch<any[]>("/api/v1/employers/me/candidates"),
 
   employerApplications: () => apiFetch<any[]>("/api/v1/employers/me/applications"),
+
+  // Employer Intelligence endpoints
+  employerIntelligenceDemand: (params: {
+    district_id?: string;
+    sector_id?: string;
+    job_role_id?: string;
+    date_from?: string;
+    date_to?: string;
+  } = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<{
+      total_demand: number;
+      open_job_postings: number;
+      districts_covered: number;
+      top_roles: Array<{ id: string; title: string; demand: number }>;
+      top_sectors: Array<{ id: string; name: string; demand: number }>;
+      top_skills: Array<{ id: string; name: string; demand: number }>;
+    }>(`/api/v1/employer/intelligence/demand${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  employerIntelligenceRoles: (params: {
+    district_id?: string;
+    sector_id?: string;
+  } = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<Array<{
+      id: string;
+      title: string;
+      sector: string | null;
+      open_postings: number;
+      demand_count: number;
+      demand_classification: string | null;
+    }>>(`/api/v1/employer/intelligence/roles${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  employerIntelligenceSkills: (params: {
+    district_id?: string;
+    sector_id?: string;
+  } = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<Array<{
+      id: string;
+      name: string;
+      demand: number;
+      associated_roles: string[];
+      required_proficiency: string | null;
+      mapped_training_count: number;
+    }>>(`/api/v1/employer/intelligence/skills${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  employerIntelligenceTrends: (params: {
+    district_id?: string;
+    sector_id?: string;
+    skill_id?: string;
+    date_from?: string;
+    date_to?: string;
+  } = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<{
+      status: string;
+      message: string | null;
+      increasing_skills: number;
+      stable_skills: number;
+      emerging_skills: number;
+      trend_direction: string | null;
+      current_period: string | null;
+      historical_data: Array<{
+        period_start: string | null;
+        period_end: string | null;
+        demand_value: number;
+      }> | null;
+    }>(`/api/v1/employer/intelligence/trends${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  employerIntelligenceWorkforce: (params: {
+    district_id?: string;
+    sector_id?: string;
+  } = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<{
+      status: string;
+      message: string | null;
+      candidate_supply: number | null;
+      skill_supply: number | null;
+      applications: number | null;
+      skill_availability: Array<{ skill: string; count: number }> | null;
+      district_distribution: Array<{ district: string; count: number }> | null;
+    }>(`/api/v1/employer/intelligence/workforce${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  employerIntelligenceRequirements: (params: {
+    district_id?: string;
+    sector_id?: string;
+    job_role_id?: string;
+  } = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<Array<{
+      skill: string;
+      job_role: string;
+      importance: string | null;
+      proficiency: string | null;
+      demand: number;
+    }>>(`/api/v1/employer/intelligence/requirements${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  // Career Planning endpoints
+  careerPlanning: (params: {
+    district_id?: string;
+    sector?: string;
+  } = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<{
+      district: string | null;
+      plans: Array<{
+        id: string;
+        district_id: string | null;
+        district_name: string;
+        sector: string;
+        priority_skills: string[];
+        pg_training: string[];
+        job_roles: string[];
+        created_at: string;
+        related_courses: Array<{
+          id: string;
+          title: string;
+          description: string | null;
+          district_id: string | null;
+          status: string;
+          skills_covered: string[];
+        }>;
+        related_jobs: Array<{
+          id: string;
+          title: string;
+          company_name: string | null;
+          district_id: string | null;
+          status: string;
+          posted_date: string | null;
+        }>;
+      }>;
+    }>(`/api/v1/career-planning${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  careerPlanningDistricts: () => apiFetch<Array<{
+    district_id: string;
+    district_name: string;
+    plan_count: number;
+  }>>("/api/v1/career-planning/districts"),
+
+  careerPlanningSectors: () => apiFetch<string[]>("/api/v1/career-planning/sectors"),
 };

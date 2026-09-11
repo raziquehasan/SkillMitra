@@ -2,122 +2,82 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-const rolesData = [
-  {
-    sector: "EV / Automotive",
-    role: "EV Battery Specialist",
-    demand: "Very High",
-    growth: "Very High",
-    skills: "Battery Technology, BMS, Diagnostics",
-    openings: 420,
-    priority: "Critical",
-  },
-  {
-    sector: "EV / Automotive",
-    role: "EV Charging Technician",
-    demand: "High",
-    growth: "Very High",
-    skills: "EV Charging, Electrical Systems",
-    openings: 350,
-    priority: "High",
-  },
-  {
-    sector: "IT / Technology",
-    role: "AI / ML Engineer",
-    demand: "Very High",
-    growth: "Very High",
-    skills: "Python, Machine Learning, AI",
-    openings: 390,
-    priority: "Critical",
-  },
-  {
-    sector: "IT / Technology",
-    role: "Cloud Engineer",
-    demand: "High",
-    growth: "High",
-    skills: "Cloud Computing, DevOps, Networking",
-    openings: 310,
-    priority: "High",
-  },
-  {
-    sector: "Manufacturing",
-    role: "Industrial IoT Technician",
-    demand: "High",
-    growth: "High",
-    skills: "IoT, Sensors, Industrial Networks",
-    openings: 280,
-    priority: "High",
-  },
-  {
-    sector: "Manufacturing",
-    role: "Robotics Technician",
-    demand: "High",
-    growth: "Very High",
-    skills: "Robotics, Automation, PLC",
-    openings: 260,
-    priority: "High",
-  },
-];
-
-const sectorRoles = [
-  {
-    sector: "EV / Automotive",
-    roles: 6,
-    topRole: "EV Battery Specialist",
-    growth: "Very High",
-    demand: "Very High",
-  },
-  {
-    sector: "IT / Technology",
-    roles: 8,
-    topRole: "AI / ML Engineer",
-    growth: "Very High",
-    demand: "Very High",
-  },
-  {
-    sector: "Manufacturing",
-    roles: 7,
-    topRole: "Robotics Technician",
-    growth: "Very High",
-    demand: "High",
-  },
-];
-
-const futureRoles = [
-  {
-    role: "EV Battery Specialist",
-    reason:
-      "Rapid growth of electric mobility and battery manufacturing",
-    timeline: "0–2 Years",
-  },
-  {
-    role: "AI / ML Engineer",
-    reason: "Increasing AI adoption across industries",
-    timeline: "0–2 Years",
-  },
-  {
-    role: "Industrial IoT Technician",
-    reason: "Connected machines and smart manufacturing systems",
-    timeline: "2–5 Years",
-  },
-  {
-    role: "Robotics Technician",
-    reason: "Automation increases robotics support demand",
-    timeline: "2–5 Years",
-  },
-];
+import { api, type IndustrySector, type District } from "@/lib/api";
 
 export default function EmergingJobRolesPage() {
      const router = useRouter();
-  const [selectedSector, setSelectedSector] = useState("All Sectors");
+  const [selectedSector, setSelectedSector] = useState("");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [sectors, setSectors] = useState<IndustrySector[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [jobRoles, setJobRoles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredRoles =
-    selectedSector === "All Sectors"
-      ? rolesData
-      : rolesData.filter((item) => item.sector === selectedSector);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [sRes, dRes] = await Promise.all([
+          api.sectors().catch(() => []),
+          api.districts().catch(() => []),
+        ]);
+        setSectors(sRes);
+        setDistricts(dRes);
+      } catch (err) {
+        console.error("Failed to load reference data:", err);
+        setError("Failed to load reference data");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      if (!selectedSector && !selectedDistrict) return;
+      
+      try {
+        const roles = await api.jobRoles(selectedSector || undefined, selectedDistrict || undefined);
+        setJobRoles(roles);
+      } catch (err) {
+        console.error("Failed to load job roles:", err);
+        setJobRoles([]);
+      }
+    })();
+  }, [selectedSector, selectedDistrict]);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#123b68] border-r-transparent"></div>
+            <p className="mt-4 text-sm text-slate-600">Loading emerging job roles...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-sm text-red-600">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-[#123b68] text-white text-sm rounded hover:bg-[#123b68]/90"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
@@ -318,57 +278,57 @@ export default function EmergingJobRolesPage() {
 
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold text-slate-500">
-                  Emerging Job Roles
+                  Total Job Roles
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  21
+                  {jobRoles.length}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-400">
-                  Across major sectors
+                  {selectedSector ? "Filtered by sector" : "Across all sectors"}
                 </p>
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold text-slate-500">
-                  Very High Growth
+                  Active Roles
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#c2410c]">
-                  9
+                  {jobRoles.filter(role => role.is_active).length}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-400">
-                  Fast-growing roles
+                  Currently active positions
                 </p>
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold text-slate-500">
-                  Future Openings
+                  Available Sectors
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  2,010
+                  {sectors.length}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-400">
-                  Estimated opportunities
+                  Industry sectors covered
                 </p>
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold text-slate-500">
-                  Priority Roles
+                  Districts Covered
                 </p>
 
-                <p className="mt-2 text-3xl font-bold text-[#c2410c]">
-                  7
+                <p className="mt-2 text-3xl font-bold text-[#123b68]">
+                  {districts.length}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-400">
-                  Government priority
+                  Geographic coverage
                 </p>
               </div>
 
@@ -385,27 +345,46 @@ export default function EmergingJobRolesPage() {
                   </h2>
 
                   <p className="mt-1 text-xs text-slate-500">
-                    Explore emerging roles based on industry sector.
+                    Explore emerging roles based on industry sector and district.
                   </p>
                 </div>
 
-                <div className="w-full md:w-56">
+                <div className="flex gap-4">
+                  <div className="w-full md:w-48">
+                    <label className="mb-1 block text-xs font-semibold text-slate-500">
+                      Select Sector
+                    </label>
+                    <select
+                      value={selectedSector}
+                      onChange={(e) => setSelectedSector(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#123b68]"
+                    >
+                      <option value="">All Sectors</option>
+                      {sectors.map((sector) => (
+                        <option key={sector.id} value={sector.id}>
+                          {sector.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                  <label className="mb-1 block text-xs font-semibold text-slate-500">
-                    Select Sector
-                  </label>
-
-                  <select
-                    value={selectedSector}
-                    onChange={(e) => setSelectedSector(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#123b68]"
-                  >
-                    <option>All Sectors</option>
-                    <option>EV / Automotive</option>
-                    <option>IT / Technology</option>
-                    <option>Manufacturing</option>
-                  </select>
-
+                  <div className="w-full md:w-48">
+                    <label className="mb-1 block text-xs font-semibold text-slate-500">
+                      Select District
+                    </label>
+                    <select
+                      value={selectedDistrict}
+                      onChange={(e) => setSelectedDistrict(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#123b68]"
+                    >
+                      <option value="">All Districts</option>
+                      {districts.map((district) => (
+                        <option key={district.id} value={district.id}>
+                          {district.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
               </div>
@@ -467,72 +446,68 @@ export default function EmergingJobRolesPage() {
 
                   <tbody>
 
-                    {filteredRoles.map((item) => (
-                      <tr
-                        key={item.role}
-                        className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
-                      >
-
-                        <td className="px-6 py-4 text-sm font-medium text-slate-600">
-                          {item.sector}
+                    {jobRoles.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-8 text-center text-sm text-slate-500">
+                          {selectedSector || selectedDistrict 
+                            ? "No job roles found for the selected filters. Try different criteria." 
+                            : "Select a sector or district to view job roles."}
                         </td>
-
-                        <td className="px-6 py-4 text-sm font-bold text-[#123b68]">
-                          {item.role}
-                        </td>
-
-                        <td className="px-6 py-4">
-
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-bold ${
-                              item.demand === "Very High"
-                                ? "bg-orange-100 text-orange-700"
-                                : "bg-blue-100 text-blue-700"
-                            }`}
-                          >
-                            {item.demand}
-                          </span>
-
-                        </td>
-
-                        <td className="px-6 py-4">
-
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-bold ${
-                              item.growth === "Very High"
-                                ? "bg-orange-100 text-orange-700"
-                                : "bg-blue-100 text-blue-700"
-                            }`}
-                          >
-                            {item.growth}
-                          </span>
-
-                        </td>
-
-                        <td className="max-w-xs px-6 py-4 text-sm text-slate-500">
-                          {item.skills}
-                        </td>
-
-                        <td className="px-6 py-4 text-sm font-bold text-[#123b68]">
-                          {item.openings}
-                        </td>
-
-                        <td className="px-6 py-4">
-
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-bold ${
-                              item.priority === "Critical"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-yellow-100 text-yellow-700"
-                            }`}
-                          >
-                            {item.priority}
-                          </span>
-
-                        </td>
-
                       </tr>
-                    ))}
+                    ) : (
+                      jobRoles.map((role) => (
+                        <tr
+                          key={role.id}
+                          className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                        >
+
+                          <td className="px-6 py-4 text-sm font-medium text-slate-600">
+                            {role.industry_sector_id || "General"}
+                          </td>
+
+                          <td className="px-6 py-4 text-sm font-bold text-[#123b68]">
+                            {role.title}
+                          </td>
+
+                          <td className="px-6 py-4">
+
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-bold ${
+                                role.is_active ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-700"
+                              }`}
+                            >
+                              {role.is_active ? "Active" : "Inactive"}
+                            </span>
+
+                          </td>
+
+                          <td className="px-6 py-4">
+
+                            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
+                              Available
+                            </span>
+
+                          </td>
+
+                          <td className="max-w-xs px-6 py-4 text-sm text-slate-500">
+                            {role.description || "No description available"}
+                          </td>
+
+                          <td className="px-6 py-4 text-sm font-bold text-[#123b68]">
+                            -
+                          </td>
+
+                          <td className="px-6 py-4">
+
+                            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
+                              Standard
+                            </span>
+
+                          </td>
+
+                        </tr>
+                      ))
+                    )}
 
                   </tbody>
 
@@ -559,108 +534,79 @@ export default function EmergingJobRolesPage() {
 
               <div className="grid gap-5 md:grid-cols-3">
 
-                {sectorRoles.map((item) => (
-                  <div
-                    key={item.sector}
-                    className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-                  >
+                {sectors.length === 0 ? (
+                  <div className="col-span-3 text-center py-8 text-sm text-slate-500">
+                    No sector data available. Load sectors to view sector-wise roles.
+                  </div>
+                ) : (
+                  sectors.map((sector) => {
+                    const sectorRoles = jobRoles.filter(role => 
+                      role.industry_sector_id === sector.id
+                    );
+                    return (
+                      <div
+                        key={sector.id}
+                        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+                      >
 
-                    <p className="text-xs font-bold uppercase tracking-wide text-[#c2410c]">
-                      {item.sector}
-                    </p>
+                        <p className="text-xs font-bold uppercase tracking-wide text-[#c2410c]">
+                          {sector.name}
+                        </p>
 
-                    <p className="mt-4 text-3xl font-bold text-[#123b68]">
-                      {item.roles}
-                    </p>
+                        <p className="mt-4 text-3xl font-bold text-[#123b68]">
+                          {sectorRoles.length}
+                        </p>
 
-                    <p className="text-xs text-slate-500">
-                      Emerging roles
-                    </p>
+                        <p className="text-xs text-slate-500">
+                          Available roles
+                        </p>
 
-                    <div className="mt-5 border-t border-slate-100 pt-4">
+                        <div className="mt-5 border-t border-slate-100 pt-4">
 
-                      <p className="text-xs font-semibold text-slate-400">
-                        TOP EMERGING ROLE
-                      </p>
+                          <p className="text-xs font-semibold text-slate-400">
+                            TOP ROLE
+                          </p>
 
-                      <p className="mt-1 text-sm font-bold text-slate-700">
-                        {item.topRole}
-                      </p>
+                          <p className="mt-1 text-sm font-bold text-slate-700">
+                            {sectorRoles.length > 0 ? sectorRoles[0].title : "No roles"}
+                          </p>
 
-                      <div className="mt-4 flex gap-2">
+                          <div className="mt-4 flex gap-2">
 
-                        <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700">
-                          {item.growth} Growth
-                        </span>
+                            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
+                              {sectorRoles.filter(r => r.is_active).length} Active
+                            </span>
 
-                        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
-                          {item.demand} Demand
-                        </span>
+                          </div>
+
+                        </div>
 
                       </div>
-
-                    </div>
-
-                  </div>
-                ))}
+                    );
+                  })
+                )}
 
               </div>
 
             </div>
 
-            {/* ================= FUTURE ROLE PIPELINE ================= */}
-            <div>
-
-              <div className="mb-4">
-
-                <h2 className="text-xl font-bold text-[#123b68]">
-                  Future Job Role Pipeline
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Roles expected to become increasingly important in the
-                  coming years.
-                </p>
-
+            {/* ================= DATA SOURCE NOTICE ================= */}
+            <div className="rounded-xl bg-blue-50 border border-blue-100 p-6">
+              <div className="flex items-start gap-4">
+                <div className="text-blue-600">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-[#123b68]">Data Source</h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    This page displays real job roles from the SkillMitra database via the 
+                    <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">/api/v1/industry/job-roles</code> endpoint. 
+                    Data is filtered by industry sector and district based on demand records.
+                  </p>
+                </div>
               </div>
-
-              <div className="grid gap-5 md:grid-cols-2">
-
-                {futureRoles.map((item) => (
-                  <div
-                    key={item.role}
-                    className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-                  >
-
-                    <div className="flex items-start justify-between gap-4">
-
-                      <div>
-
-                        <p className="text-xs font-bold uppercase tracking-wide text-[#c2410c]">
-                          Future Role
-                        </p>
-
-                        <h3 className="mt-2 text-lg font-bold text-[#123b68]">
-                          {item.role}
-                        </h3>
-
-                      </div>
-
-                      <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                        {item.timeline}
-                      </span>
-
-                    </div>
-
-                    <p className="mt-4 text-sm leading-6 text-slate-500">
-                      {item.reason}
-                    </p>
-
-                  </div>
-                ))}
-
-              </div>
-
             </div>
 
             {/* ================= GOVERNMENT INPUT ================= */}

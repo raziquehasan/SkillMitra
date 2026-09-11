@@ -1,70 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
 
 type Requirement = {
-  industry: string;
-  sector: string;
-  district: string;
-  skill: string;
+  industry: string | null;
+  sector: string | null;
+  district: string | null;
+  skill: string | null;
   required: number;
   available: number;
   gap: number;
-  timeline: string;
+  timeline: string | null;
   priority: "High" | "Medium" | "Low";
 };
-
-const requirements: Requirement[] = [
-  {
-    industry: "Tata Motors",
-    sector: "Automotive",
-    district: "Pune",
-    skill: "EV Technician",
-    required: 500,
-    available: 150,
-    gap: 350,
-    timeline: "Next 6 Months",
-    priority: "High",
-  },
-  {
-    industry: "Mahindra & Mahindra",
-    sector: "Automotive",
-    district: "Pune",
-    skill: "CNC Operator",
-    required: 300,
-    available: 180,
-    gap: 120,
-    timeline: "Next 6 Months",
-    priority: "High",
-  },
-  {
-    industry: "Tata Power",
-    sector: "Renewable Energy",
-    district: "Nagpur",
-    skill: "Solar Technician",
-    required: 220,
-    available: 140,
-    gap: 80,
-    timeline: "Next 12 Months",
-    priority: "Medium",
-  },
-  {
-    industry: "Tech Mahindra",
-    sector: "IT/ITES",
-    district: "Mumbai",
-    skill: "Data Analyst",
-    required: 180,
-    available: 120,
-    gap: 60,
-    timeline: "Next 6 Months",
-    priority: "Medium",
-  },
-];
 
 export default function IndustryRequirementsPage() {
   const [district, setDistrict] = useState("All Districts");
   const [sector, setSector] = useState("All Sectors");
   const [priority, setPriority] = useState("All Priorities");
+  const [requirements, setRequirements] = useState<Requirement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch industry demand data from backend
+        const data = await api.demandIndustries();
+        
+        // Transform to requirements format
+        const transformed: Requirement[] = data.map((item: any) => ({
+          industry: null, // No company-specific data available
+          sector: item.industry_sector_id || null,
+          district: item.district_id || null,
+          skill: item.skill_id || null,
+          required: Math.round(item.aggregate_demand_score || 0),
+          available: 0, // Not available in current schema
+          gap: Math.round(item.aggregate_demand_score || 0),
+          timeline: null,
+          priority: "Medium" as const,
+        }));
+        
+        setRequirements(transformed);
+      } catch (err) {
+        console.error("Failed to load industry requirements:", err);
+        setError("Unable to load industry requirements data.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const filteredRequirements = requirements.filter((item) => {
     const districtMatch =
@@ -289,45 +278,55 @@ export default function IndustryRequirementsPage() {
               </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
-              <Filter
-                label="District"
-                value={district}
-                setValue={setDistrict}
-                options={[
-                  "All Districts",
-                  "Pune",
-                  "Mumbai",
-                  "Nagpur",
-                  "Nashik",
-                ]}
-              />
+            {loading ? (
+              <div className="p-4 text-center text-sm text-slate-500">
+                Loading data...
+              </div>
+            ) : error ? (
+              <div className="p-4 text-center text-sm text-rose-600">
+                {error}
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-3">
+                <Filter
+                  label="District"
+                  value={district}
+                  setValue={setDistrict}
+                  options={[
+                    "All Districts",
+                    "Pune",
+                    "Mumbai",
+                    "Nagpur",
+                    "Nashik",
+                  ]}
+                />
 
-              <Filter
-                label="Sector"
-                value={sector}
-                setValue={setSector}
-                options={[
-                  "All Sectors",
-                  "Automotive",
-                  "Manufacturing",
-                  "Renewable Energy",
-                  "IT/ITES",
-                ]}
-              />
+                <Filter
+                  label="Sector"
+                  value={sector}
+                  setValue={setSector}
+                  options={[
+                    "All Sectors",
+                    "Automotive",
+                    "Manufacturing",
+                    "Renewable Energy",
+                    "IT/ITES",
+                  ]}
+                />
 
-              <Filter
-                label="Priority"
-                value={priority}
-                setValue={setPriority}
-                options={[
-                  "All Priorities",
-                  "High",
-                  "Medium",
-                  "Low",
-                ]}
-              />
-            </div>
+                <Filter
+                  label="Priority"
+                  value={priority}
+                  setValue={setPriority}
+                  options={[
+                    "All Priorities",
+                    "High",
+                    "Medium",
+                    "Low",
+                  ]}
+                />
+              </div>
+            )}
           </div>
 
           {/* TABLE */}

@@ -2,39 +2,72 @@
 
 import Image from "next/image";
 import EmployerSidebar from "@/components/employer/EmployerSidebar";
+import { api } from "@/lib/api";
+import { useEffect, useState } from "react";
 
-const trends = [
-  {
-    skill: "Electric Vehicle Technology",
-    sector: "EV / Automotive",
-    trend: "Increasing",
-    description:
-      "Growing relevance of electric vehicle technologies in the automotive sector.",
-  },
-  {
-    skill: "Software Development",
-    sector: "IT & Software",
-    trend: "High",
-    description:
-      "Software development skills continue to remain important across technology-driven industries.",
-  },
-  {
-    skill: "Data Analysis",
-    sector: "IT & Software",
-    trend: "Increasing",
-    description:
-      "Data analysis capabilities are becoming increasingly important for business decision-making.",
-  },
-  {
-    skill: "UI/UX Design",
-    sector: "IT & Software",
-    trend: "Growing",
-    description:
-      "Digital products are increasing demand for user experience and interface design skills.",
-  },
-];
+type TrendData = {
+  status: string;
+  message: string | null;
+  increasing_skills: number;
+  stable_skills: number;
+  emerging_skills: number;
+  trend_direction: string | null;
+  current_period: string | null;
+  historical_data: Array<{
+    period_start: string | null;
+    period_end: string | null;
+    demand_value: number;
+  }> | null;
+};
 
 export default function SkillTrendsPage() {
+  const [trendData, setTrendData] = useState<TrendData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedSector, setSelectedSector] = useState("");
+  const [selectedPeriod, setSelectedPeriod] = useState("6months");
+
+  useEffect(() => {
+    async function loadTrendData() {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const params: any = {};
+        if (selectedDistrict) params.district_id = selectedDistrict;
+        if (selectedSector) params.sector_id = selectedSector;
+        
+        // Calculate date range based on selected period
+        const now = new Date();
+        let dateFrom: Date;
+        
+        switch (selectedPeriod) {
+          case "12months":
+            dateFrom = new Date(now.setFullYear(now.getFullYear() - 1));
+            break;
+          case "2years":
+            dateFrom = new Date(now.setFullYear(now.getFullYear() - 2));
+            break;
+          default: // 6months
+            dateFrom = new Date(now.setMonth(now.getMonth() - 6));
+        }
+        
+        params.date_from = dateFrom.toISOString().split('T')[0];
+        
+        const data = await api.employerIntelligenceTrends(params);
+        setTrendData(data);
+      } catch (err) {
+        console.error("Failed to load trend data:", err);
+        setError("Unable to load labour-market intelligence. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadTrendData();
+  }, [selectedDistrict, selectedSector, selectedPeriod]);
+
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
 
@@ -139,7 +172,7 @@ export default function SkillTrendsPage() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  —
+                  {loading ? "..." : trendData?.increasing_skills ?? "—"}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
@@ -153,7 +186,7 @@ export default function SkillTrendsPage() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  —
+                  {loading ? "..." : trendData?.stable_skills ?? "—"}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
@@ -167,7 +200,7 @@ export default function SkillTrendsPage() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  —
+                  {loading ? "..." : trendData?.emerging_skills ?? "—"}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
@@ -191,12 +224,16 @@ export default function SkillTrendsPage() {
                     District
                   </span>
 
-                  <select className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]">
-                    <option>All Districts</option>
-                    <option>Pune</option>
-                    <option>Mumbai</option>
-                    <option>Nashik</option>
-                    <option>Nagpur</option>
+                  <select 
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]"
+                    value={selectedDistrict}
+                    onChange={(e) => setSelectedDistrict(e.target.value)}
+                  >
+                    <option value="">All Districts</option>
+                    <option value="pune-district-id">Pune</option>
+                    <option value="mumbai-district-id">Mumbai</option>
+                    <option value="nashik-district-id">Nashik</option>
+                    <option value="nagpur-district-id">Nagpur</option>
                   </select>
                 </label>
 
@@ -205,12 +242,16 @@ export default function SkillTrendsPage() {
                     Industry Sector
                   </span>
 
-                  <select className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]">
-                    <option>All Sectors</option>
-                    <option>EV / Automotive</option>
-                    <option>IT & Software</option>
-                    <option>Manufacturing</option>
-                    <option>Healthcare</option>
+                  <select 
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]"
+                    value={selectedSector}
+                    onChange={(e) => setSelectedSector(e.target.value)}
+                  >
+                    <option value="">All Sectors</option>
+                    <option value="ev-sector-id">EV / Automotive</option>
+                    <option value="it-sector-id">IT & Software</option>
+                    <option value="manufacturing-sector-id">Manufacturing</option>
+                    <option value="healthcare-sector-id">Healthcare</option>
                   </select>
                 </label>
 
@@ -219,133 +260,113 @@ export default function SkillTrendsPage() {
                     Time Period
                   </span>
 
-                  <select className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]">
-                    <option>Last 6 Months</option>
-                    <option>Last 12 Months</option>
-                    <option>Last 2 Years</option>
+                  <select 
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]"
+                    value={selectedPeriod}
+                    onChange={(e) => setSelectedPeriod(e.target.value)}
+                  >
+                    <option value="6months">Last 6 Months</option>
+                    <option value="12months">Last 12 Months</option>
+                    <option value="2years">Last 2 Years</option>
                   </select>
                 </label>
 
               </div>
             </div>
 
-            {/* TREND OVERVIEW */}
-            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  Skill Demand Trend
-                </h2>
-
-                <p className="mt-1 text-xs text-slate-500">
-                  Indicative trend view based on labour-market
-                  demand.
+            {/* ERROR STATE */}
+            {error && (
+              <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-5">
+                <p className="font-semibold text-red-800">
+                  Error
+                </p>
+                <p className="mt-1 text-sm text-red-700">
+                  {error}
                 </p>
               </div>
+            )}
 
-              <div className="mt-6 flex h-56 items-end gap-3 rounded-xl border border-slate-200 bg-slate-50 p-5">
-
-                {[35, 45, 40, 55, 62, 72, 68, 82, 88, 94].map(
-                  (height, index) => (
-                    <div
-                      key={index}
-                      className="flex flex-1 flex-col items-center justify-end gap-2"
-                    >
-                      <div
-                        className="w-full max-w-12 rounded-t-lg bg-[#2563eb]"
-                        style={{
-                          height: `${height}%`,
-                        }}
-                      />
-
-                      <span className="text-[10px] text-slate-400">
-                        {index + 1}
-                      </span>
-                    </div>
-                  )
-                )}
-
+            {/* INSUFFICIENT EVIDENCE STATE */}
+            {trendData?.status === "insufficient_evidence" && !loading && (
+              <div className="mt-6 rounded-xl border border-orange-200 bg-orange-50 p-5">
+                <p className="font-semibold text-orange-800">
+                  Insufficient Labour-Market Evidence
+                </p>
+                <p className="mt-1 text-sm text-orange-700">
+                  {trendData.message || "There is not enough historical data to calculate skill trends for the selected filters."}
+                </p>
               </div>
+            )}
 
-              <div className="mt-4 flex items-center justify-between">
+            {/* TREND OVERVIEW */}
+            {trendData?.status === "available" && (
+              <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
 
                 <div>
-                  <p className="text-xs text-slate-500">
-                    Trend direction
-                  </p>
+                  <h2 className="text-lg font-bold text-slate-900">
+                    Skill Demand Trend
+                  </h2>
 
-                  <p className="mt-1 font-semibold text-green-600">
-                    ↗ Increasing
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-xs text-slate-500">
-                    Current period
-                  </p>
-
-                  <p className="mt-1 font-semibold text-[#123b68]">
-                    August 2026
+                  <p className="mt-1 text-xs text-slate-500">
+                    Historical demand analysis based on labour-market data.
                   </p>
                 </div>
 
-              </div>
-            </div>
-
-            {/* TRENDING SKILLS */}
-            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  Trending Skills
-                </h2>
-
-                <p className="mt-1 text-xs text-slate-500">
-                  Skills showing notable demand movement.
-                </p>
-              </div>
-
-              <div className="mt-5 space-y-3">
-
-                {trends.map((item) => (
-                  <div
-                    key={item.skill}
-                    className="rounded-xl border border-slate-200 p-4 transition hover:border-blue-200 hover:bg-slate-50"
-                  >
-
-                    <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-
-                      <div>
-
-                        <div className="flex flex-wrap items-center gap-2">
-
-                          <h3 className="font-semibold text-slate-900">
-                            {item.skill}
-                          </h3>
-
-                          <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-700">
-                            {item.sector}
+                <div className="mt-6 flex h-56 items-end gap-3 rounded-xl border border-slate-200 bg-slate-50 p-5">
+                  {trendData.historical_data && trendData.historical_data.length > 0 ? (
+                    trendData.historical_data.map((data, index) => {
+                      const maxDemand = Math.max(...trendData.historical_data!.map(d => d.demand_value));
+                      const height = maxDemand > 0 ? (data.demand_value / maxDemand) * 100 : 0;
+                      
+                      return (
+                        <div
+                          key={index}
+                          className="flex flex-1 flex-col items-center justify-end gap-2"
+                        >
+                          <div
+                            className="w-full max-w-12 rounded-t-lg bg-[#2563eb]"
+                            style={{
+                              height: `${Math.max(height, 5)}%`, // Minimum 5% height for visibility
+                            }}
+                          />
+                          <span className="text-[10px] text-slate-400">
+                            {index + 1}
                           </span>
-
                         </div>
-
-                        <p className="mt-2 text-sm text-slate-500">
-                          {item.description}
-                        </p>
-
-                      </div>
-
-                      <span className="whitespace-nowrap rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
-                        ↗ {item.trend}
-                      </span>
-
+                      );
+                    })
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-slate-500">
+                      No historical data available
                     </div>
+                  )}
+                </div>
 
+                <div className="mt-4 flex items-center justify-between">
+
+                  <div>
+                    <p className="text-xs text-slate-500">
+                      Trend direction
+                    </p>
+
+                    <p className="mt-1 font-semibold text-green-600">
+                      {trendData.trend_direction ? `↗ ${trendData.trend_direction}` : "—"}
+                    </p>
                   </div>
-                ))}
 
+                  <div className="text-right">
+                    <p className="text-xs text-slate-500">
+                      Current period
+                    </p>
+
+                    <p className="mt-1 font-semibold text-[#123b68]">
+                      {trendData.current_period ? new Date(trendData.current_period).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "—"}
+                    </p>
+                  </div>
+
+                </div>
               </div>
-            </div>
+            )}
 
             {/* INTELLIGENCE NOTICE */}
             <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50 p-5">
@@ -355,9 +376,7 @@ export default function SkillTrendsPage() {
               </h2>
 
               <p className="mt-1 text-sm text-slate-600">
-                Skill-trend analytics will be connected to
-                SkillMitra&apos;s backend intelligence services when
-                the required labour-market data is available.
+                Skill-trend analytics are calculated from actual historical demand data in the labour market.
               </p>
 
             </div>

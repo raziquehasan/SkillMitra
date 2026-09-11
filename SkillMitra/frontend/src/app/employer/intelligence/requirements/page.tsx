@@ -5,25 +5,24 @@ import EmployerSidebar from "@/components/employer/EmployerSidebar";
 import { api } from "@/lib/api";
 import { useEffect, useState } from "react";
 
-type SkillData = {
-  id: string;
-  name: string;
+type RequirementData = {
+  skill: string;
+  job_role: string;
+  importance: string | null;
+  proficiency: string | null;
   demand: number;
-  associated_roles: string[];
-  required_proficiency: string | null;
-  mapped_training_count: number;
 };
 
-export default function RequiredSkillsPage() {
-  const [skills, setSkills] = useState<SkillData[]>([]);
+export default function RequirementsPage() {
+  const [requirements, setRequirements] = useState<RequirementData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedSector, setSelectedSector] = useState("");
-  const [selectedDemand, setSelectedDemand] = useState("");
+  const [selectedRole, setSelectedRole] = useState("");
 
   useEffect(() => {
-    async function loadSkills() {
+    async function loadRequirements() {
       try {
         setLoading(true);
         setError(null);
@@ -31,35 +30,20 @@ export default function RequiredSkillsPage() {
         const params: any = {};
         if (selectedDistrict) params.district_id = selectedDistrict;
         if (selectedSector) params.sector_id = selectedSector;
+        if (selectedRole) params.job_role_id = selectedRole;
         
-        const data = await api.employerIntelligenceSkills(params);
-        
-        // Filter by demand level if selected
-        let filteredData = data;
-        if (selectedDemand === "high") {
-          filteredData = data.filter(s => s.demand >= 100);
-        } else if (selectedDemand === "growing") {
-          filteredData = data.filter(s => s.demand >= 50 && s.demand < 100);
-        } else if (selectedDemand === "moderate") {
-          filteredData = data.filter(s => s.demand > 0 && s.demand < 50);
-        }
-        
-        setSkills(filteredData);
+        const data = await api.employerIntelligenceRequirements(params);
+        setRequirements(data);
       } catch (err) {
-        console.error("Failed to load skills:", err);
-        setError("Unable to load skills data. Please try again.");
+        console.error("Failed to load requirements:", err);
+        setError("Unable to load requirements data. Please try again.");
       } finally {
         setLoading(false);
       }
     }
 
-    loadSkills();
-  }, [selectedDistrict, selectedSector, selectedDemand]);
-
-  // Calculate summary statistics
-  const requiredCount = skills.filter(s => s.demand > 0).length;
-  const highDemandCount = skills.filter(s => s.demand >= 100).length;
-  const growingCount = skills.filter(s => s.demand >= 50 && s.demand < 100).length;
+    loadRequirements();
+  }, [selectedDistrict, selectedSector, selectedRole]);
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
@@ -128,7 +112,7 @@ export default function RequiredSkillsPage() {
                 </p>
 
                 <p className="font-semibold text-[#123b68]">
-                  Required Skills Dashboard
+                  Skill Requirements Dashboard
                 </p>
               </div>
 
@@ -146,68 +130,21 @@ export default function RequiredSkillsPage() {
               </p>
 
               <h1 className="mt-1 text-2xl font-bold text-slate-900 md:text-3xl">
-                Required Skills
+                Skill Requirements
               </h1>
 
               <p className="mt-2 text-sm text-slate-500 md:text-base">
-                Understand the skills currently required by
-                employers across different industries.
+                Understand skill requirements across job roles
+                and their demand in the labour market.
               </p>
 
             </div>
 
-            {/* SUMMARY CARDS */}
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-xs font-semibold text-slate-500">
-                  Required Skills
-                </p>
-
-                <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  {loading ? "..." : requiredCount}
-                </p>
-
-                <p className="mt-1 text-xs text-slate-500">
-                  Skills identified from available job demand
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-xs font-semibold text-slate-500">
-                  High-Demand Skills
-                </p>
-
-                <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  {loading ? "..." : highDemandCount}
-                </p>
-
-                <p className="mt-1 text-xs text-slate-500">
-                  Skills with strong employer demand
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-xs font-semibold text-slate-500">
-                  Growing Skills
-                </p>
-
-                <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  {loading ? "..." : growingCount}
-                </p>
-
-                <p className="mt-1 text-xs text-slate-500">
-                  Skills showing increasing demand
-                </p>
-              </div>
-
-            </div>
-
             {/* FILTERS */}
-            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
 
               <h2 className="text-lg font-bold text-slate-900">
-                Explore Required Skills
+                Explore Requirements
               </h2>
 
               <div className="mt-5 grid gap-4 md:grid-cols-3">
@@ -250,18 +187,19 @@ export default function RequiredSkillsPage() {
 
                 <label>
                   <span className="mb-1.5 block text-xs font-semibold text-slate-500">
-                    Demand Level
+                    Job Role
                   </span>
 
                   <select 
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#123b68]"
-                    value={selectedDemand}
-                    onChange={(e) => setSelectedDemand(e.target.value)}
+                    value={selectedRole}
+                    onChange={(e) => setSelectedRole(e.target.value)}
                   >
-                    <option value="">All Levels</option>
-                    <option value="high">High</option>
-                    <option value="growing">Growing</option>
-                    <option value="moderate">Moderate</option>
+                    <option value="">All Roles</option>
+                    <option value="ev-technician-id">EV Technician</option>
+                    <option value="software-developer-id">Software Developer</option>
+                    <option value="data-analyst-id">Data Analyst</option>
+                    <option value="ui-ux-designer-id">UI/UX Designer</option>
                   </select>
                 </label>
 
@@ -280,89 +218,119 @@ export default function RequiredSkillsPage() {
               </div>
             )}
 
-            {/* SKILLS LIST */}
+            {/* REQUIREMENTS TABLE */}
             <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
 
               <div>
                 <h2 className="text-lg font-bold text-slate-900">
-                  Top Required Skills
+                  Skill Requirements by Job Role
                 </h2>
 
                 <p className="mt-1 text-xs text-slate-500">
-                  Skills that employers are looking for across
-                  the labour market.
+                  Required skills, importance levels, and demand across job roles.
                 </p>
               </div>
 
               {loading ? (
                 <div className="mt-5 text-center text-slate-500">
-                  Loading skills...
+                  Loading requirements...
                 </div>
-              ) : skills.length === 0 ? (
+              ) : requirements.length === 0 ? (
                 <div className="mt-5 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
                   <p className="text-sm text-slate-500">
-                    No skills available for the selected filters.
+                    No requirements data available for the selected filters.
                   </p>
                 </div>
               ) : (
-                <div className="mt-5 space-y-3">
+                <div className="mt-5 overflow-x-auto">
 
-                  {skills.map((skill) => (
-                    <div
-                      key={skill.id}
-                      className="rounded-xl border border-slate-200 p-4 transition hover:border-blue-200 hover:bg-slate-50"
-                    >
+                  <table className="w-full text-left text-sm">
 
-                      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                    <thead>
 
-                        <div>
+                      <tr className="border-b border-slate-200 text-xs text-slate-500">
 
-                          <div className="flex flex-wrap items-center gap-2">
+                        <th className="pb-3">
+                          Skill
+                        </th>
 
-                            <h3 className="font-semibold text-slate-900">
-                              {skill.name}
-                            </h3>
+                        <th className="pb-3">
+                          Job Role
+                        </th>
 
-                            <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-700">
-                              Demand: {skill.demand}
-                            </span>
+                        <th className="pb-3">
+                          Importance
+                        </th>
 
-                          </div>
+                        <th className="pb-3">
+                          Proficiency
+                        </th>
 
-                          <div className="mt-2 flex flex-wrap gap-4 text-sm text-slate-500">
-                            <span>Training Available: {skill.mapped_training_count} courses</span>
-                            {skill.associated_roles.length > 0 && (
-                              <span>Roles: {skill.associated_roles.slice(0, 3).join(", ")}</span>
+                        <th className="pb-3">
+                          Demand
+                        </th>
+
+                      </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                      {requirements.map((req, index) => (
+
+                        <tr
+                          key={index}
+                          className="border-b border-slate-100"
+                        >
+
+                          <td className="py-3 font-medium">
+                            {req.skill}
+                          </td>
+
+                          <td>
+                            {req.job_role}
+                          </td>
+
+                          <td>
+                            {req.importance ? (
+                              <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
+                                {req.importance}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">—</span>
                             )}
-                          </div>
+                          </td>
 
-                        </div>
+                          <td>
+                            {req.proficiency ? (
+                              <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
+                                {req.proficiency}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </td>
 
-                        <div className="flex items-center gap-3">
+                          <td>
 
-                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                            skill.demand >= 100 ? "bg-green-50 text-green-700" :
-                            skill.demand >= 50 ? "bg-blue-50 text-blue-700" :
-                            skill.demand > 0 ? "bg-yellow-50 text-yellow-700" :
-                            "bg-slate-100 text-slate-600"
-                          }`}>
-                            {skill.demand >= 100 ? "High" :
-                             skill.demand >= 50 ? "Growing" :
-                             skill.demand > 0 ? "Moderate" : "Low"}
-                          </span>
-
-                          {skill.required_proficiency && (
-                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                              {skill.required_proficiency}
+                            <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                              req.demand >= 100 ? "bg-green-50 text-green-700" :
+                              req.demand >= 50 ? "bg-blue-50 text-blue-700" :
+                              req.demand > 0 ? "bg-yellow-50 text-yellow-700" :
+                              "bg-slate-100 text-slate-600"
+                            }`}>
+                              {req.demand}
                             </span>
-                          )}
 
-                        </div>
+                          </td>
 
-                      </div>
+                        </tr>
 
-                    </div>
-                  ))}
+                      ))}
+
+                    </tbody>
+
+                  </table>
 
                 </div>
               )}
@@ -373,11 +341,11 @@ export default function RequiredSkillsPage() {
             <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50 p-5">
 
               <h2 className="font-semibold text-[#123b68]">
-                Skill Intelligence
+                Requirements Intelligence
               </h2>
 
               <p className="mt-1 text-sm text-slate-600">
-                Required-skill insights are calculated from actual demand data and job postings in the labour market.
+                Skill requirements are derived from actual job role definitions and demand data in the labour market.
               </p>
 
             </div>

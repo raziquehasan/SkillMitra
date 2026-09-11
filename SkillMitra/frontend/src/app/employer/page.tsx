@@ -949,7 +949,6 @@ function EmployerDashboardContent() {
 
             </div>
 
-<<<<<<< HEAD
             {/* =================================================
                 APPLICATIONS
             ================================================== */}
@@ -1035,8 +1034,6 @@ function EmployerDashboardContent() {
 
             </div>
 
-=======
->>>>>>> origin/government-industry-dashboards
           </div>
 
         </section>

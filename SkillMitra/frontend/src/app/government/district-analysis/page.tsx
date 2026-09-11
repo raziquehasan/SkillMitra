@@ -1,10 +1,12 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { api, type District, type IndustrySector } from "@/lib/api";
 
 type DistrictData = {
   district: string;
+  district_id: string;
   sector: string;
   required: number;
   available: number;
@@ -12,46 +14,42 @@ type DistrictData = {
   priority: "High" | "Medium" | "Low";
 };
 
-const districtData: DistrictData[] = [
-  {
-    district: "Pune",
-    sector: "Automotive",
-    required: 350,
-    available: 100,
-    gap: 250,
-    priority: "High",
-  },
-  {
-    district: "Mumbai",
-    sector: "IT/ITES",
-    required: 220,
-    available: 160,
-    gap: 60,
-    priority: "Medium",
-  },
-  {
-    district: "Nashik",
-    sector: "Manufacturing",
-    required: 180,
-    available: 110,
-    gap: 70,
-    priority: "Medium",
-  },
-  {
-    district: "Nagpur",
-    sector: "Renewable Energy",
-    required: 120,
-    available: 80,
-    gap: 40,
-    priority: "Low",
-  },
-];
-
 export default function DistrictAnalysisPage() {
-  const [district, setDistrict] = useState("All Districts");
+  const [district, setDistrict] = useState("");
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [sectors, setSectors] = useState<IndustrySector[]>([]);
+  const [districtData, setDistrictData] = useState<DistrictData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [dRes, sRes] = await Promise.all([
+          api.districts().catch(() => []),
+          api.sectors().catch(() => []),
+        ]);
+        setDistricts(dRes);
+        setSectors(sRes);
+
+        // Fetch real district analysis data from API
+        const response = await api.governmentDashboard({});
+        if (response && response.district_intelligence) {
+          // Transform API data to match expected format
+          // For now, show empty state since district-specific analysis isn't fully implemented
+          setDistrictData([]);
+        }
+      } catch (err) {
+        console.error("Failed to load district analysis:", err);
+        setError("Failed to load district analysis data");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const filteredData =
-    district === "All Districts"
+    !district || district === ""
       ? districtData
       : districtData.filter((item) => item.district === district);
 
@@ -69,6 +67,37 @@ export default function DistrictAnalysisPage() {
     (sum, item) => sum + item.gap,
     0
   );
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#123b68] border-r-transparent"></div>
+            <p className="mt-4 text-sm text-slate-600">Loading district analysis...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-sm text-red-600">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-[#123b68] text-white text-sm rounded hover:bg-[#123b68]/90"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
@@ -270,11 +299,12 @@ export default function DistrictAnalysisPage() {
               onChange={(e) => setDistrict(e.target.value)}
               className="h-11 w-full max-w-xs rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
             >
-              <option>All Districts</option>
-              <option>Pune</option>
-              <option>Mumbai</option>
-              <option>Nashik</option>
-              <option>Nagpur</option>
+              <option value="">All Districts</option>
+              {districts.map((d) => (
+                <option key={d.id} value={d.name}>
+                  {d.name}
+                </option>
+              ))}
             </select>
 
           </div>
@@ -410,7 +440,8 @@ export default function DistrictAnalysisPage() {
 
             {filteredData.length === 0 && (
               <div className="p-10 text-center text-sm text-slate-500">
-                No district data found for the selected district.
+                District-specific analysis requires demand data integration.
+                Use the main Government Dashboard for aggregate state-level insights.
               </div>
             )}
 

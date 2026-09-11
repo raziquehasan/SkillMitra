@@ -33,129 +33,7 @@ type CentreCapacity = {
   status: string;
 };
 
-const demoDistrictCapacity: DistrictCapacity[] = [
-  {
-    district_id: "d-pune",
-    district_name: "Pune",
-    trainingCentres: 8,
-    capacity: 220,
-    filledSeats: 188,
-    availableSeats: 32,
-    industryDemand: 260,
-    utilisation: 85.5,
-    capacityStatus: "Near Capacity",
-  },
-  {
-    district_id: "d-mumbai",
-    district_name: "Mumbai",
-    trainingCentres: 12,
-    capacity: 250,
-    filledSeats: 224,
-    availableSeats: 26,
-    industryDemand: 290,
-    utilisation: 89.6,
-    capacityStatus: "Near Capacity",
-  },
-  {
-    district_id: "d-nashik",
-    district_name: "Nashik",
-    trainingCentres: 5,
-    capacity: 140,
-    filledSeats: 91,
-    availableSeats: 49,
-    industryDemand: 125,
-    utilisation: 65.0,
-    capacityStatus: "Healthy",
-  },
-  {
-    district_id: "d-nagpur",
-    district_name: "Nagpur",
-    trainingCentres: 6,
-    capacity: 160,
-    filledSeats: 104,
-    availableSeats: 56,
-    industryDemand: 170,
-    utilisation: 65.0,
-    capacityStatus: "Capacity Gap",
-  },
-  {
-    district_id: "d-thane",
-    district_name: "Thane",
-    trainingCentres: 7,
-    capacity: 180,
-    filledSeats: 135,
-    availableSeats: 45,
-    industryDemand: 160,
-    utilisation: 75.0,
-    capacityStatus: "Healthy",
-  },
-  {
-    district_id: "d-kolhapur",
-    district_name: "Kolhapur",
-    trainingCentres: 4,
-    capacity: 90,
-    filledSeats: 52,
-    availableSeats: 38,
-    industryDemand: 85,
-    utilisation: 57.8,
-    capacityStatus: "Available",
-  },
-  {
-    district_id: "d-solapur",
-    district_name: "Solapur",
-    trainingCentres: 3,
-    capacity: 70,
-    filledSeats: 48,
-    availableSeats: 22,
-    industryDemand: 65,
-    utilisation: 68.6,
-    capacityStatus: "Healthy",
-  },
-  {
-    district_id: "d-amravati",
-    district_name: "Amravati",
-    trainingCentres: 3,
-    capacity: 60,
-    filledSeats: 18,
-    availableSeats: 42,
-    industryDemand: 55,
-    utilisation: 30.0,
-    capacityStatus: "Low Utilisation",
-  },
-  {
-    district_id: "d-navi-mumbai",
-    district_name: "Navi Mumbai",
-    trainingCentres: 6,
-    capacity: 150,
-    filledSeats: 120,
-    availableSeats: 30,
-    industryDemand: 140,
-    utilisation: 80.0,
-    capacityStatus: "Healthy",
-  },
-  {
-    district_id: "d-chh-sambhajinagar",
-    district_name: "Chhatrapati Sambhajinagar",
-    trainingCentres: 4,
-    capacity: 100,
-    filledSeats: 62,
-    availableSeats: 38,
-    industryDemand: 95,
-    utilisation: 62.0,
-    capacityStatus: "Healthy",
-  },
-];
 
-const demoCentreCapacity: CentreCapacity[] = [
-  { id: "C001", centre: "Maharashtra Skill Development Centre", district: "Pune", capacity: 160, filled: 132, available: 28, utilisation: 82.5, status: "Near Capacity" },
-  { id: "C002", centre: "Mumbai Technical Training Centre", district: "Mumbai", capacity: 200, filled: 185, available: 15, utilisation: 92.5, status: "Near Capacity" },
-  { id: "C003", centre: "Thane Digital Skills Academy", district: "Thane", capacity: 100, filled: 95, available: 5, utilisation: 95.0, status: "Near Capacity" },
-  { id: "C004", centre: "Navi Mumbai Advanced Manufacturing Hub", district: "Navi Mumbai", capacity: 150, filled: 120, available: 30, utilisation: 80.0, status: "Healthy" },
-  { id: "C005", centre: "Nagpur Skill Development Academy", district: "Nagpur", capacity: 140, filled: 84, available: 56, utilisation: 60.0, status: "Healthy" },
-  { id: "C006", centre: "Nashik Industrial Training Institute", district: "Nashik", capacity: 120, filled: 76, available: 44, utilisation: 63.3, status: "Healthy" },
-  { id: "C007", centre: "Solapur Healthcare Training Centre", district: "Solapur", capacity: 60, filled: 48, available: 12, utilisation: 80.0, status: "Healthy" },
-  { id: "C008", centre: "Chhatrapati Sambhajinagar IT Centre", district: "Chhatrapati Sambhajinagar", capacity: 110, filled: 78, available: 32, utilisation: 70.9, status: "Healthy" },
-];
 
 export default function TrainingCapacityPage() {
   const [districts, setDistricts] = useState<District[]>([]);
@@ -167,7 +45,7 @@ export default function TrainingCapacityPage() {
   const [filterDistrict, setFilterDistrict] = useState("");
   const [filterSector, setFilterSector] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [usingDemoData, setUsingDemoData] = useState(false);
+
 
   useEffect(() => {
     (async () => {
@@ -187,7 +65,6 @@ export default function TrainingCapacityPage() {
   const loadCapacity = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setUsingDemoData(false);
     try {
       const capRes = await api.trainingCapacityReport("all").catch(() => null);
       
@@ -210,30 +87,14 @@ export default function TrainingCapacityPage() {
         });
         setDistrictData(mapped);
         setCentreData([]);
-        setUsingDemoData(false);
       } else {
-        let demoFiltered = [...demoDistrictCapacity];
-        if (filterDistrict) {
-          demoFiltered = demoFiltered.filter((d) => d.district_id === filterDistrict);
-        }
-        if (searchQuery) {
-          demoFiltered = demoFiltered.filter((d) =>
-            d.district_name.toLowerCase().includes(searchQuery.toLowerCase())
-          );
-        }
-        setDistrictData(demoFiltered);
-        setCentreData(demoCentreCapacity);
-        setUsingDemoData(true);
+        setDistrictData([]);
+        setCentreData([]);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load training capacity");
-      let demoFiltered = [...demoDistrictCapacity];
-      if (filterDistrict) {
-        demoFiltered = demoFiltered.filter((d) => d.district_id === filterDistrict);
-      }
-      setDistrictData(demoFiltered);
-      setCentreData(demoCentreCapacity);
-      setUsingDemoData(true);
+      setDistrictData([]);
+      setCentreData([]);
     } finally {
       setLoading(false);
     }
@@ -441,7 +302,7 @@ export default function TrainingCapacityPage() {
           </div>
 
           {/* Error State */}
-          {error && !usingDemoData && (
+          {error && (
             <div className="mb-5 rounded-md border border-red-200 bg-red-50 p-4">
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-red-600" />

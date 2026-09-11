@@ -10,7 +10,16 @@ class JobRepository:
         self.db = db
 
     def get_jobs(self, skip: int = 0, limit: int = 20, **filters):
-        stmt = select(JobPosting).where(JobPosting.status == "OPEN")
+        stmt = (
+            select(JobPosting)
+            .options(
+                selectinload(JobPosting.employer),
+                selectinload(JobPosting.job_role),
+                selectinload(JobPosting.district),
+                selectinload(JobPosting.job_posting_skills).selectinload(JobPostingSkill.skill)
+            )
+            .where(JobPosting.status == "open")
+        )
         if filters.get("district_id"):
             stmt = stmt.where(JobPosting.district_id == filters["district_id"])
         if filters.get("job_role_id"):
@@ -18,6 +27,9 @@ class JobRepository:
         if filters.get("employer_id"):
             stmt = stmt.where(JobPosting.employer_id == filters["employer_id"])
 
+        # Order by posted_date desc to get newest jobs first
+        stmt = stmt.order_by(JobPosting.posted_date.desc())
+        
         total = self.db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
         items = self.db.scalars(stmt.offset(skip).limit(limit)).all()
         return items, total

@@ -1,59 +1,56 @@
 "use client";
 
 import Image from "next/image";
-
-
-const companyInfo = {
-  name: "Maharashtra EV Technologies Pvt. Ltd.",
-  industry: "EV / Automotive",
-  location: "Pune, Maharashtra",
-  established: "2018",
-  employees: "500–1,000",
-  website: "www.example.com",
-  description:
-    "A growing electric vehicle technology company focused on EV components, battery systems, vehicle diagnostics and sustainable mobility solutions.",
-};
-
-const businessAreas = [
-  "Electric Vehicle Components",
-  "Battery Technology",
-  "EV Diagnostics",
-  "Charging Infrastructure",
-];
-
-const hiringNeeds = [
-  {
-    role: "EV Technician",
-    openings: 120,
-    priority: "High",
-  },
-  {
-    role: "Battery Specialist",
-    openings: 85,
-    priority: "Very High",
-  },
-  {
-    role: "EV Diagnostics Engineer",
-    openings: 60,
-    priority: "High",
-  },
-  {
-    role: "Automation Technician",
-    openings: 45,
-    priority: "Medium",
-  },
-];
-
-const skills = [
-  "EV Battery Technology",
-  "Electric Vehicle Diagnostics",
-  "Electrical Systems",
-  "Industrial Automation",
-  "Battery Management Systems",
-  "Vehicle Electronics",
-];
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
 
 export default function IndustryProfilePage() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [employerProfile, setEmployerProfile] = useState<any>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        // Try to get employer profile from API
+        // const profile = await api.employerProfile().catch(() => null);
+        // setEmployerProfile(profile);
+        setEmployerProfile(null); // Placeholder until API is implemented
+      } catch (err) {
+        console.error("Failed to load employer profile:", err);
+        setError("Failed to load employer profile");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#123b68] border-r-transparent"></div>
+            <p className="mt-4 text-sm text-slate-600">Loading employer profile...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error || !employerProfile) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-sm text-red-600">{error || "No employer profile found"}</p>
+            <p className="mt-2 text-xs text-slate-500">Please contact support to set up your employer profile.</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
     
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
@@ -227,29 +224,33 @@ export default function IndustryProfilePage() {
                 <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-4">
                     <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#123b68] text-2xl font-bold text-white">
-                      EV
+                      {employerProfile.company_name?.substring(0, 2).toUpperCase() || "CO"}
                     </div>
 
                     <div>
                       <h3 className="text-xl font-bold text-[#123b68]">
-                        {companyInfo.name}
+                        {employerProfile.company_name || "Company Name"}
                       </h3>
 
                       <p className="mt-1 text-sm text-slate-500">
-                        {companyInfo.industry} • {companyInfo.location}
+                        {employerProfile.industry_sector || "Industry"} • {employerProfile.location || "Location"}
                       </p>
                     </div>
                   </div>
 
-                  <span className="w-fit rounded-full bg-emerald-100 px-4 py-2 text-xs font-bold text-emerald-700">
-                    Profile Verified
+                  <span className={`w-fit rounded-full px-4 py-2 text-xs font-bold ${
+                    employerProfile.verification_status === "verified" 
+                      ? "bg-emerald-100 text-emerald-700" 
+                      : "bg-amber-100 text-amber-700"
+                  }`}>
+                    {employerProfile.verification_status === "verified" ? "Profile Verified" : "Pending Verification"}
                   </span>
                 </div>
               </div>
 
               <div className="p-6">
                 <p className="max-w-4xl text-sm leading-6 text-slate-600">
-                  {companyInfo.description}
+                  {employerProfile.description || "No company description provided."}
                 </p>
               </div>
             </div>
@@ -267,7 +268,7 @@ export default function IndustryProfilePage() {
                   </p>
 
                   <p className="mt-2 font-semibold text-slate-700">
-                    {companyInfo.industry}
+                    {employerProfile.industry_sector || "Not specified"}
                   </p>
                 </div>
 
@@ -277,7 +278,7 @@ export default function IndustryProfilePage() {
                   </p>
 
                   <p className="mt-2 font-semibold text-slate-700">
-                    {companyInfo.location}
+                    {employerProfile.location || "Not specified"}
                   </p>
                 </div>
 
@@ -287,7 +288,7 @@ export default function IndustryProfilePage() {
                   </p>
 
                   <p className="mt-2 font-semibold text-slate-700">
-                    {companyInfo.established}
+                    {employerProfile.established_year || "Not specified"}
                   </p>
                 </div>
 
@@ -297,7 +298,7 @@ export default function IndustryProfilePage() {
                   </p>
 
                   <p className="mt-2 font-semibold text-slate-700">
-                    {companyInfo.employees}
+                    {employerProfile.employee_count || "Not specified"}
                   </p>
                 </div>
               </div>
@@ -316,16 +317,22 @@ export default function IndustryProfilePage() {
                 </p>
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {businessAreas.map((area) => (
-                    <div
-                      key={area}
-                      className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"
-                    >
-                      <p className="text-sm font-medium text-slate-700">
-                        {area}
-                      </p>
+                  {employerProfile.business_areas && employerProfile.business_areas.length > 0 ? (
+                    employerProfile.business_areas.map((area: string, index: number) => (
+                      <div
+                        key={index}
+                        className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"
+                      >
+                        <p className="text-sm font-medium text-slate-700">
+                          {area}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-2 text-center py-4 text-sm text-slate-400">
+                      No business areas specified
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
 
@@ -346,7 +353,7 @@ export default function IndustryProfilePage() {
                     </p>
 
                     <p className="mt-1 text-sm font-semibold text-slate-700">
-                      Industry HR Manager
+                      {employerProfile.contact_person || "Not specified"}
                     </p>
                   </div>
 
@@ -356,17 +363,17 @@ export default function IndustryProfilePage() {
                     </p>
 
                     <p className="mt-1 text-sm font-semibold text-slate-700">
-                      hr@industry.example
+                      {employerProfile.contact_email || "Not specified"}
                     </p>
                   </div>
 
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                      Website
+                      Phone
                     </p>
 
-                    <p className="mt-1 text-sm font-semibold text-[#123b68]">
-                      {companyInfo.website}
+                    <p className="mt-1 text-sm font-semibold text-slate-700">
+                      {employerProfile.contact_phone || "Not specified"}
                     </p>
                   </div>
                 </div>
@@ -404,34 +411,42 @@ export default function IndustryProfilePage() {
                   </thead>
 
                   <tbody className="divide-y divide-slate-100">
-                    {hiringNeeds.map((item) => (
-                      <tr
-                        key={item.role}
-                        className="hover:bg-slate-50"
-                      >
-                        <td className="px-6 py-4 text-sm font-semibold text-[#123b68]">
-                          {item.role}
-                        </td>
+                    {employerProfile.hiring_requirements && employerProfile.hiring_requirements.length > 0 ? (
+                      employerProfile.hiring_requirements.map((item: any, index: number) => (
+                        <tr
+                          key={index}
+                          className="hover:bg-slate-50"
+                        >
+                          <td className="px-6 py-4 text-sm font-semibold text-[#123b68]">
+                            {item.role || "Unknown Role"}
+                          </td>
 
-                        <td className="px-6 py-4 text-sm font-semibold text-slate-700">
-                          {item.openings}
-                        </td>
+                          <td className="px-6 py-4 text-sm font-semibold text-slate-700">
+                            {item.openings || 0}
+                          </td>
 
-                        <td className="px-6 py-4">
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                              item.priority === "Very High"
-                                ? "bg-red-100 text-red-700"
-                                : item.priority === "High"
-                                ? "bg-orange-100 text-orange-700"
-                                : "bg-yellow-100 text-yellow-700"
-                            }`}
-                          >
-                            {item.priority}
-                          </span>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                item.priority === "Very High"
+                                  ? "bg-red-100 text-red-700"
+                                  : item.priority === "High"
+                                  ? "bg-orange-100 text-orange-700"
+                                  : "bg-yellow-100 text-yellow-700"
+                              }`}
+                            >
+                              {item.priority || "Medium"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={3} className="px-6 py-8 text-center text-sm text-slate-400">
+                          No hiring requirements specified
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -448,14 +463,18 @@ export default function IndustryProfilePage() {
               </p>
 
               <div className="mt-5 flex flex-wrap gap-3">
-                {skills.map((skill) => (
-                  <span
-                    key={skill}
-                    className="rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-[#123b68]"
-                  >
-                    {skill}
-                  </span>
-                ))}
+                {employerProfile.required_skills && employerProfile.required_skills.length > 0 ? (
+                  employerProfile.required_skills.map((skill: string, index: number) => (
+                    <span
+                      key={index}
+                      className="rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-[#123b68]"
+                    >
+                      {skill}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm text-slate-400">No skills specified</span>
+                )}
               </div>
             </div>
 

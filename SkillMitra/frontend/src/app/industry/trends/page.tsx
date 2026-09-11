@@ -1,112 +1,86 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-const trendsData = [
-  {
-    skill: "Artificial Intelligence",
-    sector: "IT / Technology",
-    currentDemand: "Very High",
-    growth: "Very High",
-    trend: "Rising",
-    adoption: 88,
-  },
-  {
-    skill: "Machine Learning",
-    sector: "IT / Technology",
-    currentDemand: "High",
-    growth: "Very High",
-    trend: "Rising",
-    adoption: 82,
-  },
-  {
-    skill: "EV Battery Technology",
-    sector: "EV / Automotive",
-    currentDemand: "Very High",
-    growth: "Very High",
-    trend: "Rising",
-    adoption: 86,
-  },
-  {
-    skill: "Industrial IoT",
-    sector: "Manufacturing",
-    currentDemand: "High",
-    growth: "High",
-    trend: "Rising",
-    adoption: 74,
-  },
-  {
-    skill: "Cloud Computing",
-    sector: "IT / Technology",
-    currentDemand: "High",
-    growth: "High",
-    trend: "Growing",
-    adoption: 78,
-  },
-  {
-    skill: "Robotics & Automation",
-    sector: "Manufacturing",
-    currentDemand: "High",
-    growth: "Very High",
-    trend: "Rising",
-    adoption: 80,
-  },
-];
-
-const sectorTrends = [
-  {
-    sector: "EV / Automotive",
-    topSkill: "EV Battery Technology",
-    growth: "Very High",
-    outlook: "Strong growth expected",
-  },
-  {
-    sector: "IT / Technology",
-    topSkill: "Artificial Intelligence",
-    growth: "Very High",
-    outlook: "Rapid technology adoption",
-  },
-  {
-    sector: "Manufacturing",
-    topSkill: "Robotics & Automation",
-    growth: "High",
-    outlook: "Automation-driven demand",
-  },
-];
-
-const futureSkills = [
-  {
-    skill: "Generative AI",
-    reason: "Rapid adoption of AI-powered business applications",
-    horizon: "0–2 Years",
-  },
-  {
-    skill: "Battery Management Systems",
-    reason: "Growing EV and battery manufacturing ecosystem",
-    horizon: "0–2 Years",
-  },
-  {
-    skill: "Industrial IoT",
-    reason: "Connected machines and smart manufacturing",
-    horizon: "2–5 Years",
-  },
-  {
-    skill: "Advanced Robotics",
-    reason: "Increasing industrial automation requirements",
-    horizon: "2–5 Years",
-  },
-];
+import { api, type IndustrySector } from "@/lib/api";
 
 export default function SkillTrendsPage() {
-     const router = useRouter();
-  const [selectedSector, setSelectedSector] = useState("All Sectors");
+  const router = useRouter();
+  const [selectedSector, setSelectedSector] = useState("");
+  const [sectors, setSectors] = useState<IndustrySector[]>([]);
+  const [futureForecasts, setFutureForecasts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredTrends =
-    selectedSector === "All Sectors"
-      ? trendsData
-      : trendsData.filter((item) => item.sector === selectedSector);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [sRes] = await Promise.all([
+          api.sectors().catch(() => []),
+        ]);
+        setSectors(sRes);
+      } catch (err) {
+        console.error("Failed to load reference data:", err);
+        setError("Failed to load reference data");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        // Try to fetch future demand forecasts
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/v1/demand/future?limit=20`);
+        if (response.ok) {
+          const data = await response.json();
+          setFutureForecasts(data);
+        } else {
+          setFutureForecasts([]);
+        }
+      } catch (err) {
+        console.error("Failed to load future demand forecasts:", err);
+        setFutureForecasts([]);
+      }
+    })();
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#123b68] border-r-transparent"></div>
+            <p className="mt-4 text-sm text-slate-600">Loading skill trends...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-sm text-red-600">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-[#123b68] text-white text-sm rounded hover:bg-[#123b68]/90"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  const filteredTrends = selectedSector 
+    ? futureForecasts.filter(item => item.industry_sector_id === selectedSector)
+    : futureForecasts;
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
@@ -316,15 +290,15 @@ export default function SkillTrendsPage() {
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
 
                 <p className="text-sm text-slate-500">
-                  Fast-Growing Skills
+                  Total Forecasts
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  14
+                  {futureForecasts.length}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-400">
-                  Skills showing strong growth
+                  Future demand predictions
                 </p>
 
               </div>
@@ -332,15 +306,15 @@ export default function SkillTrendsPage() {
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
 
                 <p className="text-sm text-slate-500">
-                  Very High Growth
+                  High Confidence
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#c2410c]">
-                  7
+                  {futureForecasts.filter(f => f.confidence_level === "high").length}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-400">
-                  Emerging technology skills
+                  Reliable predictions
                 </p>
 
               </div>
@@ -348,15 +322,15 @@ export default function SkillTrendsPage() {
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
 
                 <p className="text-sm text-slate-500">
-                  Emerging Technologies
+                  Rising Trends
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  9
+                  {futureForecasts.filter(f => f.growth_indicator === "rising").length}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-400">
-                  Future-focused skill areas
+                  Skills with upward trajectory
                 </p>
 
               </div>
@@ -364,15 +338,15 @@ export default function SkillTrendsPage() {
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
 
                 <p className="text-sm text-slate-500">
-                  Future Priority
+                  Data Status
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-[#123b68]">
-                  High
+                  {futureForecasts.length > 0 ? "Live" : "Pending"}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-400">
-                  Government preparation required
+                  {futureForecasts.length > 0 ? "From demand forecasts" : "Run forecast generation"}
                 </p>
 
               </div>
@@ -407,10 +381,12 @@ export default function SkillTrendsPage() {
                     onChange={(e) => setSelectedSector(e.target.value)}
                     className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-[#123b68]"
                   >
-                    <option>All Sectors</option>
-                    <option>EV / Automotive</option>
-                    <option>IT / Technology</option>
-                    <option>Manufacturing</option>
+                    <option value="">All Sectors</option>
+                    {sectors.map((sector) => (
+                      <option key={sector.id} value={sector.id}>
+                        {sector.name}
+                      </option>
+                    ))}
                   </select>
 
                 </div>
@@ -473,75 +449,85 @@ export default function SkillTrendsPage() {
 
                   <tbody className="divide-y divide-slate-100">
 
-                    {filteredTrends.map((item) => (
-
-                      <tr
-                        key={item.skill}
-                        className="hover:bg-slate-50"
-                      >
-
-                        <td className="px-6 py-4">
-
-                          <p className="font-semibold text-slate-800">
-                            {item.skill}
-                          </p>
-
+                    {filteredTrends.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-8 text-center text-sm text-slate-500">
+                          {futureForecasts.length === 0 
+                            ? "No forecast data available. Generate future demand forecasts to see skill trends." 
+                            : "No trends found for the selected sector."}
                         </td>
+                      </tr>
+                    ) : (
+                      filteredTrends.map((forecast) => (
 
-                        <td className="px-6 py-4 text-slate-600">
-                          {item.sector}
-                        </td>
+                        <tr
+                          key={forecast.id}
+                          className="hover:bg-slate-50"
+                        >
 
-                        <td className="px-6 py-4">
+                          <td className="px-6 py-4">
 
-                          <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-[#c2410c]">
-                            {item.currentDemand}
-                          </span>
+                            <p className="font-semibold text-slate-800">
+                              Skill ID: {forecast.skill_id?.toString().slice(0, 8)}...
+                            </p>
 
-                        </td>
+                          </td>
 
-                        <td className="px-6 py-4">
+                          <td className="px-6 py-4 text-slate-600">
+                            {sectors.find(s => s.id === forecast.industry_sector_id)?.name || "Unknown"}
+                          </td>
 
-                          <span className="font-semibold text-[#123b68]">
-                            {item.growth}
-                          </span>
+                          <td className="px-6 py-4">
 
-                        </td>
+                            <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-[#c2410c]">
+                              {forecast.current_demand_level || "Unknown"}
+                            </span>
 
-                        <td className="px-6 py-4">
+                          </td>
 
-                          <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-600">
-                            ↑ {item.trend}
-                          </span>
+                          <td className="px-6 py-4">
 
-                        </td>
+                            <span className="font-semibold text-[#123b68]">
+                              {forecast.growth_indicator || "Unknown"}
+                            </span>
 
-                        <td className="px-6 py-4">
+                          </td>
 
-                          <div className="flex items-center gap-3">
+                          <td className="px-6 py-4">
 
-                            <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-100">
+                            <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-600">
+                              {forecast.forecast_level || "Unknown"}
+                            </span>
 
-                              <div
-                                className="h-full rounded-full bg-[#123b68]"
-                                style={{
-                                  width: `${item.adoption}%`,
-                                }}
-                              />
+                          </td>
+
+                          <td className="px-6 py-4">
+
+                            <div className="flex items-center gap-3">
+
+                              <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-100">
+
+                                <div
+                                  className="h-full rounded-full bg-[#123b68]"
+                                  style={{
+                                    width: `${Math.round(forecast.confidence_score * 100)}%`,
+                                  }}
+                                />
+
+                              </div>
+
+                              <span className="text-xs font-semibold text-slate-600">
+                                {Math.round(forecast.confidence_score * 100)}%
+                              </span>
 
                             </div>
 
-                            <span className="text-xs font-semibold text-slate-600">
-                              {item.adoption}%
-                            </span>
+                          </td>
 
-                          </div>
+                        </tr>
 
-                        </td>
-
-                      </tr>
-
-                    ))}
+                      ))
+                    )}
 
                   </tbody>
 
@@ -557,111 +543,108 @@ export default function SkillTrendsPage() {
               <div className="mb-4">
 
                 <h2 className="text-xl font-bold text-[#123b68]">
-                  Sector-wise Skill Trends
+                  Sector-wise Trend Summary
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Top growing skill areas across major industry sectors.
+                  Skill trend analysis across industry sectors based on demand forecasts.
                 </p>
 
               </div>
 
               <div className="grid gap-5 lg:grid-cols-3">
 
-                {sectorTrends.map((item) => (
-
-                  <div
-                    key={item.sector}
-                    className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-                  >
-
-                    <p className="text-sm font-semibold text-[#c2410c]">
-                      {item.sector}
-                    </p>
-
-                    <h3 className="mt-3 text-lg font-bold text-[#123b68]">
-                      {item.topSkill}
-                    </h3>
-
-                    <div className="mt-5 space-y-3">
-
-                      <div className="flex items-center justify-between text-sm">
-
-                        <span className="text-slate-500">
-                          Growth
-                        </span>
-
-                        <span className="font-semibold text-slate-700">
-                          {item.growth}
-                        </span>
-
+                {futureForecasts.length === 0 ? (
+                  <div className="col-span-3 rounded-xl border border-amber-200 bg-amber-50 p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="text-amber-600">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
                       </div>
-
-                      <div className="flex items-center justify-between text-sm">
-
-                        <span className="text-slate-500">
-                          Market Outlook
-                        </span>
-
-                        <span className="font-semibold text-slate-700">
-                          {item.outlook}
-                        </span>
-
+                      <div>
+                        <h3 className="font-bold text-amber-800">Insufficient Data</h3>
+                        <p className="mt-1 text-sm text-amber-700">
+                          No future demand forecasts available. Generate forecasts using the 
+                          <code className="bg-amber-100 px-1 py-0.5 rounded text-xs">POST /api/v1/demand/future/generate</code> endpoint to enable trend analysis.
+                        </p>
                       </div>
-
                     </div>
-
                   </div>
+                ) : (
+                  sectors.slice(0, 3).map((sector) => {
+                    const sectorForecasts = futureForecasts.filter(f => f.industry_sector_id === sector.id);
+                    const highGrowth = sectorForecasts.filter(f => f.growth_indicator === "rising" || f.growth_indicator === "very_high");
+                    return (
+                      <div
+                        key={sector.id}
+                        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+                      >
 
-                ))}
+                        <p className="text-sm font-semibold text-[#c2410c]">
+                          {sector.name}
+                        </p>
+
+                        <h3 className="mt-3 text-lg font-bold text-[#123b68]">
+                          {sectorForecasts.length} Forecasts
+                        </h3>
+
+                        <div className="mt-5 space-y-3">
+
+                          <div className="flex items-center justify-between text-sm">
+
+                            <span className="text-slate-500">
+                              High Growth
+                            </span>
+
+                            <span className="font-semibold text-slate-700">
+                              {highGrowth.length}
+                            </span>
+
+                          </div>
+
+                          <div className="flex items-center justify-between text-sm">
+
+                            <span className="text-slate-500">
+                              Avg Confidence
+                            </span>
+
+                            <span className="font-semibold text-slate-700">
+                              {sectorForecasts.length > 0 
+                                ? Math.round(sectorForecasts.reduce((acc, f) => acc + f.confidence_score, 0) / sectorForecasts.length * 100) + "%"
+                                : "N/A"}
+                            </span>
+
+                          </div>
+
+                        </div>
+
+                      </div>
+                    );
+                  })
+                )}
 
               </div>
 
             </section>
 
-            {/* ================= FUTURE SKILLS ================= */}
-            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-
-              <div className="mb-5">
-
-                <h2 className="text-lg font-bold text-[#123b68]">
-                  Future Skill Pipeline
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Skills expected to become increasingly important in the
-                  coming years.
-                </p>
-
+            {/* ================= DATA SOURCE NOTICE ================= */}
+            <section className="rounded-xl bg-blue-50 border border-blue-100 p-6">
+              <div className="flex items-start gap-4">
+                <div className="text-blue-600">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-[#123b68]">Data Source</h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    This page displays skill trends from future demand forecasts via the 
+                    <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">/api/v1/demand/future</code> endpoint. 
+                    Forecasts are generated using historical demand analysis and trend signals.
+                  </p>
+                </div>
               </div>
-
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-
-                {futureSkills.map((item) => (
-
-                  <div
-                    key={item.skill}
-                    className="rounded-lg border border-slate-200 p-5"
-                  >
-
-                    <p className="text-xs font-bold uppercase tracking-wider text-[#c2410c]">
-                      {item.horizon}
-                    </p>
-
-                    <h3 className="mt-2 font-semibold text-slate-800">
-                      {item.skill}
-                    </h3>
-
-                    <p className="mt-3 text-sm leading-5 text-slate-500">
-                      {item.reason}
-                    </p>
-
-                  </div>
-
-                ))}
-
-              </div>
-
             </section>
 
             {/* ================= GOVERNMENT INPUT ================= */}

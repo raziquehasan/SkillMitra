@@ -1,130 +1,90 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-const industryDemandData = [
-  {
-    sector: "EV / Automotive",
-    role: "EV Technician",
-    district: "Pune",
-    demand: "Very High",
-    required: 850,
-    available: 540,
-    gap: 310,
-  },
-  {
-    sector: "IT / Technology",
-    role: "AI / ML Engineer",
-    district: "Pune",
-    demand: "Very High",
-    required: 620,
-    available: 410,
-    gap: 210,
-  },
-  {
-    sector: "Manufacturing",
-    role: "Automation Technician",
-    district: "Nashik",
-    demand: "High",
-    required: 480,
-    available: 360,
-    gap: 120,
-  },
-  {
-    sector: "Healthcare",
-    role: "Medical Equipment Technician",
-    district: "Mumbai",
-    demand: "High",
-    required: 420,
-    available: 300,
-    gap: 120,
-  },
-  {
-    sector: "Renewable Energy",
-    role: "Solar Technician",
-    district: "Nagpur",
-    demand: "High",
-    required: 390,
-    available: 280,
-    gap: 110,
-  },
-];
-
-const sectorSummary = [
-  {
-    sector: "EV / Automotive",
-    demand: "Very High",
-    requirement: 1470,
-    gap: 540,
-  },
-  {
-    sector: "IT / Technology",
-    demand: "Very High",
-    requirement: 620,
-    gap: 210,
-  },
-  {
-    sector: "Manufacturing",
-    demand: "High",
-    requirement: 480,
-    gap: 120,
-  },
-  {
-    sector: "Healthcare",
-    demand: "High",
-    requirement: 420,
-    gap: 120,
-  },
-];
-
-const districtSummary = [
-  {
-    district: "Pune",
-    sectors: 2,
-    workforce: 1470,
-    gap: 520,
-  },
-  {
-    district: "Nashik",
-    sectors: 1,
-    workforce: 480,
-    gap: 120,
-  },
-  {
-    district: "Mumbai",
-    sectors: 1,
-    workforce: 420,
-    gap: 120,
-  },
-  {
-    district: "Nagpur",
-    sectors: 1,
-    workforce: 390,
-    gap: 110,
-  },
-];
+import { api, type District, type IndustrySector } from "@/lib/api";
 
 export default function IndustryDemandPage() {
     const router = useRouter();
-  const [selectedDistrict, setSelectedDistrict] =
-    useState("All Districts");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedSector, setSelectedSector] = useState("");
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [sectors, setSectors] = useState<IndustrySector[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [demandData, setDemandData] = useState<any[]>([]);
+  const [sectorSummary, setSectorSummary] = useState<any[]>([]);
+  const [districtSummary, setDistrictSummary] = useState<any[]>([]);
 
-  const [selectedSector, setSelectedSector] =
-    useState("All Sectors");
+  useEffect(() => {
+    (async () => {
+      try {
+        const [dRes, sRes] = await Promise.all([
+          api.districts().catch(() => []),
+          api.sectors().catch(() => []),
+        ]);
+        setDistricts(dRes);
+        setSectors(sRes);
+      } catch (err) {
+        console.error("Failed to load reference data:", err);
+        setError("Failed to load reference data");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
-  const filteredDemand = industryDemandData.filter((item) => {
-    const districtMatch =
-      selectedDistrict === "All Districts" ||
-      item.district === selectedDistrict;
+  useEffect(() => {
+    (async () => {
+      try {
+        const demandRes = await api.industryDemand({
+          district_id: selectedDistrict || undefined,
+          industry_sector_id: selectedSector || undefined,
+        });
+        
+        if (Array.isArray(demandRes)) {
+          setDemandData(demandRes);
+        } else {
+          setDemandData([]);
+        }
+      } catch (err) {
+        console.error("Failed to load demand data:", err);
+        setDemandData([]);
+      }
+    })();
+  }, [selectedDistrict, selectedSector]);
 
-    const sectorMatch =
-      selectedSector === "All Sectors" ||
-      item.sector === selectedSector;
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#123b68] border-r-transparent"></div>
+            <p className="mt-4 text-sm text-slate-600">Loading industry demand...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
-    return districtMatch && sectorMatch;
-  });
+  if (error) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-sm text-red-600">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-[#123b68] text-white text-sm rounded hover:bg-[#123b68]/90"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
@@ -345,7 +305,7 @@ export default function IndustryDemandPage() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-slate-900">
-                  3,380
+                  {demandData.reduce((sum, d) => sum + (d.aggregate_demand_score || 0), 0).toLocaleString()}
                 </p>
 
                 <p className="mt-2 text-xs text-slate-400">
@@ -362,6 +322,10 @@ export default function IndustryDemandPage() {
 
                 <p className="text-sm font-medium text-slate-500">
                   High Demand Roles
+                </p>
+
+                <p className="mt-2 text-3xl font-bold text-slate-900">
+                  {demandData.filter(d => d.aggregate_demand_score > 100).length}
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-slate-900">
@@ -385,7 +349,7 @@ export default function IndustryDemandPage() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-slate-900">
-                  870
+                  {demandData.reduce((sum, d) => sum + (d.aggregate_demand_score || 0), 0).toLocaleString()}
                 </p>
 
                 <p className="mt-2 text-xs text-slate-400">
@@ -405,7 +369,7 @@ export default function IndustryDemandPage() {
                 </p>
 
                 <p className="mt-2 text-3xl font-bold text-slate-900">
-                  5
+                  {new Set(demandData.map(d => d.industry_sector_id).filter(Boolean)).size}
                 </p>
 
                 <p className="mt-2 text-xs text-slate-400">
@@ -446,11 +410,10 @@ export default function IndustryDemandPage() {
                     }
                     className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#123b68]"
                   >
-                    <option>All Districts</option>
-                    <option>Pune</option>
-                    <option>Nashik</option>
-                    <option>Mumbai</option>
-                    <option>Nagpur</option>
+                    <option value="">All Districts</option>
+                    {districts.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
                   </select>
 
                 </div>
@@ -468,12 +431,10 @@ export default function IndustryDemandPage() {
                     }
                     className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#123b68]"
                   >
-                    <option>All Sectors</option>
-                    <option>EV / Automotive</option>
-                    <option>IT / Technology</option>
-                    <option>Manufacturing</option>
-                    <option>Healthcare</option>
-                    <option>Renewable Energy</option>
+                    <option value="">All Sectors</option>
+                    {sectors.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
                   </select>
 
                 </div>
@@ -536,51 +497,53 @@ export default function IndustryDemandPage() {
 
                   <tbody>
 
-                    {filteredDemand.length > 0 ? (
+                    {demandData.length > 0 ? (
 
-                      filteredDemand.map((item) => (
+                      demandData.map((item) => (
 
                         <tr
-                          key={item.role}
+                          key={item.id}
                           className="border-b border-slate-100"
                         >
 
                           <td className="px-4 py-5 text-sm text-slate-600">
-                            {item.sector}
+                            {sectors.find(s => s.id === item.industry_sector_id)?.name || "Unknown Sector"}
                           </td>
 
                           <td className="px-4 py-5 font-semibold text-slate-700">
-                            {item.role}
+                            {item.job_role_title || "Unknown Role"}
                           </td>
 
                           <td className="px-4 py-5 text-sm text-slate-500">
-                            {item.district}
+                            {districts.find(d => d.id === item.district_id)?.name || "Unknown District"}
                           </td>
 
                           <td className="px-4 py-5">
 
                             <span
                               className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                                item.demand === "Very High"
+                                item.aggregate_demand_score > 100
                                   ? "bg-red-50 text-red-600"
-                                  : "bg-orange-50 text-orange-600"
+                                  : item.aggregate_demand_score > 50
+                                  ? "bg-orange-50 text-orange-600"
+                                  : "bg-green-50 text-green-600"
                               }`}
                             >
-                              {item.demand}
+                              {item.aggregate_demand_score > 100 ? "Very High" : item.aggregate_demand_score > 50 ? "High" : "Moderate"}
                             </span>
 
                           </td>
 
                           <td className="px-4 py-5 text-sm font-semibold text-slate-700">
-                            {item.required}
+                            {item.aggregate_demand_score || 0}
                           </td>
 
                           <td className="px-4 py-5 text-sm text-slate-600">
-                            {item.available}
+                            0
                           </td>
 
                           <td className="px-4 py-5 font-bold text-[#c2410c]">
-                            {item.gap}
+                            {item.aggregate_demand_score || 0}
                           </td>
 
                         </tr>

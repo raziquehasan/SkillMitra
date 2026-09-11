@@ -57,7 +57,7 @@ export default function FindJobsPage() {
       
       const matchesLocation = location === "" || job.district_id === location;
       
-      const matchesType = jobType === "All Types" || job.employment_type === jobType;
+      const matchesType = jobType === "All Types" || (job.employment_type && job.employment_type === jobType);
       
       const matchesMatch = minMatch === "All Matches" || 
         (job.skill_match_score && job.skill_match_score >= parseInt(minMatch.replace("%", "")));
@@ -247,6 +247,10 @@ export default function FindJobsPage() {
         <JobDetailsModal
           job={selectedJob}
           onClose={() => setSelectedJob(null)}
+          onApplySuccess={() => {
+            // Optionally refresh the jobs list or show success message
+            console.log("Application successful");
+          }}
         />
       )}
     </main>
@@ -272,12 +276,12 @@ function JobCard({ job, onViewDetails }: { job: JobPosting; onViewDetails: () =>
 
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
             <span>📍 {job.district_name}</span>
-            <span>▣ {job.employment_type}</span>
-            <span>💰 {job.salary_range}</span>
+            <span>▣ {job.employment_type || 'Full Time'}</span>
+            <span>💰 {job.salary_range || 'Competitive'}</span>
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {job.required_skills?.slice(0, 4).map((skill) => (
+            {job.required_skills?.slice(0, 4).map((skill: string) => (
               <span
                 key={skill}
                 className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600"
@@ -285,9 +289,25 @@ function JobCard({ job, onViewDetails }: { job: JobPosting; onViewDetails: () =>
                 {skill}
               </span>
             ))}
+            {!job.required_skills && job.skills?.slice(0, 4).map((skill) => {
+              const skillName = typeof skill === 'string' ? skill : skill?.skill?.name || 'Unknown';
+              return (
+                <span
+                  key={skillName}
+                  className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600"
+                >
+                  {skillName}
+                </span>
+              );
+            })}
             {job.required_skills && job.required_skills.length > 4 && (
               <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600">
                 +{job.required_skills.length - 4} more
+              </span>
+            )}
+            {!job.required_skills && job.skills && job.skills.length > 4 && (
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600">
+                +{job.skills.length - 4} more
               </span>
             )}
           </div>

@@ -72,6 +72,8 @@ export function getDateRangeFromTimePeriod(timePeriod: string): { start_date: st
   let start_date: Date;
   
   switch (timePeriod) {
+    case 'all_available':
+      return null; // No date filter - show all available data
     case 'last_7_days':
       start_date = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
       break;
