@@ -12,6 +12,8 @@ class CourseResponse(BaseModel):
     duration_hours: int | None = None
     status: str | None = None
     delivery_mode: str | None = None
+    course_url: str | None = None
+    provider_url: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 

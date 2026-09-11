@@ -3,6 +3,9 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { GovernmentShell } from "@/app/government/GovernmentShell";
 import { api, type District, type IndustrySector } from "@/lib/api";
+
+// Force dynamic rendering to prevent SSR issues
+export const dynamic = 'force-dynamic';
 import {
   GraduationCap,
   X,
@@ -23,6 +26,7 @@ type FilterState = {
   status: string;
   provider: string;
   course: string;
+  include_demo: boolean;
 };
 
 const emptyFilters: FilterState = {
@@ -31,20 +35,24 @@ const emptyFilters: FilterState = {
   status: "",
   provider: "",
   course: "",
+  include_demo: false,
 };
 
 type TrainingProgram = {
   offering_id: string;
   course_id: string;
   course_title: string;
+  provider_id: string;
   provider_name: string;
+  district_id: string;
   district_name: string;
-  sector: string;
-  capacity: number;
-  enrolled: number;
-  available: number;
-  utilization: number;
+  sanctioned_seats: number;
+  active_seats: number;
+  utilized_seats: number;
+  available_seats: number;
   status: string;
+  sector: string | null;
+  source: string;
 };
 
 const fallbackPrograms: TrainingProgram[] = [
@@ -52,105 +60,129 @@ const fallbackPrograms: TrainingProgram[] = [
     offering_id: "fallback-001",
     course_id: "C101",
     course_title: "Electric Vehicle Service Technician",
+    provider_id: "prov-001",
     provider_name: "Maharashtra Skill Development Centre, Pune",
+    district_id: "dist-001",
     district_name: "Pune",
-    sector: "Automotive",
-    capacity: 120,
-    enrolled: 98,
-    available: 22,
-    utilization: 82,
+    sanctioned_seats: 120,
+    active_seats: 98,
+    utilized_seats: 98,
+    available_seats: 22,
     status: "ACTIVE",
+    sector: "Automotive",
+    source: "demo",
   },
   {
     offering_id: "fallback-002",
     course_id: "C102",
     course_title: "CNC Machine Operator",
+    provider_id: "prov-002",
     provider_name: "Industrial Training Institute, Nashik",
+    district_id: "dist-002",
     district_name: "Nashik",
-    sector: "Manufacturing",
-    capacity: 80,
-    enrolled: 62,
-    available: 18,
-    utilization: 78,
+    sanctioned_seats: 80,
+    active_seats: 62,
+    utilized_seats: 62,
+    available_seats: 18,
     status: "ACTIVE",
+    sector: "Manufacturing",
+    source: "demo",
   },
   {
     offering_id: "fallback-003",
     course_id: "C103",
     course_title: "Solar Installation Technician",
+    provider_id: "prov-003",
     provider_name: "Green Energy Training Academy, Nagpur",
+    district_id: "dist-003",
     district_name: "Nagpur",
-    sector: "Renewable Energy",
-    capacity: 100,
-    enrolled: 74,
-    available: 26,
-    utilization: 74,
+    sanctioned_seats: 100,
+    active_seats: 74,
+    utilized_seats: 74,
+    available_seats: 26,
     status: "ACTIVE",
+    sector: "Renewable Energy",
+    source: "demo",
   },
   {
     offering_id: "fallback-004",
     course_id: "C104",
     course_title: "Industrial Safety Assistant",
+    provider_id: "prov-004",
     provider_name: "Safety Skills Institute, Mumbai",
+    district_id: "dist-004",
     district_name: "Mumbai",
-    sector: "Safety",
-    capacity: 60,
-    enrolled: 60,
-    available: 0,
-    utilization: 100,
+    sanctioned_seats: 60,
+    active_seats: 60,
+    utilized_seats: 60,
+    available_seats: 0,
     status: "ACTIVE",
+    sector: "Safety",
+    source: "demo",
   },
   {
     offering_id: "fallback-005",
     course_id: "C105",
     course_title: "Python Programming & Data Analytics",
+    provider_id: "prov-005",
     provider_name: "Digital Skills Centre, Thane",
+    district_id: "dist-005",
     district_name: "Thane",
-    sector: "Information Technology",
-    capacity: 150,
-    enrolled: 89,
-    available: 61,
-    utilization: 59,
+    sanctioned_seats: 150,
+    active_seats: 89,
+    utilized_seats: 89,
+    available_seats: 61,
     status: "ACTIVE",
+    sector: "Information Technology",
+    source: "demo",
   },
   {
     offering_id: "fallback-006",
     course_id: "C106",
     course_title: "Welding Technician (Advanced)",
+    provider_id: "prov-006",
     provider_name: "Aurangabad Industrial Training Centre",
+    district_id: "dist-006",
     district_name: "Aurangabad",
-    sector: "Manufacturing",
-    capacity: 50,
-    enrolled: 0,
-    available: 50,
-    utilization: 0,
+    sanctioned_seats: 50,
+    active_seats: 0,
+    utilized_seats: 0,
+    available_seats: 50,
     status: "UPCOMING",
+    sector: "Manufacturing",
+    source: "demo",
   },
   {
     offering_id: "fallback-007",
     course_id: "C107",
     course_title: "Healthcare Assistant",
+    provider_id: "prov-007",
     provider_name: "Solapur Medical Training Institute",
+    district_id: "dist-007",
     district_name: "Solapur",
-    sector: "Healthcare",
-    capacity: 90,
-    enrolled: 71,
-    available: 19,
-    utilization: 79,
+    sanctioned_seats: 90,
+    active_seats: 71,
+    utilized_seats: 71,
+    available_seats: 19,
     status: "ACTIVE",
+    sector: "Healthcare",
+    source: "demo",
   },
   {
     offering_id: "fallback-008",
     course_id: "C108",
     course_title: "Hospitality & Tourism Management",
+    provider_id: "prov-008",
     provider_name: "Kolhapur Tourism Training Centre",
+    district_id: "dist-008",
     district_name: "Kolhapur",
-    sector: "Hospitality",
-    capacity: 70,
-    enrolled: 45,
-    available: 25,
-    utilization: 64,
+    sanctioned_seats: 70,
+    active_seats: 45,
+    utilized_seats: 45,
+    available_seats: 25,
     status: "COMPLETED",
+    sector: "Hospitality",
+    source: "demo",
   },
 ];
 
@@ -169,46 +201,30 @@ const normalizeStatus = (value: unknown): string => {
 };
 
 const normalizeProgram = (raw: any): TrainingProgram => {
-  const capacity = Math.max(
-    toNumber(raw?.capacity ?? raw?.active_seats ?? raw?.total_capacity ?? raw?.seats ?? raw?.available_seats),
-    0,
-  );
-  const enrolled = Math.max(
-    toNumber(raw?.enrolled ?? raw?.utilized_seats ?? raw?.enrollment_count ?? raw?.occupied_seats ?? raw?.filled_seats),
-    0,
-  );
-  const available = Math.max(capacity - enrolled, 0);
-  const utilization = capacity > 0 ? Math.min(Math.round((enrolled / capacity) * 100), 100) : 0;
+  const sanctioned_seats = Math.max(toNumber(raw?.sanctioned_seats ?? raw?.active_seats ?? 0), 0);
+  const active_seats = Math.max(toNumber(raw?.active_seats ?? sanctioned_seats), 0);
+  const utilized_seats = Math.max(toNumber(raw?.utilized_seats ?? 0), 0);
+  const available_seats = Math.max(active_seats - utilized_seats, 0);
 
   return {
-    offering_id: String(raw?.offering_id ?? raw?.id ?? raw?.program_id ?? crypto.randomUUID()),
-    course_id: String(raw?.course_id ?? raw?.course?.id ?? raw?.course_code ?? ""),
-    course_title: String(
-      raw?.course_title ?? raw?.course_name ?? raw?.title ?? raw?.course?.title ?? "Training Program",
-    ),
-    provider_name: String(
-      raw?.provider_name ?? raw?.training_provider ?? raw?.provider ?? raw?.provider_name ?? "Training Provider",
-    ),
-    district_name: String(raw?.district_name ?? raw?.district ?? raw?.district_id ?? "Unknown District"),
-    sector: String(raw?.sector ?? raw?.industry_sector ?? raw?.sector_name ?? "General"),
-    capacity,
-    enrolled,
-    available,
-    utilization,
-    status: normalizeStatus(raw?.status ?? raw?.program_status ?? raw?.training_status ?? "ACTIVE"),
+    offering_id: String(raw?.offering_id ?? raw?.id ?? crypto.randomUUID()),
+    course_id: String(raw?.course_id ?? ""),
+    course_title: String(raw?.course_title ?? "Training Program"),
+    provider_id: String(raw?.provider_id ?? ""),
+    provider_name: String(raw?.provider_name ?? "Training Provider"),
+    district_id: String(raw?.district_id ?? ""),
+    district_name: String(raw?.district_name ?? "Unknown District"),
+    sanctioned_seats,
+    active_seats,
+    utilized_seats,
+    available_seats,
+    status: normalizeStatus(raw?.status ?? "ACTIVE"),
+    sector: raw?.sector ?? null,
+    source: String(raw?.source ?? "supabase"),
   };
 };
 
-const applyFilters = (items: TrainingProgram[], filters: FilterState) => {
-  return items.filter((program) => {
-    const districtMatch = !filters.district_id || program.district_name === filters.district_id;
-    const sectorMatch = !filters.sector_id || program.sector === filters.sector_id;
-    const statusMatch = !filters.status || program.status === filters.status.toUpperCase();
-    const providerMatch = !filters.provider || program.provider_name.toLowerCase().includes(filters.provider.toLowerCase());
-    const courseMatch = !filters.course || program.course_title.toLowerCase().includes(filters.course.toLowerCase());
-    return districtMatch && sectorMatch && statusMatch && providerMatch && courseMatch;
-  });
-};
+
 
 export default function TrainingProgramsPage() {
   const [districts, setDistricts] = useState<District[]>([]);
@@ -244,24 +260,17 @@ export default function TrainingProgramsPage() {
         district_id: filters.district_id || undefined,
         sector_id: filters.sector_id || undefined,
         status: filters.status || undefined,
+        search: filters.provider || filters.course ? `${filters.provider} ${filters.course}`.trim() : undefined,
+        include_demo: filters.include_demo,
       });
 
       const normalized = Array.isArray(data) ? data.map(normalizeProgram) : [];
-      const dataWithFilters = applyFilters(normalized, filters);
-
-      if (dataWithFilters.length > 0) {
-        setPrograms(dataWithFilters);
-      } else {
-        const fallback = applyFilters(fallbackPrograms, filters);
-        setPrograms(fallback.length > 0 ? fallback : fallbackPrograms);
-      }
+      setPrograms(normalized);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load training programs";
-      // Silently use fallback data for permission or service errors
-      if (!message.includes("Insufficient permissions") && !message.includes("500") && !message.includes("503")) {
-        console.warn("Training programs fallback:", message);
-      }
-      setPrograms(applyFilters(fallbackPrograms, filters));
+      console.error("Training programs error:", message);
+      setErrorInfo(message);
+      setPrograms([]);
     } finally {
       setLoading(false);
     }
@@ -278,8 +287,8 @@ export default function TrainingProgramsPage() {
   const kpis = useMemo(() => {
     const total = programs.length;
     const active = programs.filter((program) => program.status === "ACTIVE").length;
-    const totalCapacity = programs.reduce((sum, program) => sum + program.capacity, 0);
-    const totalEnrollment = programs.reduce((sum, program) => sum + program.enrolled, 0);
+    const totalCapacity = programs.reduce((sum, program) => sum + program.active_seats, 0);
+    const totalEnrollment = programs.reduce((sum, program) => sum + program.utilized_seats, 0);
     const averageUtilization = totalCapacity > 0 ? ((totalEnrollment / totalCapacity) * 100).toFixed(1) : "0.0";
 
     return {
@@ -293,15 +302,19 @@ export default function TrainingProgramsPage() {
 
   const programUtilization = useMemo(() => {
     return [...programs]
+      .map(program => ({
+        ...program,
+        utilization: program.active_seats > 0 ? Math.round((program.utilized_seats / program.active_seats) * 100) : 0
+      }))
       .sort((a, b) => b.utilization - a.utilization)
       .slice(0, 5);
   }, [programs]);
 
   const capacityVsEnrollment = useMemo(() => {
     return [...programs].slice(0, 5).map((program) => ({
-      name: program.course_title.length > 18 ? `${program.course_title.slice(0, 18)}...` : program.course_title,
-      capacity: program.capacity,
-      enrolled: program.enrolled,
+      name: program.course_title && program.course_title.length > 18 ? `${program.course_title.slice(0, 18)}...` : program.course_title || 'Unknown',
+      capacity: program.active_seats,
+      enrolled: program.utilized_seats,
     }));
   }, [programs]);
 
@@ -327,7 +340,9 @@ export default function TrainingProgramsPage() {
   const sectorSummary = useMemo(() => {
     const totals = new Map<string, number>();
     programs.forEach((program) => {
-      totals.set(program.sector, (totals.get(program.sector) ?? 0) + 1);
+      if (program.sector) {
+        totals.set(program.sector, (totals.get(program.sector) ?? 0) + 1);
+      }
     });
 
     return [...totals.entries()]
@@ -384,7 +399,7 @@ export default function TrainingProgramsPage() {
                 >
                   <option value="">All Districts</option>
                   {districts.map((district) => (
-                    <option key={district.id} value={district.name}>
+                    <option key={district.id} value={district.id}>
                       {district.name}
                     </option>
                   ))}
@@ -400,7 +415,7 @@ export default function TrainingProgramsPage() {
                 >
                   <option value="">All Sectors</option>
                   {sectors.map((sector) => (
-                    <option key={sector.id} value={sector.name}>
+                    <option key={sector.id} value={sector.id}>
                       {sector.name}
                     </option>
                   ))}
@@ -456,6 +471,17 @@ export default function TrainingProgramsPage() {
                   <X className="h-3.5 w-3.5" /> Reset
                 </button>
               )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="include-demo"
+                  checked={filters.include_demo}
+                  onChange={(event) => setFilters((prev) => ({ ...prev, include_demo: event.target.checked }))}
+                  className="h-4 w-4 rounded border-slate-300 text-[#1e3a8a] focus:ring-[#1e3a8a]"
+                />
+                <label htmlFor="include-demo" className="text-xs text-slate-600">Include Demo Data</label>
+              </div>
             </div>
           </div>
 
@@ -506,20 +532,23 @@ export default function TrainingProgramsPage() {
                     <span className="text-xs text-slate-500">Top programs</span>
                   </div>
                   <div className="space-y-4">
-                    {programUtilization.map((program) => (
-                      <div key={program.offering_id}>
-                        <div className="mb-1 flex items-center justify-between text-xs text-slate-600">
-                          <span className="max-w-[70%] truncate">{program.course_title}</span>
-                          <span className="font-medium text-[#1e293b]">{program.utilization}%</span>
+                    {programUtilization.map((program) => {
+                      const utilization = program.active_seats > 0 ? Math.round((program.utilized_seats / program.active_seats) * 100) : 0;
+                      return (
+                        <div key={program.offering_id}>
+                          <div className="mb-1 flex items-center justify-between text-xs text-slate-600">
+                            <span className="max-w-[70%] truncate">{program.course_title}</span>
+                            <span className="font-medium text-[#1e293b]">{utilization}%</span>
+                          </div>
+                          <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+                            <div
+                              className={`h-full rounded-full ${getUtilizationColor(utilization)}`}
+                              style={{ width: `${utilization}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-                          <div
-                            className={`h-full rounded-full ${getUtilizationColor(program.utilization)}`}
-                            style={{ width: `${program.utilization}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -634,40 +663,48 @@ export default function TrainingProgramsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {programs.map((program) => (
-                        <tr key={program.offering_id} className="border-t border-slate-100 hover:bg-slate-50">
-                          <td className="px-4 py-3">
-                            <div className="font-medium text-[#1e293b]">{program.course_title}</div>
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">{program.provider_name}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-1.5 text-slate-600">
-                              <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                              {program.district_name}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">{program.sector}</td>
-                          <td className="px-4 py-3 text-right font-medium text-[#1e293b]">{program.capacity}</td>
-                          <td className="px-4 py-3 text-right font-medium text-[#1e3a8a]">{program.enrolled}</td>
-                          <td className="px-4 py-3 text-right text-slate-600">{program.available}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <div className="h-2.5 w-20 overflow-hidden rounded-full bg-slate-100">
-                                <div
-                                  className={`h-full rounded-full ${getUtilizationColor(program.utilization)}`}
-                                  style={{ width: `${program.utilization}%` }}
-                                />
+                      {programs.map((program) => {
+                        const utilization = program.active_seats > 0 ? Math.round((program.utilized_seats / program.active_seats) * 100) : 0;
+                        return (
+                          <tr key={program.offering_id} className="border-t border-slate-100 hover:bg-slate-50">
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-[#1e293b]">{program.course_title}</div>
+                              {program.source === "demo" && (
+                                <span className="mt-1 inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700">
+                                  Demo
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-slate-600">{program.provider_name}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-1.5 text-slate-600">
+                                <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                                {program.district_name}
                               </div>
-                              <span className="text-xs font-medium text-slate-600">{program.utilization}%</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`inline-flex rounded px-2 py-1 text-[11px] font-medium ${statusStyles[program.status] ?? "bg-slate-200 text-slate-700"}`}>
-                              {program.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td className="px-4 py-3 text-slate-600">{program.sector || "General"}</td>
+                            <td className="px-4 py-3 text-right font-medium text-[#1e293b]">{program.active_seats}</td>
+                            <td className="px-4 py-3 text-right font-medium text-[#1e3a8a]">{program.utilized_seats}</td>
+                            <td className="px-4 py-3 text-right text-slate-600">{program.available_seats}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <div className="h-2.5 w-20 overflow-hidden rounded-full bg-slate-100">
+                                  <div
+                                    className={`h-full rounded-full ${getUtilizationColor(utilization)}`}
+                                    style={{ width: `${utilization}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs font-medium text-slate-600">{utilization}%</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex rounded px-2 py-1 text-[11px] font-medium ${statusStyles[program.status] ?? "bg-slate-200 text-slate-700"}`}>
+                                {program.status}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
           </div>

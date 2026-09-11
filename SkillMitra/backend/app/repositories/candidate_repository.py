@@ -14,6 +14,7 @@ class CandidateRepository:
             select(CandidateProfile)
             .where(CandidateProfile.user_id == user_id)
             .options(
+                selectinload(CandidateProfile.user),
                 selectinload(CandidateProfile.education_history),
                 selectinload(CandidateProfile.career_interests),
             )

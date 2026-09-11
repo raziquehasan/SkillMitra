@@ -25,11 +25,18 @@ class JobResponse(BaseModel):
     id: uuid.UUID
     employer_id: uuid.UUID
     employer_name: str | None = None
+    company_name: str | None = None
     job_role_id: uuid.UUID
+    job_role_title: str | None = None
     district_id: uuid.UUID | None = None
+    district_name: str | None = None
     title: str
     status: str
     posted_date: date | None = None
+    job_url: str | None = None
+    employer_careers_url: str | None = None
+    employer_website: str | None = None
+    skills: list[str] = []
     job_posting_skills: list[JobPostingSkillResponse] = []
     model_config = ConfigDict(from_attributes=True)
 
@@ -39,11 +46,18 @@ class JobResponse(BaseModel):
             "id": job_posting.id,
             "employer_id": job_posting.employer_id,
             "employer_name": job_posting.employer.company_name if job_posting.employer else None,
+            "company_name": job_posting.employer.company_name if job_posting.employer else None,
             "job_role_id": job_posting.job_role_id,
+            "job_role_title": job_posting.job_role.title if job_posting.job_role else None,
             "district_id": job_posting.district_id,
+            "district_name": job_posting.district.name if job_posting.district else None,
             "title": job_posting.title,
             "status": job_posting.status,
             "posted_date": job_posting.posted_date,
+            "job_url": job_posting.job_url,
+            "employer_careers_url": job_posting.employer_careers_url,
+            "employer_website": job_posting.employer.website if job_posting.employer else None,
+            "skills": [s.skill.name for s in job_posting.job_posting_skills if s.skill],
             "job_posting_skills": [
                 JobPostingSkillResponse(
                     skill_id=s.skill_id,
@@ -78,3 +92,5 @@ class JobCreate(BaseModel):
     district_id: uuid.UUID
     # Canonical lowercase status; JobRepository filters on status == "open".
     status: str = "open"
+    job_url: str | None = None
+    employer_careers_url: str | None = None

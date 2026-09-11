@@ -151,6 +151,8 @@ class Course(TimestampMixin, Base):
     transformation_version: Mapped[str | None] = mapped_column(String(50), nullable=True)
     mapping_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
     validation_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    course_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    provider_url: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Relationships
     district: Mapped["District | None"] = relationship(

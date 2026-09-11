@@ -5,8 +5,8 @@ from pydantic import BaseModel, ConfigDict
 
 
 class CandidateEducationBase(BaseModel):
-    institution_name: str
-    education_level: str
+    institution_name: str | None = None
+    education_level: str | None = None
     stream_specialization: str | None = None
     board_university: str | None = None
     passing_year: int | None = None
@@ -49,6 +49,10 @@ class CandidateInterestResponse(CandidateInterestBase):
 
 
 class CandidateProfileBase(BaseModel):
+    full_name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    gender: str | None = None
     district_id: uuid.UUID | None = None
     date_of_birth: date | None = None
     education_level: str | None = None
@@ -64,7 +68,27 @@ class CandidateProfileResponse(CandidateProfileBase):
     user_id: uuid.UUID
     education_history: list[CandidateEducationResponse] = []
     career_interests: list[CandidateInterestResponse] = []
-    model_config = ConfigDict(from_attributes=True)
+    
+    # Include user data for display
+    @classmethod
+    def from_profile_with_user(cls, profile):
+        if not profile or not profile.user:
+            return None
+        
+        return cls(
+            id=profile.id,
+            user_id=profile.user_id,
+            full_name=profile.user.full_name,
+            email=profile.user.email,
+            phone=profile.user.phone,
+            gender=profile.gender,
+            district_id=profile.district_id,
+            date_of_birth=profile.date_of_birth,
+            education_level=profile.education_level,
+            current_status=profile.current_status,
+            education_history=profile.education_history,
+            career_interests=profile.career_interests,
+        )
 
 
 class CandidateSkillCreate(BaseModel):
@@ -84,9 +108,16 @@ class CandidateSkillUpdate(BaseModel):
     evidence_reference: str | None = None
 
 
+class SkillVerificationRequest(BaseModel):
+    evidence_reference: str | None = None
+    last_assessed_date: date | None = None
+
+
 class CandidateSkillResponse(CandidateSkillCreate):
     id: uuid.UUID
     candidate_id: uuid.UUID
+    skill_name: str | None = None
+    proficiency_level_name: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 

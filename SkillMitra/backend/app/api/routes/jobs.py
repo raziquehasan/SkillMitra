@@ -14,13 +14,14 @@ router = APIRouter(prefix="/api/v1/jobs", tags=["Jobs"])
 def list_jobs(
     district_id: uuid.UUID | None = None,
     job_role_id: uuid.UUID | None = None,
+    search: str | None = None,
     pagination: dict = Depends(get_pagination),
     db: Session = Depends(get_db)
 ):
     svc = JobService(db)
     items, total = svc.get_jobs(
         pagination["skip"], pagination["limit"],
-        district_id=district_id, job_role_id=job_role_id
+        district_id=district_id, job_role_id=job_role_id, search=search
     )
     return {
         "items": items, "total": total,
@@ -31,3 +32,7 @@ def list_jobs(
 @router.get("/{job_id}", response_model=JobDetailResponse)
 def get_job(job_id: uuid.UUID, db: Session = Depends(get_db)):
     return JobService(db).get_job(job_id)
+
+@router.get("/{job_id}/related-courses")
+def get_related_courses(job_id: uuid.UUID, db: Session = Depends(get_db)):
+    return JobService(db).get_related_courses(job_id)

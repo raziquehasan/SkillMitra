@@ -186,6 +186,8 @@ class CourseHealthScoreService:
             "period_start": str(period_start),
             "period_end": str(period_end),
             "calculated_at": record.updated_at.isoformat() if record.updated_at else None,
+            "placement_feedback": placement_result.get("feedback"),
+            "placement_feedback_trigger": placement_result.get("feedback_trigger"),
         }
 
     def _calculate_demand_score(self, course_id: str) -> dict[str, Any]:
@@ -268,9 +270,19 @@ class CourseHealthScoreService:
         ) or 0
 
         rate = (placed / completed_enrollments) * 100
+
+        # Add feedback recommendation if placement rate is low
+        feedback = None
+        if rate < 30 and completed_enrollments >= 5:
+            feedback = "Low placement rate suggests curriculum review may be needed"
+        elif rate < 50 and completed_enrollments >= 10:
+            feedback = "Placement rate below average; consider curriculum alignment review"
+
         return {
             "score": round(rate, 1),
             "explanation": f"{placed} placements out of {completed_enrollments} completed enrollments ({rate:.1f}%)",
+            "feedback": feedback,
+            "feedback_trigger": "low_placement" if feedback else None,
         }
 
     def _calculate_employer_validation_score(self, course_id: str) -> dict[str, Any]:

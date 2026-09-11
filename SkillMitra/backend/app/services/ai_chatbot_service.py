@@ -1,5 +1,6 @@
 """AI Chatbot Service for SkillMitra - Data-first AI Assistant."""
 import os
+import uuid
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
@@ -31,6 +32,11 @@ class AIChatbotService:
         # Extract keywords from query for intelligent data retrieval
         query_lower = query.lower()
         
+        # CRITICAL: Detect district from query if not provided in context
+        # This ensures district-specific questions get district-specific data
+        if not district_id:
+            district_id = self._extract_district_from_query(query_lower)
+        
         relevant_data = {
             "current_demand": [],
             "future_demand": [],
@@ -41,7 +47,7 @@ class AIChatbotService:
             "sectors": []
         }
         
-        # Get current demand data
+        # Get current demand data - STRICTLY district-specific when district is detected
         if district_id:
             demand_query = select(IndustryDemand).where(
                 IndustryDemand.district_id == district_id
@@ -61,7 +67,8 @@ class AIChatbotService:
                     "job_role_id": str(demand.job_role_id) if demand.job_role_id else None
                 })
         
-        # Get statewide demand if no district specified
+        # Only get statewide demand if NO district is mentioned or detected
+        # This prevents cross-district contamination
         if not district_id and ("demand" in query_lower or "skill" in query_lower):
             statewide_demand = select(IndustryDemand).order_by(
                 IndustryDemand.aggregate_demand_score.desc()
@@ -105,7 +112,7 @@ class AIChatbotService:
             relevant_data["jobs"].append({
                 "id": str(job.id),
                 "title": job.title,
-                "employer": job.employer_name,
+                "employer": job.employer.company_name if job.employer else None,
                 "district_id": str(job.district_id) if job.district_id else None,
                 "status": job.status
             })
@@ -144,15 +151,69 @@ class AIChatbotService:
                     "description": sector.description
                 })
         
-        # Add future demand forecasts (placeholder for now)
+        # Add future demand forecasts - STRICTLY district-specific when district is detected
         if "future" in query_lower or "forecast" in query_lower or "growing" in query_lower:
-            # This would come from a future_demand_forecasts table
-            # For now, we'll identify high-growth skills from current demand trends
-            relevant_data["future_demand"] = self._get_growth_forecasts(query_lower)
+            # Use actual future_demand_forecasts table with district filtering
+            from app.models.demand import FutureDemandForecast
+            
+            forecast_query = select(FutureDemandForecast).order_by(
+                FutureDemandForecast.confidence_score.desc()
+            ).limit(10)
+            
+            if district_id:
+                forecast_query = forecast_query.where(
+                    FutureDemandForecast.district_id == district_id
+                )
+            
+            forecasts = self.db.execute(forecast_query).scalars().all()
+            
+            for forecast in forecasts:
+                skill = self.db.get(Skill, forecast.skill_id) if forecast.skill_id else None
+                district = self.db.get(District, forecast.district_id) if forecast.district_id else None
+                
+                relevant_data["future_demand"].append({
+                    "skill": skill.name if skill else None,
+                    "forecast_level": forecast.forecast_level,
+                    "confidence_level": forecast.confidence_level,
+                    "district": district.name if district else None,
+                    "evidence": forecast.evidence_summary,
+                    "horizon_months": forecast.forecast_horizon_months
+                })
+            
+            # Fallback to keyword-based growth detection only if no forecast data exists
+            if not relevant_data["future_demand"]:
+                relevant_data["future_demand"] = self._get_growth_forecasts(query_lower, district_id)
         
         return relevant_data
     
-    def _get_growth_forecasts(self, query_lower: str) -> List[Dict[str, Any]]:
+    def _extract_district_from_query(self, query_lower: str) -> Optional[uuid.UUID]:
+        """Extract district ID from query using district name matching."""
+        # Common district name patterns (normalized)
+        district_keywords = {
+            "pune": "Pune",
+            "mumbai": "Mumbai",
+            "nashik": "Nashik",
+            "nagpur": "Nagpur",
+            "kolhapur": "Kolhapur",
+            "aurangabad": "Aurangabad",
+            "thane": "Thane",
+            "solapur": "Solapur",
+            "amravati": "Amravati",
+            "jalgaon": "Jalgaon",
+        }
+        
+        for keyword, district_name in district_keywords.items():
+            if keyword in query_lower:
+                # Look up district ID by name
+                district = self.db.scalar(
+                    select(District).where(District.name.ilike(f"%{district_name}%"))
+                )
+                if district:
+                    return district.id
+        
+        return None
+    
+    def _get_growth_forecasts(self, query_lower: str, district_id: Optional[uuid.UUID] = None) -> List[Dict[str, Any]]:
         """Generate growth forecasts based on current demand patterns."""
         # This is a simplified version - in production, this would use 
         # actual forecast data from the future_demand_forecasts table
@@ -164,19 +225,28 @@ class AIChatbotService:
         
         for keyword in emerging_keywords:
             if keyword in query_lower:
-                # Find related skills
+                # Find related skills - filter by district if provided
                 skill_query = select(Skill).where(
                     Skill.name.ilike(f"%{keyword}%")
                 ).limit(5)
                 
                 skills = self.db.execute(skill_query).scalars().all()
                 for skill in skills:
-                    high_growth_skills.append({
+                    forecast_data = {
                         "skill": skill.name,
                         "forecast_level": "Growing",
                         "evidence": f"Based on current demand patterns for {keyword}",
                         "confidence": "Moderate"
-                    })
+                    }
+                    
+                    # Add district context if available
+                    if district_id:
+                        district = self.db.get(District, district_id)
+                        if district:
+                            forecast_data["district"] = district.name
+                            forecast_data["evidence"] = f"Based on current demand patterns for {keyword} in {district.name}"
+                    
+                    high_growth_skills.append(forecast_data)
         
         return high_growth_skills
     

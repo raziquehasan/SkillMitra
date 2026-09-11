@@ -81,10 +81,9 @@ section[id] {
   scroll-margin-top: 5.5rem;
 }
 
-/* Targeted responsive media rules.
-   NOTE: Do NOT use `* { max-width: 100% }` — it breaks icons, SVGs,
-   avatars, buttons, dropdowns, and many Tailwind utilities. */
-img,
+/* Do NOT add global img { max-width:100%; height:auto } — it overrides
+   Tailwind h-* classes and breaks logos, icons, and avatars.
+   Use Tailwind classes (w-full, max-w-full) on specific <img> elements instead. */
 video {
   max-width: 100%;
   height: auto;

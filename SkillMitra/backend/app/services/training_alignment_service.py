@@ -6,12 +6,14 @@ from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+from typing import Any
 
-from app.models.career import Course, CourseSkill, JobRoleSkill
+from app.models.career import Course, CourseEnrollment, CourseSkill, JobRoleSkill
 from app.models.demand import DataSource, IndustryDemand
 from app.models.geography import District
 from app.models.identity import User
-from app.models.market import Placement
+from app.models.market import JobPosting, Placement
+from app.models.demand import EmployerSurvey
 from app.models.phase4 import (
     CourseEquipmentRequirement,
     CourseOffering,
@@ -149,6 +151,9 @@ class CourseAlignmentService:
             else:
                 recommendation = "NEW_COURSE_REQUIRED"
 
+            # Add curriculum status classification
+            curriculum_status = self._classify_curriculum_status(course, coverage_pct, len(required_skills))
+
             course_analysis.append({
                 "course_id": str(course.id),
                 "course_title": course.title,
@@ -157,12 +162,89 @@ class CourseAlignmentService:
                 "missing_skills": [str(sid) for sid in missing],
                 "coverage_percentage": round(coverage_pct, 1),
                 "recommendation": recommendation,
+                "curriculum_status": curriculum_status,
             })
 
         return {
             "job_role_id": job_role_id,
             "required_skills": [str(sid) for sid in required_skills],
             "course_analysis": course_analysis,
+        }
+
+    def _classify_curriculum_status(self, course: Course, coverage_pct: float, required_skill_count: int) -> dict[str, Any]:
+        """Classify course curriculum status based on evidence."""
+        from app.models.phase6 import EmployerCurriculumValidation
+        from app.models.phase8 import CourseHealthScore
+
+        # Get employer validations
+        validations = self.db.scalars(
+            select(EmployerCurriculumValidation).where(
+                EmployerCurriculumValidation.course_id == course.id
+            )
+        ).all()
+
+        # Get course health score if available
+        health_score = self.db.scalar(
+            select(CourseHealthScore).where(
+                CourseHealthScore.course_id == course.id
+            ).order_by(CourseHealthScore.updated_at.desc())
+        )
+
+        # Determine status based on evidence
+        if health_score and health_score.overall_score is not None:
+            if health_score.overall_score >= 75:
+                status = "aligned"
+                confidence = "high"
+            elif health_score.overall_score >= 50:
+                status = "partially_aligned"
+                confidence = "medium"
+            elif health_score.overall_score >= 25:
+                status = "needs_review"
+                confidence = "medium"
+            else:
+                status = "legacy_obsolete"
+                confidence = "medium"
+            evidence_source = "course_health_score"
+        elif validations:
+            # Use employer validation if no health score
+            status_counts = {}
+            for v in validations:
+                status_counts[v.status] = status_counts.get(v.status, 0) + 1
+            top_status = max(status_counts.items(), key=lambda x: x[1])[0]
+
+            if top_status == "relevant":
+                status = "aligned"
+                confidence = "medium"
+            elif top_status == "partially_relevant":
+                status = "partially_aligned"
+                confidence = "medium"
+            elif top_status == "outdated":
+                status = "legacy_obsolete"
+                confidence = "medium"
+            else:
+                status = "needs_review"
+                confidence = "medium"
+            evidence_source = "employer_validation"
+        elif coverage_pct >= 80:
+            status = "aligned"
+            confidence = "low"
+            evidence_source = "skill_coverage_only"
+        elif coverage_pct >= 50:
+            status = "partially_aligned"
+            confidence = "low"
+            evidence_source = "skill_coverage_only"
+        else:
+            status = "insufficient_evidence"
+            confidence = "insufficient"
+            evidence_source = "insufficient_data"
+
+        return {
+            "status": status,
+            "confidence": confidence,
+            "evidence_source": evidence_source,
+            "coverage_percentage": coverage_pct,
+            "employer_validation_count": len(validations),
+            "has_health_score": health_score is not None,
         }
 
 
@@ -811,6 +893,90 @@ class AuditService:
         }
 
 
+class EvidenceSourceMapService:
+    """Map evidence sources to intelligence outputs for data provenance."""
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get_evidence_source_map(self) -> dict[str, Any]:
+        """Generate evidence source map for all P1 intelligence outputs."""
+        from app.models.demand import DataSource
+        from app.models.phase6 import IndustryConsultation
+        from app.models.phase8 import EmergingTechnology
+
+        # Count records in each evidence source
+        evidence_sources = {
+            "job_postings": {
+                "table": "job_postings",
+                "data_available": self.db.scalar(select(func.count()).select_from(JobPosting)) or 0,
+                "used_in_demand": True,
+                "used_in_skill_gap": True,
+                "used_in_recommendations": True,
+                "used_in_future_demand": True,
+                "used_in_district_planning": True,
+            },
+            "employer_surveys": {
+                "table": "employer_surveys",
+                "data_available": self.db.scalar(select(func.count()).select_from(EmployerSurvey)) or 0,
+                "used_in_demand": True,
+                "used_in_skill_gap": False,
+                "used_in_recommendations": False,
+                "used_in_future_demand": True,
+                "used_in_district_planning": False,
+            },
+            "industry_consultations": {
+                "table": "industry_consultations",
+                "data_available": self.db.scalar(select(func.count()).select_from(IndustryConsultation)) or 0,
+                "used_in_demand": False,
+                "used_in_skill_gap": False,
+                "used_in_recommendations": False,
+                "used_in_future_demand": False,
+                "used_in_district_planning": False,
+            },
+            "sector_growth_data": {
+                "table": None,
+                "data_available": 0,
+                "used_in_demand": False,
+                "used_in_skill_gap": False,
+                "used_in_recommendations": False,
+                "used_in_future_demand": False,
+                "used_in_district_planning": False,
+                "note": "Table does not exist - PS gap",
+            },
+            "placement_outcomes": {
+                "table": "placements",
+                "data_available": self.db.scalar(select(func.count()).select_from(Placement)) or 0,
+                "used_in_demand": False,
+                "used_in_skill_gap": False,
+                "used_in_recommendations": True,  # In course health
+                "used_in_future_demand": False,
+                "used_in_district_planning": False,
+            },
+            "emerging_technologies": {
+                "table": "emerging_technologies",
+                "data_available": self.db.scalar(select(func.count()).select_from(EmergingTechnology)) or 0,
+                "used_in_demand": False,
+                "used_in_skill_gap": False,
+                "used_in_recommendations": True,  # In course health
+                "used_in_future_demand": False,
+                "used_in_district_planning": False,
+            },
+        }
+
+        # Get data source categories
+        source_categories = {}
+        data_sources = self.db.scalars(select(DataSource)).all()
+        for ds in data_sources:
+            source_categories[ds.source_category] = source_categories.get(ds.source_category, 0) + 1
+
+        return {
+            "evidence_sources": evidence_sources,
+            "data_source_categories": source_categories,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+
 class DistrictIntelligenceService:
     """Consolidated district intelligence view."""
 
@@ -823,6 +989,7 @@ class DistrictIntelligenceService:
         self.trainer_svc = TrainerGapService(db)
         self.employer_svc = EmployerValidationService(db)
         self.quality_svc = DataQualityService(db)
+        self.evidence_svc = EvidenceSourceMapService(db)
 
     def get_district_intelligence(self, district_id: str, source_type: str | None = None) -> dict[str, Any]:
         """Get consolidated district intelligence."""
@@ -877,6 +1044,9 @@ class DistrictIntelligenceService:
         placement_stmt = select(func.count()).select_from(Placement).where(Placement.district_id == district_id)
         placements = self.db.scalar(placement_stmt) or 0
 
+        # Evidence sources for this district's intelligence
+        evidence_map = self.evidence_svc.get_evidence_source_map()
+
         return {
             "district_id": district_id,
             "district_name": district.name,
@@ -893,4 +1063,5 @@ class DistrictIntelligenceService:
             "employer_validation": employer_validations,
             "placements": {"total_placements": placements},
             "review_status": "PENDING_REVIEW",
+            "evidence_sources": evidence_map,
         }
