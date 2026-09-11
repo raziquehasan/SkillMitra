@@ -581,4 +581,3 @@ function JourneyStep({
     </div>
   );
 }
-

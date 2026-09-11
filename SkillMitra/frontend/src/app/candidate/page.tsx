@@ -75,6 +75,7 @@ const skills = [
   },
 ];
 
+<<<<<<< HEAD
 type CandidateSkill = {
   id: string;
   candidate_id: string;
@@ -116,7 +117,6 @@ export default function CandidateDashboardPage() {
     localStorage.setItem("skillmitra_onboarding_dismissed", "true");
     setDismissedOnboarding(true);
   };
-
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
       {/* Government Header */}
@@ -203,6 +203,7 @@ export default function CandidateDashboardPage() {
               </p>
             </div>
 
+<<<<<<< HEAD
             {/* Onboarding Prompt for New Candidates */}
             {hasSkills === false && !dismissedOnboarding && (
               <div className="mb-7 rounded-xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
@@ -239,7 +240,6 @@ export default function CandidateDashboardPage() {
                 </div>
               </div>
             )}
-
             {/* Summary Cards */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <SummaryCard
