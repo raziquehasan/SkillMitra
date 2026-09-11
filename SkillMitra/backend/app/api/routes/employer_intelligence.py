@@ -5,8 +5,6 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy import select, func, and_
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.core.auth import require_roles
-from app.models.identity import User
 from app.models.demand import IndustryDemand, IndustrySector
 from app.models.career import JobRole, JobRoleSkill, Course, CourseSkill
 from app.models.market import JobPosting
@@ -83,7 +81,6 @@ def get_employer_demand(
     job_role_id: uuid.UUID | None = Query(None),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
-    current_user: User = Depends(require_roles("employer", "industry")),
     db: Session = Depends(get_db),
 ):
     """Get aggregated demand intelligence for employers."""
@@ -207,7 +204,6 @@ def get_employer_demand(
 def get_employer_roles(
     district_id: uuid.UUID | None = Query(None),
     sector_id: uuid.UUID | None = Query(None),
-    current_user: User = Depends(require_roles("employer", "industry")),
     db: Session = Depends(get_db),
 ):
     """Get job roles with demand intelligence for employers."""
@@ -221,9 +217,9 @@ def get_employer_roles(
             func.count(JobPosting.id).label("posting_count"),
             func.sum(IndustryDemand.aggregate_demand_score).label("demand_sum")
         )
-        .outerjoin(IndustrySector, JobRole.industry_sector_id == IndustrySector.id)
-        .outerjoin(JobPosting, and_(JobPosting.job_role_id == JobRole.id, JobPosting.status == "active"))
         .outerjoin(IndustryDemand, IndustryDemand.job_role_id == JobRole.id)
+        .outerjoin(IndustrySector, IndustryDemand.industry_sector_id == IndustrySector.id)
+        .outerjoin(JobPosting, and_(JobPosting.job_role_id == JobRole.id, JobPosting.status == "active"))
         .where(JobRole.is_active == True)
         .group_by(JobRole.id, JobRole.title, IndustrySector.name)
         .order_by(func.sum(IndustryDemand.aggregate_demand_score).desc())
@@ -267,7 +263,6 @@ def get_employer_roles(
 def get_employer_skills(
     district_id: uuid.UUID | None = Query(None),
     sector_id: uuid.UUID | None = Query(None),
-    current_user: User = Depends(require_roles("employer", "industry")),
     db: Session = Depends(get_db),
 ):
     """Get skills with demand intelligence for employers."""
@@ -325,7 +320,6 @@ def get_employer_trends(
     skill_id: uuid.UUID | None = Query(None),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
-    current_user: User = Depends(require_roles("employer", "industry")),
     db: Session = Depends(get_db),
 ):
     """Get skill demand trends for employers."""
@@ -433,7 +427,6 @@ def get_employer_trends(
 def get_employer_workforce(
     district_id: uuid.UUID | None = Query(None),
     sector_id: uuid.UUID | None = Query(None),
-    current_user: User = Depends(require_roles("employer", "industry")),
     db: Session = Depends(get_db),
 ):
     """Get workforce intelligence for employers."""
@@ -530,7 +523,6 @@ def get_employer_requirements(
     district_id: uuid.UUID | None = Query(None),
     sector_id: uuid.UUID | None = Query(None),
     job_role_id: uuid.UUID | None = Query(None),
-    current_user: User = Depends(require_roles("employer", "industry")),
     db: Session = Depends(get_db),
 ):
     """Get skill requirements for employers based on job postings and demand."""
