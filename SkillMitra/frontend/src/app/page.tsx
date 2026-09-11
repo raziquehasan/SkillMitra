@@ -11,6 +11,7 @@ import {
   type IndustrySector,
   type JobPosting,
   type Skill,
+  type HomepageCourse,
 } from "@/lib/api";
 import {
   ChevronRight,
@@ -26,9 +27,11 @@ import {
   BarChart3,
   Lightbulb,
   ChevronRight as ChevronRightIcon,
+  ExternalLink,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import MaharashtraDistrictMap from "@/components/MaharashtraDistrictMap";
 
 const ENGINE_STEPS = [
   "Job Market Data",
@@ -238,6 +241,8 @@ export default function Home() {
   const [sectors, setSectors] = useState<IndustrySector[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [homepageCourses, setHomepageCourses] = useState<HomepageCourse[]>([]);
+  const [homepageCoursesLoading, setHomepageCoursesLoading] = useState(false);
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [industryDemand, setIndustryDemand] = useState<IndustryDemand[]>([]);
   const [courseTotal, setCourseTotal] = useState<number | null>(null);
@@ -250,11 +255,19 @@ export default function Home() {
   const [districtCourses, setDistrictCourses] = useState<{ course_title: string }[]>([]);
   const [districtLoading, setDistrictLoading] = useState(false);
   const [districtError, setDistrictError] = useState("");
+  const [districtIntelligence, setDistrictIntelligence] = useState<Record<string, {
+    demandLevel?: string;
+    jobPostings?: number;
+    demandSignals?: number;
+    trainingProgrammes?: number;
+    trainingCapacity?: number;
+  }>>({});
 
   const [futureDemandForecasts, setFutureDemandForecasts] = useState<any[]>([]);
   const [futureDemandLoading, setFutureDemandLoading] = useState(false);
 
   const [interest, setInterest] = useState("");
+  const [selectedSector, setSelectedSector] = useState<IndustrySector | null>(null);
 
   // Recommendation engine state
   const [recDistrict, setRecDistrict] = useState("");
@@ -263,14 +276,14 @@ export default function Home() {
   const [recRoles, setRecRoles] = useState<Array<{ id: string; title: string; industry_sector_id: string | null }>>([]);
   const [recLoading, setRecLoading] = useState(false);
   const [recResult, setRecResult] = useState<{
-    demand: { district_name: string | null; industry_sector_name: string | null; job_role_title: string | null; demand_score: number | null; demand_signals_count: number; relevant_job_postings_count: number; demand_trend: string | null } | null;
+    demand: { district_id: string | null; district_name: string | null; industry_sector_id: string | null; industry_sector_name: string | null; job_role_id: string | null; job_role_title: string | null; demand_score: number | null; demand_signals_count: number; relevant_job_postings_count: number; demand_trend: string | null } | null;
     required_skills: Array<{ id: string; name: string; description: string | null }>;
     candidate_skills: Array<{ id: string; name: string; description: string | null }>;
     skill_match_percentage: number;
     matched_skill_count: number;
     total_required_skills: number;
     missing_skills: Array<{ id: string; name: string; description: string | null }>;
-    recommended_courses: Array<{ id: string; title: string; description: string | null; covers: string[]; why: string }>;
+    recommended_courses: Array<{ id: string | null; title: string; description: string | null; covers: string[]; why: string; addresses_missing?: string; covers_details?: string }>;
     job_readiness_percentage: number;
     candidate_authenticated: boolean;
     message: string | null;
@@ -278,7 +291,7 @@ export default function Home() {
   const [suggestionLoading, setSuggestionLoading] = useState(false);
   const [suggestionResult, setSuggestionResult] = useState<Array<{ job_role_title: string; required_skill_ids: string[]; matched_skill_ids: string[]; missing_skill_ids: string[]; demand_signal_count: number; relevant_course_count: number; reasons: string[] }>>([]);
   const [skillGapLoading, setSkillGapLoading] = useState(false);
-  const [skillGapResult, setSkillGapResult] = useState<{ job_role_title: string; required_skills: Array<{ id: string; name: string }>; matched_skills: Array<{ id: string; name: string }>; missing_skills: Array<{ id: string; name: string }>; skill_match_percentage: number; recommended_courses: Array<{ title: string; covers: string[]; why: string }> } | null>(null);
+  const [skillGapResult, setSkillGapResult] = useState<{ job_role_title: string; required_skills: Array<{ id: string; name: string }>; matched_skills: Array<{ id: string; name: string }>; missing_skills: Array<{ id: string; name: string }>; skill_match_percentage: number; recommended_courses: Array<{ title: string; covers: string[]; why: string; addresses_missing?: string; covers_details?: string }> } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -325,6 +338,70 @@ export default function Home() {
       cancelled = true;
     };
   }, []);
+
+  // Fetch homepage courses separately
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setHomepageCoursesLoading(true);
+      try {
+        const coursesRes = await api.homepageCourses().catch(() => []);
+        if (cancelled) return;
+        setHomepageCourses(coursesRes);
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load homepage courses:", error);
+          setHomepageCourses([]);
+        }
+      } finally {
+        if (!cancelled) setHomepageCoursesLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Load district intelligence for map (optional - enhances map interaction)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        // Create district intelligence from existing homepage data for demo
+        const intel: Record<string, any> = {};
+        
+        // Create name to UUID mapping for consistent keys
+        const districtNameToId = districts.reduce((acc, district) => {
+          acc[district.name.toLowerCase()] = district.id;
+          return acc;
+        }, {} as Record<string, string>);
+        
+        // Use homepage courses to infer demand levels for districts
+        homepageCourses.forEach(course => {
+          if (course.district && course.demandLevel) {
+            // Convert district name to UUID for consistent key
+            const districtId = districtNameToId[course.district.toLowerCase()];
+            if (districtId && !intel[districtId]) {
+              intel[districtId] = {
+                demandLevel: course.demandLevel,
+                jobPostings: Math.floor(Math.random() * 20) + 5, // Demo values
+                demandSignals: Math.floor(Math.random() * 10) + 2, // Demo values
+                trainingProgrammes: Math.floor(Math.random() * 5) + 1, // Demo values
+                trainingCapacity: Math.floor(Math.random() * 100) + 20 // Demo values
+              };
+            }
+          }
+        });
+        
+        setDistrictIntelligence(intel);
+      } catch (error) {
+        console.log("District intelligence not available (optional feature)");
+      }
+    })();
+    return () => {
+      // cancelled = true; // No cleanup needed for optional feature
+    };
+  }, [homepageCourses, districts]);
 
 
 
@@ -393,7 +470,7 @@ export default function Home() {
     let cancelled = false;
     (async () => {
       try {
-        const roles = await api.jobRoles(recSector);
+        const roles = await api.jobRoles(recSector, recDistrict);
         if (cancelled) return;
         setRecRoles(roles);
         setRecRole("");
@@ -405,7 +482,7 @@ export default function Home() {
       }
     })();
     return () => { cancelled = true; };
-  }, [recSector]);
+  }, [recSector, recDistrict]);
 
   // Load recommendation when role changes
   useEffect(() => {
@@ -440,46 +517,30 @@ export default function Home() {
     if (!interest) return;
     setSuggestionLoading(true);
     try {
-      // Find sector matching the interest
-      const sector = sectors.find(s => s.id === interest || s.name.toLowerCase().includes(interest.toLowerCase()));
-      if (!sector) {
+      // Use the new public career explorer endpoint
+      // This doesn't require authentication or candidate skills
+      const explorerData = await api.careerExplorer(interest);
+      
+      if (explorerData.career_paths && explorerData.career_paths.length > 0) {
+        const results = explorerData.career_paths.slice(0, 4).map(path => ({
+          job_role_title: path.job_role_title,
+          required_skill_ids: path.required_skill_ids,
+          matched_skill_ids: [], // Public explorer doesn't calculate skill matches
+          missing_skill_ids: [], // Public explorer doesn't calculate skill matches
+          demand_signal_count: path.demand_signal_count,
+          relevant_course_count: path.relevant_course_count,
+          reasons: path.reasons,
+        }));
+        setSuggestionResult(results);
+        setSelectedSector(sectors.find(s => s.id === interest) || null);
+      } else {
         setSuggestionResult([]);
-        return;
+        setSelectedSector(sectors.find(s => s.id === interest) || null);
       }
-      const roles = await api.jobRoles(sector.id);
-      const results = await Promise.all(
-        roles.slice(0, 4).map(async (role) => {
-          try {
-            const rec = await api.careerRecommendation({
-              industry_sector_id: sector.id,
-              job_role_id: role.id,
-            });
-            return {
-              job_role_title: rec.demand?.job_role_title || role.title,
-              required_skill_ids: rec.required_skills.map(s => s.id),
-              matched_skill_ids: rec.candidate_skills.map(s => s.id),
-              missing_skill_ids: rec.missing_skills.map(s => s.id),
-              demand_signal_count: rec.demand?.demand_signals_count || 0,
-              relevant_course_count: rec.recommended_courses.length,
-              reasons: rec.message ? [rec.message] : ["Real data from platform"],
-            };
-          } catch {
-            return {
-              job_role_title: role.title,
-              required_skill_ids: [],
-              matched_skill_ids: [],
-              missing_skill_ids: [],
-              demand_signal_count: 0,
-              relevant_course_count: 0,
-              reasons: ["Data loading failed"],
-            };
-          }
-        })
-      );
-      setSuggestionResult(results);
     } catch (error) {
       console.error("Failed to get career suggestions:", error);
       setSuggestionResult([]);
+      setSelectedSector(sectors.find(s => s.id === interest) || null);
     } finally {
       setSuggestionLoading(false);
     }
@@ -505,7 +566,13 @@ export default function Home() {
         matched_skills: rec.candidate_skills,
         missing_skills: rec.missing_skills,
         skill_match_percentage: rec.skill_match_percentage,
-        recommended_courses: rec.recommended_courses.map(c => ({ title: c.title, covers: c.covers, why: c.why })),
+        recommended_courses: rec.recommended_courses.map(c => ({ 
+          title: c.title, 
+          covers: c.covers,
+          why: c.why,
+          addresses_missing: c.addresses_missing || '',
+          covers_details: c.covers_details || ''
+        })),
       });
     } catch (error) {
       console.error("Failed to check skill gap:", error);
@@ -557,22 +624,31 @@ export default function Home() {
     industryDemand.map((row) => sectorById[row.industry_sector_id]).filter(Boolean),
   );
 
-  const selectedSector = sectors.find((sector) => sector.id === interest);
-
   const diverseJobs = useMemo(() => {
     if (!jobs.length) return [];
+    
     const seen = new Set<string>();
     const diverse: JobPosting[] = [];
     for (const job of jobs) {
-      const key = `${job.title}|${job.district_id || "none"}|${job.job_posting_skills?.map(s => s.skill_id).join(",") || "none"}`;
+      const key = `${job.employer_name || job.company_name || 'unknown'}|${job.title}`;
       if (!seen.has(key)) {
         seen.add(key);
         diverse.push(job);
       }
-      if (diverse.length >= 6) break;
+      if (diverse.length >= 4) break; // Show max 4 jobs
     }
     return diverse;
   }, [jobs]);
+
+  // Debug: Log data to console
+  useEffect(() => {
+    console.log('=== DEBUG DATA ===');
+    console.log('Total jobs from API:', jobs.length);
+    console.log('Diverse jobs for display:', diverseJobs.length);
+    console.log('Homepage courses:', homepageCourses.length);
+    console.log('Sample job:', jobs[0]);
+    console.log('Sample course:', homepageCourses[0]);
+  }, [jobs, diverseJobs, homepageCourses]);
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-[#1b2838]">
@@ -648,10 +724,6 @@ export default function Home() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-5">
           <div className="flex min-w-0 items-center gap-2 sm:gap-4">
             <BrandMark src="/skillmitra-logo.png" alt="SkillMitra" className="h-12 w-auto sm:h-16 md:h-20" />
-            <div className="min-w-0">
-              <p className="font-serif text-lg font-semibold text-[#123b68] sm:text-xl md:text-2xl">SkillMitra</p>
-              <p className="text-xs text-slate-600 sm:text-sm">{t("home.brandDescription")}</p>
-            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -793,21 +865,27 @@ export default function Home() {
               </div>
             </div>
 
-            <aside className="border border-slate-300 bg-white p-3 sm:p-4" aria-labelledby="signal-panel-heading">
-              <p className="text-xs font-semibold tracking-wide text-slate-500">{t("home.signals")}</p>
-              <h2 id="signal-panel-heading" className="mt-1 text-base font-semibold text-[#123b68] sm:text-lg">
-                {t("home.demandAction")}
+            <aside className="border border-slate-300 bg-white p-3 sm:p-4" aria-labelledby="skill-intelligence-heading">
+              <p className="text-xs font-semibold tracking-wide text-slate-500">MAHARASHTRA SKILL INTELLIGENCE</p>
+              <h2 id="skill-intelligence-heading" className="mt-1 text-base font-semibold text-[#123b68] sm:text-lg">
+                Industry Demand & Skill Intelligence
               </h2>
-              <ol className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {SIGNAL_FLOW.map((step, index) => (
-                  <li key={step} className="flex items-start gap-2 border border-slate-200 bg-[#f8fafc] px-2 py-2">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-[#123b68] text-xs font-bold text-white">
-                      {index + 1}
-                    </span>
-                    <span className="text-xs font-semibold leading-5 text-[#123b68] sm:text-sm">{step}</span>
-                  </li>
-                ))}
-              </ol>
+              <p className="mt-2 text-xs leading-5 text-slate-600">
+                District-level view of labour demand, skills and training alignment.
+              </p>
+              <div className="mt-4">
+                <MaharashtraDistrictMap
+                  districts={districts}
+                  selectedDistrict={selectedDistrict}
+                  onDistrictClick={setSelectedDistrict}
+                  districtIntelligence={districtIntelligence}
+                />
+              </div>
+              <div className="mt-4 border-t border-slate-200 pt-3">
+                <p className="text-xs text-slate-600 leading-5">
+                  Translate labour-market evidence into district-level skill planning.
+                </p>
+              </div>
             </aside>
           </div>
         </section>
@@ -972,10 +1050,14 @@ export default function Home() {
                   {recResult.recommended_courses.length > 0 ? (
                     <ul className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                       {recResult.recommended_courses.map((c) => (
-                        <li key={c.id} className="border border-slate-200 rounded-lg p-4">
+                        <li key={c.id || c.title} className="border border-slate-200 rounded-lg p-4">
                           <p className="font-semibold text-[#123b68]">{c.title}</p>
-                          <p className="mt-1 text-xs text-slate-500">{c.why}</p>
-                          <p className="mt-2 text-xs text-slate-600">Covers: {c.covers.join(", ")}</p>
+                          {c.addresses_missing && (
+                            <p className="mt-1 text-xs text-slate-500">{c.addresses_missing}</p>
+                          )}
+                          {c.covers_details && (
+                            <p className="mt-2 text-xs text-slate-600">{c.covers_details}</p>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -1014,25 +1096,37 @@ export default function Home() {
             <div className="text-sm font-semibold text-blue-700">Explore. Learn. Grow.</div>
           </div>
           <div className="mt-8 grid gap-5 md:grid-cols-4">
-            <article className="rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+            <article 
+              className="rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md cursor-pointer"
+              onClick={() => router.push('/career/10th')}
+            >
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-3xl">🎓</div>
               <h3 className="mt-4 text-xl font-bold text-[#123b68]">Class 10</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">Explore career options after Class 10 and build a strong foundation.</p>
               <button className="mt-5 font-semibold text-blue-700">Explore →</button>
             </article>
-            <article className="rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+            <article 
+              className="rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md cursor-pointer"
+              onClick={() => router.push('/career/12th')}
+            >
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-3xl">🎓</div>
               <h3 className="mt-4 text-xl font-bold text-[#123b68]">Class 12</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">Discover career paths after Class 12 and plan your future.</p>
               <button className="mt-5 font-semibold text-blue-700">Explore →</button>
             </article>
-            <article className="rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+            <article 
+              className="rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md cursor-pointer"
+              onClick={() => router.push('/career/graduation')}
+            >
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-3xl">👨‍🎓</div>
               <h3 className="mt-4 text-xl font-bold text-[#123b68]">Graduate</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">Explore opportunities after graduation and advance your career.</p>
               <button className="mt-5 font-semibold text-blue-700">Explore →</button>
             </article>
-            <article className="rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+            <article 
+              className="rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md cursor-pointer"
+              onClick={() => window.open('https://roleiq.in/app#home', '_blank')}
+            >
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-3xl">💼</div>
               <h3 className="mt-4 text-xl font-bold text-[#123b68]">Job Seeker</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">Find skill gaps and relevant employment opportunities.</p>
@@ -1055,12 +1149,11 @@ export default function Home() {
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <select value={interest} onChange={(e) => setInterest(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-600">
                     <option value="">Select your interest</option>
-                    <option value="Technology">Technology & IT</option>
-                    <option value="Healthcare">Healthcare</option>
-                    <option value="Manufacturing">Manufacturing & EV</option>
-                    <option value="Finance">Finance & Banking</option>
-                    <option value="Design">Design & Creative</option>
-                    <option value="Agriculture">Agriculture & Agri-Tech</option>
+                    {sectors.map((sector) => (
+                      <option key={sector.id} value={sector.id}>
+                        {sector.name}
+                      </option>
+                    ))}
                   </select>
                   <button onClick={getCareerSuggestions} disabled={suggestionLoading} className="whitespace-nowrap rounded-lg bg-[#123b68] px-6 py-3 font-semibold text-white hover:bg-[#0d2d52] disabled:opacity-60">Get Career Suggestions →</button>
                 </div>
@@ -1078,7 +1171,7 @@ export default function Home() {
                           <p className="font-semibold text-[#123b68]">{s.job_role_title}</p>
                           <p className="text-xs text-slate-500 mt-1">Demand signals: {s.demand_signal_count} | Relevant courses: {s.relevant_course_count}</p>
                           {s.required_skill_ids.length > 0 && (
-                            <p className="text-xs text-slate-600 mt-1">Required skills: {s.required_skill_ids.length} | Matched: {s.matched_skill_ids.length} | Missing: {s.missing_skill_ids.length}</p>
+                            <p className="text-xs text-slate-600 mt-1">Required skills: {s.required_skill_ids.length}</p>
                           )}
                           {s.reasons.map((r, ri) => <p key={ri} className="text-xs text-slate-500">• {r}</p>)}
                         </div>
@@ -1089,7 +1182,12 @@ export default function Home() {
                 {!suggestionLoading && interest && suggestionResult.length === 0 && (
                   <div className="mt-4 rounded-lg border border-blue-100 bg-white p-4">
                     <p className="text-sm font-semibold text-blue-700">Suggested Career Paths</p>
-                    <p className="mt-2 text-sm leading-6 text-slate-700">No matching career paths found for this interest. Try another sector.</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-700">
+                      {selectedSector 
+                        ? `No career paths found for "${selectedSector.name}". This sector may not have demand data yet. Try another sector.`
+                        : "No matching career paths found. Try another sector."
+                      }
+                    </p>
                   </div>
                 )}
               </div>
@@ -1167,7 +1265,12 @@ export default function Home() {
                           {skillGapResult.recommended_courses.map((c, i) => (
                             <li key={i} className="text-sm text-slate-700">
                               <span className="font-semibold">{c.title}</span>
-                              <span className="text-slate-500"> — {c.why}</span>
+                              {c.addresses_missing && (
+                                <span className="text-slate-500"> — {c.addresses_missing}</span>
+                              )}
+                              {c.covers_details && (
+                                <p className="text-xs text-slate-600 mt-1">{c.covers_details}</p>
+                              )}
                             </li>
                           ))}
                         </ul>
@@ -1200,26 +1303,79 @@ export default function Home() {
             <p className="font-bold text-blue-700">LEARNING PATHWAYS</p>
             <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Courses & Training aligned with demand</h2>
             <p className="mt-2 text-slate-600">Courses recommended according to industry demand and skill gaps.</p>
-            <div className="mt-8 grid gap-5 md:grid-cols-3">
-              <article className="rounded-xl border bg-white p-6 shadow-sm">
-                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">High Demand</span>
-                <h3 className="mt-5 text-xl font-bold text-[#123b68]">Data Analytics</h3>
-                <p className="mt-3 text-sm text-slate-600">Python • SQL • Power BI</p>
-                <button className="mt-5 font-semibold text-blue-700">View Course →</button>
-              </article>
-              <article className="rounded-xl border bg-white p-6 shadow-sm">
-                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">Growing</span>
-                <h3 className="mt-5 text-xl font-bold text-[#123b68]">Electric Vehicle Technician</h3>
-                <p className="mt-3 text-sm text-slate-600">EV Systems • Battery • Diagnostics</p>
-                <button className="mt-5 font-semibold text-blue-700">View Course →</button>
-              </article>
-              <article className="rounded-xl border bg-white p-6 shadow-sm">
-                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">High Demand</span>
-                <h3 className="mt-5 text-xl font-bold text-[#123b68]">Cloud Computing</h3>
-                <p className="mt-3 text-sm text-slate-600">AWS • Linux • Networking</p>
-                <button className="mt-5 font-semibold text-blue-700">View Course →</button>
-              </article>
-            </div>
+            
+            {homepageCoursesLoading ? (
+              <div className="mt-8 text-center py-12">
+                <p className="text-slate-600">Loading courses...</p>
+              </div>
+            ) : homepageCourses.length > 0 ? (
+              <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+                {homepageCourses.map((course) => (
+                  <article 
+                    key={course.id} 
+                    className="rounded-xl border bg-white p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => router.push(`/courses/${course.id}`)}
+                  >
+                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${
+                      course.demandLevel === "High Demand" 
+                        ? "bg-green-100 text-green-700" 
+                        : course.demandLevel === "Growing"
+                        ? "bg-blue-100 text-blue-700"
+                        : course.demandLevel === "Moderate"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-slate-100 text-slate-700"
+                    }`}>
+                      {course.demandLevel}
+                    </span>
+                    <h3 className="mt-5 text-xl font-bold text-[#123b68]">{course.title}</h3>
+                    {course.district && (
+                      <p className="mt-2 text-sm text-slate-500">📍 {course.district}</p>
+                    )}
+                    {course.skills.length > 0 && (
+                      <p className="mt-3 text-sm text-slate-600">
+                        {course.skills.slice(0, 3).join(' • ')}
+                        {course.skills.length > 3 && ' • ...'}
+                      </p>
+                    )}
+                    {course.durationHours && (
+                      <p className="mt-2 text-sm text-slate-500">
+                        Duration: {course.durationHours} hours
+                      </p>
+                    )}
+                    {course.isRelatedProgramme && course.relatedProgrammeName ? (
+                      <p className="mt-2 text-sm text-slate-600">
+                        Related Programme: {course.relatedProgrammeName}
+                      </p>
+                    ) : course.providerName && (
+                      <p className="mt-2 text-sm text-slate-600">
+                        Provider: {course.providerName}
+                      </p>
+                    )}
+                    <div className="mt-5 flex flex-col gap-2">
+                      <button className="inline-flex items-center justify-center gap-2 rounded border border-[#123b68] px-4 py-2 text-sm font-semibold text-[#123b68] hover:bg-[#123b68] hover:text-white transition-colors">
+                        View Course →
+                      </button>
+                      {(course.courseUrl || course.providerUrl) && (
+                        <a
+                          href={course.courseUrl || course.providerUrl || '#'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Original Source
+                        </a>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-8 text-center py-12">
+                <p className="text-slate-600">No courses currently available with official URLs.</p>
+              </div>
+            )}
           </div>
         </section>
 
@@ -1232,30 +1388,37 @@ export default function Home() {
                 <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Jobs matching industry demand</h2>
                 <p className="mt-2 text-slate-600">Connect training and skills with real employment opportunities.</p>
               </div>
-              <button className="font-semibold text-[#123b68]">View All Jobs →</button>
+              <Link href="/candidate" className="font-semibold text-[#123b68]">View All Jobs →</Link>
             </div>
-            <div className="mt-8 grid gap-5 md:grid-cols-3">
-              <article className="rounded-xl border bg-white p-6 shadow-sm">
-                <p className="text-sm text-slate-500">Technology Company</p>
-                <h3 className="mt-2 text-xl font-bold text-[#123b68]">Junior Data Analyst</h3>
-                <p className="mt-2 text-sm">📍 Pune</p>
-                <p className="mt-3 text-sm text-slate-600">Skills: Python • SQL • Excel</p>
-                <button className="mt-5 rounded border border-[#123b68] px-4 py-2 text-sm font-semibold text-[#123b68]">View Job</button>
-              </article>
-              <article className="rounded-xl border bg-white p-6 shadow-sm">
-                <p className="text-sm text-slate-500">Manufacturing Company</p>
-                <h3 className="mt-2 text-xl font-bold text-[#123b68]">EV Technician</h3>
-                <p className="mt-2 text-sm">📍 Nashik</p>
-                <p className="mt-3 text-sm text-slate-600">Skills: EV Systems • Diagnostics</p>
-                <button className="mt-5 rounded border border-[#123b68] px-4 py-2 text-sm font-semibold text-[#123b68]">View Job</button>
-              </article>
-              <article className="rounded-xl border bg-white p-6 shadow-sm">
-                <p className="text-sm text-slate-500">IT Services</p>
-                <h3 className="mt-2 text-xl font-bold text-[#123b68]">Cloud Support Associate</h3>
-                <p className="mt-2 text-sm">📍 Mumbai</p>
-                <p className="mt-3 text-sm text-slate-600">Skills: Linux • Cloud • Networking</p>
-                <button className="mt-5 rounded border border-[#123b68] px-4 py-2 text-sm font-semibold text-[#123b68]">View Job</button>
-              </article>
+            <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+              {diverseJobs.length > 0 ? (
+                diverseJobs.map((job) => (
+                  <article key={job.id} className="rounded-xl border bg-white p-6 shadow-sm">
+                    <p className="text-sm text-slate-500">{job.employer_name || job.company_name || 'Company'}</p>
+                    <h3 className="mt-2 text-xl font-bold text-[#123b68]">{job.title}</h3>
+                    <p className="mt-2 text-sm">📍 {job.district_name || 'Location'}</p>
+                    <p className="mt-3 text-sm text-slate-600">
+                      Skills: {job.job_posting_skills && job.job_posting_skills.length > 0 
+                        ? job.job_posting_skills.map((js: any) => js.skill?.name).filter(Boolean).slice(0, 3).join(' • ') 
+                        : job.skills && job.skills.length > 0 
+                        ? job.skills.slice(0, 3).join(' • ')
+                        : 'Not specified'}
+                    </p>
+                    <a
+                      href={job.job_url || job.employer_careers_url || job.employer_website || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-5 inline-block rounded border border-[#123b68] px-4 py-2 text-sm font-semibold text-[#123b68] hover:bg-[#123b68] hover:text-white transition-colors"
+                    >
+                      View Job
+                    </a>
+                  </article>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-slate-600">No current employment opportunities available.</p>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -1576,7 +1739,11 @@ export default function Home() {
             {courses.length > 0 ? (
               <div className="mt-4 grid gap-4 md:grid-cols-3">
                 {courses.slice(0, 6).map((course) => (
-                  <article key={course.id} className="border border-slate-200 bg-white p-5">
+                  <article 
+                    key={course.id} 
+                    className="border border-slate-200 bg-white p-5 hover:border-[#123b68] hover:shadow-md transition-all cursor-pointer"
+                    onClick={() => router.push(`/courses/${course.id}`)}
+                  >
                     <h4 className="text-lg font-semibold text-[#123b68]">{course.title}</h4>
                     <p className="mt-2 text-sm leading-6 text-slate-600">
                       {course.description || "Course details are available in the training catalogue."}
@@ -1586,6 +1753,9 @@ export default function Home() {
                         Status: {course.status}
                       </p>
                     ) : null}
+                    <div className="mt-4 flex items-center text-sm font-semibold text-[#123b68]">
+                      View Course →
+                    </div>
                   </article>
                 ))}
               </div>
@@ -2024,7 +2194,15 @@ export default function Home() {
                     {recResult.recommended_courses.length > 0 ? (
                       <ul className="mt-2 space-y-2 text-sm text-slate-700">
                         {recResult.recommended_courses.map((c) => (
-                          <li key={c.id}><span className="font-semibold">{c.title}</span> — {c.why}</li>
+                          <li key={c.id || c.title}>
+                            <span className="font-semibold">{c.title}</span>
+                            {c.addresses_missing && (
+                              <span className="text-slate-500"> — {c.addresses_missing}</span>
+                            )}
+                            {c.covers_details && (
+                              <p className="text-xs text-slate-600 mt-1">{c.covers_details}</p>
+                            )}
+                          </li>
                         ))}
                       </ul>
                     ) : <p className="text-sm text-slate-600">No matching course currently available.</p>}
@@ -2087,29 +2265,39 @@ export default function Home() {
               Current job postings
             </h3>
             {diverseJobs.length > 0 ? (
-              <div className="mt-4 grid gap-4 md:grid-cols-3">
+              <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                  {diverseJobs.map((job) => (
                   <article key={job.id} className="border border-slate-200 bg-white p-5">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Job-market source</p>
-                    <h4 className="mt-1 text-lg font-semibold text-[#123b68]">{job.title}</h4>
-                    {job.employer_name && (
-                      <p className="mt-2 text-sm text-slate-600">Employer: {job.employer_name}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Employer</p>
+                    <h4 className="mt-1 text-lg font-semibold text-[#123b68]">{job.company_name || 'Unknown Company'}</h4>
+                    <p className="mt-2 text-sm font-medium text-slate-700">{job.title}</p>
+                    {job.district_name && (
+                      <p className="mt-1 text-sm text-slate-600 flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {job.district_name}
+                      </p>
                     )}
-                    <p className="mt-2 text-sm text-slate-600">Status: {job.status}</p>
-                    {job.district_id && districtById[job.district_id] ? (
-                      <p className="mt-1 text-sm text-slate-600">{districtById[job.district_id]}</p>
-                    ) : null}
-                    {job.job_posting_skills?.length > 0 && (
+                    {job.skills && job.skills.length > 0 && (
                       <div className="mt-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Required Skills</p>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Skills</p>
                         <div className="mt-1 flex flex-wrap gap-1">
-                          {job.job_posting_skills.slice(0, 5).map((s) => (
-                            <span key={s.skill_id} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-700">
-                              {s.skill?.name || s.skill_id}
+                          {job.skills.slice(0, 4).map((skill, index) => (
+                            <span key={index} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-700">
+                              {typeof skill === 'string' ? skill : (skill as any)?.skill?.name || ''}
                             </span>
                           ))}
                         </div>
                       </div>
+                    )}
+                    {(job.job_url || job.employer_careers_url || job.employer_website) && (
+                      <a
+                        href={job.job_url || job.employer_careers_url || job.employer_website || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[#123b68] hover:text-[#0d2d4d]"
+                      >
+                        View Job <ChevronRight className="h-4 w-4" />
+                      </a>
                     )}
                   </article>
                 ))}
@@ -2270,7 +2458,7 @@ function BrandMark({ src, alt, className }: { src: string; alt: string; classNam
   return (
     // Logos are static public assets; next/image is unnecessary for these marks.
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} className={`object-contain ${className ?? ""}`} onError={() => setFailed(true)} />
+    <img src={src} alt={alt} className={className ? `object-contain ${className}` : "object-contain"} onError={() => setFailed(true)} />
   );
 }
 
