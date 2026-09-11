@@ -44,7 +44,7 @@ function CurriculumAlignmentContent() {
       
       // Try to fetch real alignment data
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/government/course-alignment`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/v1/government/course-alignment`, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${sessionStorage.getItem("skillmitra_access_token")}`,

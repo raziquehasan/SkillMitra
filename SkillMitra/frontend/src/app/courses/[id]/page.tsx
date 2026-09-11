@@ -104,7 +104,7 @@ export default function CourseDetailPage() {
       setError(null);
 
       // Fetch course details
-      const courseResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/v1/courses/${courseId}`);
+      const courseResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/courses/${courseId}`);
       if (!courseResponse.ok) {
         throw new Error('Course not found');
       }
@@ -112,14 +112,14 @@ export default function CourseDetailPage() {
       setCourse(courseData);
 
       // Fetch course skills
-      const skillsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/v1/courses/${courseId}/skills`);
+      const skillsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/courses/${courseId}/skills`);
       if (skillsResponse.ok) {
         const skillsData = await skillsResponse.json();
         setSkills(skillsData.items || skillsData || []);
       }
 
       // Fetch related job roles
-      const rolesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/v1/courses/${courseId}/job-roles`);
+      const rolesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/courses/${courseId}/job-roles`);
       if (rolesResponse.ok) {
         const rolesData = await rolesResponse.json();
         setJobRoles(rolesData.items || rolesData || []);
@@ -127,7 +127,7 @@ export default function CourseDetailPage() {
 
       // Fetch industry demand information
       try {
-        const demandResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/v1/courses/${courseId}/demand`);
+        const demandResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/courses/${courseId}/demand`);
         if (demandResponse.ok) {
           const demandData = await demandResponse.json();
           setCourseDemand(demandData);
@@ -139,7 +139,7 @@ export default function CourseDetailPage() {
 
       // Fetch training centres
       try {
-        const centresResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/v1/courses/${courseId}/training-centres`);
+        const centresResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/courses/${courseId}/training-centres`);
         if (centresResponse.ok) {
           const centresData = await centresResponse.json();
           setTrainingCentres(centresData.items || centresData || []);
@@ -152,7 +152,7 @@ export default function CourseDetailPage() {
       // Fetch candidate skill alignment if logged in
       if (user) {
         const alignmentResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/v1/courses/${courseId}/candidate-alignment`,
+          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/courses/${courseId}/candidate-alignment`,
           {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('skillmitra_access_token')}`,
