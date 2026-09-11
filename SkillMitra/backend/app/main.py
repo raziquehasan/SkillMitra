@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import auth, candidates, skills, courses, jobs, employers, applications, placements, career_guidance, demand, government, industry, training_providers, phase4, phase5, phase6, sih, geography, job_roles, ai_chatbot, employer_intelligence, career_planning
+from app.core.config import settings
 
 app = FastAPI(
     title="SkillMitra API",
@@ -8,14 +9,12 @@ app = FastAPI(
     description="Maharashtra Government Skill Development Platform - Phase 3 Business APIs"
 )
 
+# Parse CORS origins from environment variable
+cors_origins = [origin.strip() for origin in settings.CORS_ALLOWED_ORIGINS.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

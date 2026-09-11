@@ -33,7 +33,7 @@ export default function SkillTrendsPage() {
     (async () => {
       try {
         // Try to fetch future demand forecasts
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/v1/demand/future?limit=20`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/demand/future?limit=20`);
         if (response.ok) {
           const data = await response.json();
           setFutureForecasts(data);

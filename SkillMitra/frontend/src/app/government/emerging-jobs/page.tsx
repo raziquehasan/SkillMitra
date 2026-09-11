@@ -208,7 +208,7 @@ export default function EmergingJobRolesPage() {
 }
 
 async function apiFetch<T>(path: string): Promise<T> {
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
   const token = typeof window !== "undefined" ? sessionStorage.getItem("skillmitra_access_token") : null;
   const res = await fetch(`${API_BASE}${path}`, {
     headers: {

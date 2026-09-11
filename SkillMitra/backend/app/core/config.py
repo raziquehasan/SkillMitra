@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "SkillMitra"
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = False
+    PORT: int = 8000
 
     # Database
     DATABASE_URL: str = ""
@@ -42,6 +43,9 @@ class Settings(BaseSettings):
     # OpenAI Configuration for AI Assistant
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
+
+    # CORS Configuration
+    CORS_ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000"
 
     class Config:
         env_file = ".env"
