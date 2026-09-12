@@ -9,26 +9,6 @@ import { api } from "@/lib/api";
 
 const navigation = [
   {
-    label: "Dashboard",
-    href: "/candidate",
-    icon: "⌂",
-  },
-  {
-    label: "Find Jobs",
-    href: "/candidate/jobs",
-    icon: "⌕",
-  },
-  {
-    label: "My Applications",
-    href: "/candidate/applications",
-    icon: "▣",
-  },
-  {
-    label: "Recommended Jobs",
-    href: "/candidate/recommended-jobs",
-    icon: "★",
-  },
-  {
     label: "My Skills",
     href: "/candidate/skills",
     icon: "◆",
@@ -52,6 +32,21 @@ const navigation = [
     label: "My Learning",
     href: "/candidate/learning",
     icon: "◉",
+  },
+  {
+    label: "Recommended Jobs",
+    href: "/candidate/recommended-jobs",
+    icon: "★",
+  },
+  {
+    label: "Find Jobs",
+    href: "/candidate/jobs",
+    icon: "⌕",
+  },
+  {
+    label: "My Applications",
+    href: "/candidate/applications",
+    icon: "▣",
   },
   {
     label: "Profile",

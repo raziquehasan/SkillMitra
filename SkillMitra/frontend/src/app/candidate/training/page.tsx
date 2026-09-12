@@ -2,76 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import CandidateSidebar from "@/components/candidate/CandidateSidebar";
-
-const courses = [
-  {
-    title: "Advanced Data Analytics",
-    provider: "Industry Skill Training Centre",
-    category: "Data & Analytics",
-    level: "Advanced",
-    duration: "10 Weeks",
-    mode: "Online + Practical",
-    skills: ["Python", "Data Analytics", "SQL"],
-    match: 94,
-    priority: "High Priority",
-  },
-  {
-    title: "Cloud Computing Fundamentals",
-    provider: "Technology Training Partner",
-    category: "Cloud & Technology",
-    level: "Intermediate",
-    duration: "8 Weeks",
-    mode: "Online",
-    skills: ["Cloud Computing", "Linux", "Networking"],
-    match: 89,
-    priority: "High Priority",
-  },
-  {
-    title: "Full Stack Web Development",
-    provider: "Digital Technology Training Hub",
-    category: "Software Development",
-    level: "Intermediate",
-    duration: "12 Weeks",
-    mode: "Online + Practical",
-    skills: ["React", "Node.js", "Database"],
-    match: 87,
-    priority: "Recommended",
-  },
-  {
-    title: "TypeScript for Modern Development",
-    provider: "Digital Technology Training Hub",
-    category: "Software Development",
-    level: "Intermediate",
-    duration: "6 Weeks",
-    mode: "Online",
-    skills: ["TypeScript", "JavaScript", "React"],
-    match: 92,
-    priority: "Critical Skill",
-  },
-  {
-    title: "Advanced Excel for Data Analysis",
-    provider: "Industry Skill Training Centre",
-    category: "Data & Analytics",
-    level: "Intermediate",
-    duration: "6 Weeks",
-    mode: "Online + Practical",
-    skills: ["Advanced Excel", "Data Analysis", "Reporting"],
-    match: 85,
-    priority: "High Priority",
-  },
-  {
-    title: "UI/UX Design Fundamentals",
-    provider: "Digital Innovation Training Centre",
-    category: "Design",
-    level: "Beginner",
-    duration: "8 Weeks",
-    mode: "Online",
-    skills: ["Figma", "UI Design", "UX Research"],
-    match: 78,
-    priority: "Recommended",
-  },
-];
+import { api, type Course } from "@/lib/api";
 
 const learningPaths = [
   {
@@ -123,27 +56,10 @@ function SummaryCard({
   );
 }
 
-function PriorityBadge({ priority }: { priority: string }) {
-  const classes =
-    priority === "Critical Skill"
-      ? "bg-red-50 text-red-700"
-      : priority === "High Priority"
-      ? "bg-amber-50 text-amber-700"
-      : "bg-blue-50 text-blue-700";
-
-  return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${classes}`}
-    >
-      {priority}
-    </span>
-  );
-}
-
 function CourseCard({
   course,
 }: {
-  course: (typeof courses)[number];
+  course: Course;
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
@@ -152,58 +68,36 @@ function CourseCard({
           ▤
         </div>
 
-        <PriorityBadge priority={course.priority} />
+        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+          course.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-slate-50 text-slate-600'
+        }`}>
+          {course.status === 'active' ? 'Active' : course.status || 'Unknown'}
+        </span>
       </div>
 
       <h3 className="mt-4 text-base font-bold text-slate-800">
         {course.title}
       </h3>
 
-      <p className="mt-1 text-sm font-medium text-[#123b68]">
-        {course.provider}
-      </p>
-
-      <p className="mt-1 text-xs text-slate-500">
-        {course.category}
-      </p>
+      {course.description && (
+        <p className="mt-1 text-sm text-slate-500 line-clamp-2">
+          {course.description}
+        </p>
+      )}
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div className="rounded-lg bg-slate-50 p-3">
-          <p className="text-[11px] text-slate-400">Level</p>
+          <p className="text-[11px] text-slate-400">Duration</p>
           <p className="mt-1 text-sm font-semibold text-slate-700">
-            {course.level}
+            {course.duration_hours ? `${course.duration_hours} hours` : 'Not specified'}
           </p>
         </div>
 
         <div className="rounded-lg bg-slate-50 p-3">
-          <p className="text-[11px] text-slate-400">Duration</p>
+          <p className="text-[11px] text-slate-400">Delivery Mode</p>
           <p className="mt-1 text-sm font-semibold text-slate-700">
-            {course.duration}
+            {course.delivery_mode ? course.delivery_mode.replace('_', ' ') : 'Not specified'}
           </p>
-        </div>
-      </div>
-
-      <div className="mt-3 rounded-lg bg-slate-50 p-3">
-        <p className="text-[11px] text-slate-400">Learning Mode</p>
-        <p className="mt-1 text-sm font-semibold text-slate-700">
-          {course.mode}
-        </p>
-      </div>
-
-      <div className="mt-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Skills Covered
-        </p>
-
-        <div className="mt-2 flex flex-wrap gap-2">
-          {course.skills.map((skill) => (
-            <span
-              key={skill}
-              className="rounded-md bg-blue-50 px-2.5 py-1 text-xs font-medium text-[#123b68]"
-            >
-              {skill}
-            </span>
-          ))}
         </div>
       </div>
 
@@ -211,20 +105,20 @@ function CourseCard({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[11px] text-slate-400">
-              Profile Relevance
+              Course Status
             </p>
 
             <p className="mt-1 text-lg font-bold text-[#123b68]">
-              {course.match}%
+              {course.status === 'active' ? 'Available' : 'Not Available'}
             </p>
           </div>
 
-          <button
-            type="button"
+          <Link
+            href={`/candidate/training/${course.id}`}
             className="rounded-lg bg-[#123b68] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0f3155]"
           >
             View Course
-          </button>
+          </Link>
         </div>
       </div>
     </div>
@@ -232,6 +126,28 @@ function CourseCard({
 }
 
 export default function TrainingCoursesPage() {
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const coursesData = await api.courses();
+        setCourses(coursesData.items || []);
+      } catch (err) {
+        console.error("Failed to load courses:", err);
+        setError("Unable to load courses. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCourses();
+  }, []);
+
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
       {/* Government Header */}
@@ -320,27 +236,27 @@ export default function TrainingCoursesPage() {
             {/* Summary */}
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <SummaryCard
-                label="Recommended Courses"
-                value="12"
-                description="Courses matched to your profile"
+                label="Available Courses"
+                value={String(courses.length)}
+                description="Courses available in system"
               />
 
               <SummaryCard
-                label="High Priority"
-                value="05"
-                description="Courses linked to skill gaps"
+                label="Active Courses"
+                value={String(courses.filter(c => c.status === 'active').length)}
+                description="Currently active courses"
               />
 
               <SummaryCard
-                label="Training Providers"
-                value="24"
-                description="Available training providers"
+                label="Skill Coverage"
+                value="--"
+                description="Courses covering your skills"
               />
 
               <SummaryCard
-                label="Skill Alignment"
-                value="92%"
-                description="Average course relevance"
+                label="Industry Relevance"
+                value="--"
+                description="Aligned with industry demand"
               />
             </div>
 
@@ -395,28 +311,26 @@ export default function TrainingCoursesPage() {
 
                 <div>
                   <label className="mb-2 block text-xs font-semibold text-slate-500">
-                    Category
+                    Delivery Mode
                   </label>
 
                   <select className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-[#123b68] focus:ring-1 focus:ring-[#123b68]">
-                    <option>All Categories</option>
-                    <option>Software Development</option>
-                    <option>Data & Analytics</option>
-                    <option>Cloud & Technology</option>
-                    <option>Design</option>
+                    <option>All Modes</option>
+                    <option>In Person</option>
+                    <option>Online</option>
+                    <option>Hybrid</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="mb-2 block text-xs font-semibold text-slate-500">
-                    Level
+                    Status
                   </label>
 
                   <select className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-[#123b68] focus:ring-1 focus:ring-[#123b68]">
-                    <option>All Levels</option>
-                    <option>Beginner</option>
-                    <option>Intermediate</option>
-                    <option>Advanced</option>
+                    <option>All Status</option>
+                    <option>Active</option>
+                    <option>Draft</option>
                   </select>
                 </div>
               </div>
@@ -426,23 +340,44 @@ export default function TrainingCoursesPage() {
             <div className="mt-8">
               <div className="mb-4">
                 <h2 className="text-lg font-bold text-[#123b68]">
-                  Recommended Courses
+                  Available Courses
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Training opportunities most relevant to your current
-                  career profile.
+                  Training opportunities available for enrollment.
                 </p>
               </div>
 
-              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {courses.map((course) => (
-                  <CourseCard
-                    key={course.title}
-                    course={course}
-                  />
-                ))}
-              </div>
+              {loading ? (
+                <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+                  <p className="text-slate-500">Loading courses...</p>
+                </div>
+              ) : error ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-12 text-center shadow-sm">
+                  <p className="text-red-600">{error}</p>
+                </div>
+              ) : courses.length > 0 ? (
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  {courses.map((course) => (
+                    <CourseCard
+                      key={course.id}
+                      course={course}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-500">
+                    ▤
+                  </div>
+                  <h3 className="mt-4 font-semibold text-slate-700">
+                    No courses available
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Check back later for new training opportunities.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Learning Path */}
@@ -597,22 +532,14 @@ export default function TrainingCoursesPage() {
 
             {/* Footer Note */}
             <div className="mt-8 rounded-xl border border-slate-200 bg-white p-5">
-              <div className="flex gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[#123b68]">
-                  ✦
-                </div>
-
-                <div>
-                  <p className="text-sm font-semibold text-[#123b68]">
-                    SkillMitra Learning Intelligence
-                  </p>
-
-                  <p className="mt-1 text-sm leading-6 text-slate-500">
-                    Training recommendations are designed to connect your
-                    skill gaps with relevant learning opportunities.
-                  </p>
-                </div>
-              </div>
+              <p className="text-xs leading-5 text-slate-500">
+                <span className="font-semibold text-slate-700">
+                  SkillMitra Candidate Portal:
+                </span>{" "}
+                The training and courses section provides candidates with
+                learning opportunities to develop skills relevant to
+                employment requirements.
+              </p>
             </div>
           </div>
         </section>

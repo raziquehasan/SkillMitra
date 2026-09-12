@@ -211,11 +211,11 @@ function KPICard({ title, value, icon }: { title: string; value: number; icon: R
 
 function getFallbackCourses(): Course[] {
   return [
-    { id: "1", title: "Electric Vehicle Service Technician", description: "Comprehensive EV repair and maintenance training", district_id: null, status: "active", delivery_mode: "classroom", course_url: null, provider_url: null },
-    { id: "2", title: "CNC Machine Operator", description: "Precision machining and CNC operation skills", district_id: null, status: "active", delivery_mode: "classroom", course_url: null, provider_url: null },
-    { id: "3", title: "Solar Installation Technician", description: "Solar panel installation and maintenance", district_id: null, status: "active", delivery_mode: "hybrid", course_url: null, provider_url: null },
-    { id: "4", title: "Python Programming & Data Analytics", description: "Programming and data analysis with Python", district_id: null, status: "upcoming", delivery_mode: "online", course_url: null, provider_url: null },
-    { id: "5", title: "Industrial Safety Assistant", description: "Workplace safety and compliance training", district_id: null, status: "active", delivery_mode: "classroom", course_url: null, provider_url: null },
-    { id: "6", title: "Welding Technician", description: "Various welding techniques and safety", district_id: null, status: "active", delivery_mode: "classroom", course_url: null, provider_url: null },
+    { id: "1", title: "Electric Vehicle Service Technician", description: "Comprehensive EV repair and maintenance training", district_id: null, status: "active", delivery_mode: "classroom", course_url: null, provider_url: null, duration_hours: 120, training_level: "Intermediate" },
+    { id: "2", title: "CNC Machine Operator", description: "Precision machining and CNC operation skills", district_id: null, status: "active", delivery_mode: "classroom", course_url: null, provider_url: null, duration_hours: 80, training_level: "Beginner" },
+    { id: "3", title: "Solar Installation Technician", description: "Solar panel installation and maintenance", district_id: null, status: "active", delivery_mode: "hybrid", course_url: null, provider_url: null, duration_hours: 60, training_level: "Intermediate" },
+    { id: "4", title: "Python Programming & Data Analytics", description: "Programming and data analysis with Python", district_id: null, status: "upcoming", delivery_mode: "online", course_url: null, provider_url: null, duration_hours: 100, training_level: "Intermediate" },
+    { id: "5", title: "Industrial Safety Assistant", description: "Workplace safety and compliance training", district_id: null, status: "active", delivery_mode: "classroom", course_url: null, provider_url: null, duration_hours: 40, training_level: "Beginner" },
+    { id: "6", title: "Welding Technician", description: "Various welding techniques and safety", district_id: null, status: "active", delivery_mode: "classroom", course_url: null, provider_url: null, duration_hours: 90, training_level: "Intermediate" },
   ];
 }

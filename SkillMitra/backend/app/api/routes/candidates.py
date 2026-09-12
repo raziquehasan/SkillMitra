@@ -14,6 +14,7 @@ from app.schemas.candidates import (
 )
 from app.schemas.common import MessageResponse
 from app.services.candidate_service import CandidateService
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/v1/candidates", tags=["Candidates"])
 
@@ -211,3 +212,81 @@ def get_my_enrollments(
         })
 
     return result
+
+
+class CourseEnrollmentRequest(BaseModel):
+    course_id: uuid.UUID
+
+@router.post("/me/enrollments", response_model=dict,
+             summary="Enroll in a course")
+def enroll_in_course(
+    data: CourseEnrollmentRequest,
+    current_user: User = Depends(require_roles("candidate")),
+    db: Session = Depends(get_db),
+):
+    """
+    Enroll the candidate in a course.
+    Prevents duplicate enrollments using the database unique constraint.
+    """
+    from app.models.career import CourseEnrollment, Course
+    from app.models.identity import CandidateProfile
+    from sqlalchemy import select
+    from datetime import date
+
+    # Get candidate profile
+    profile = db.scalar(
+        select(CandidateProfile)
+        .where(CandidateProfile.user_id == current_user.id)
+    )
+
+    if not profile:
+        raise HTTPException(status_code=404, detail="Candidate profile not found")
+
+    # Check if course exists
+    course = db.scalar(select(Course).where(Course.id == data.course_id))
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    # Check if already enrolled - the unique constraint will handle this,
+    # but we check for a better error message
+    existing_enrollment = db.scalar(
+        select(CourseEnrollment)
+        .where(CourseEnrollment.candidate_id == profile.id)
+        .where(CourseEnrollment.course_id == data.course_id)
+    )
+
+    if existing_enrollment:
+        if existing_enrollment.status == "enrolled":
+            raise HTTPException(status_code=400, detail="Already enrolled in this course")
+        elif existing_enrollment.status == "completed":
+            raise HTTPException(status_code=400, detail="Already completed this course")
+        else:
+            raise HTTPException(status_code=400, detail="Already applied for this course")
+
+    # Create new enrollment
+    enrollment = CourseEnrollment(
+        candidate_id=profile.id,
+        course_id=data.course_id,
+        status="enrolled",
+        enrollment_date=date.today()
+    )
+
+    db.add(enrollment)
+    
+    try:
+        db.commit()
+        db.refresh(enrollment)
+    except Exception as e:
+        db.rollback()
+        # Check if it's a unique constraint violation
+        if "unique constraint" in str(e).lower() or "uq_enrollment_candidate_course" in str(e):
+            raise HTTPException(status_code=400, detail="Already enrolled in this course")
+        raise HTTPException(status_code=500, detail="Failed to enroll in course")
+
+    return {
+        "id": str(enrollment.id),
+        "course_id": str(enrollment.course_id),
+        "status": enrollment.status,
+        "enrollment_date": enrollment.enrollment_date.isoformat() if enrollment.enrollment_date else None,
+        "message": "Successfully enrolled in course"
+    }

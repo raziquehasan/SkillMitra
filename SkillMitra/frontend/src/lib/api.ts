@@ -59,6 +59,8 @@ export type Course = {
   delivery_mode: string | null;
   course_url: string | null;
   provider_url: string | null;
+  duration_hours: number | null;
+  training_level: string | null;
 };
 
 export type HomepageCourse = {
@@ -980,6 +982,18 @@ export const api = {
       status: string;
     } | null;
   }[]>("/api/v1/candidates/me/enrollments"),
+
+  enrollInCourse: (courseId: string) =>
+    apiFetch<{
+      id: string;
+      course_id: string;
+      status: string;
+      enrollment_date: string | null;
+      message: string;
+    }>("/api/v1/candidates/me/enrollments", {
+      method: "POST",
+      body: JSON.stringify({ course_id: courseId }),
+    }),
 
   // Employer candidates endpoint
   employerCandidates: () => apiFetch<any[]>("/api/v1/employers/me/candidates"),
