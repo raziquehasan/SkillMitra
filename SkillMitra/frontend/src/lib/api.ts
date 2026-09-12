@@ -227,6 +227,13 @@ export const api = {
   jobById: (jobId: string) => apiFetch<JobPosting>(`/api/v1/jobs/${jobId}`),
   
   jobRelatedCourses: (jobId: string) => apiFetch<any[]>(`/api/v1/jobs/${jobId}/related-courses`),
+  
+  applyToJob: (data: { job_posting_id: string }) => 
+    apiFetch<any>("/api/v1/applications", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
   demandIndustries: () =>
     apiFetch<IndustryDemand[]>("/api/v1/demand/industries?page=1&page_size=50"),
   demandByDistrict: (districtId: string) =>
@@ -836,12 +843,6 @@ export const api = {
     job_district_name: string | null;
     job_posted_date: string | null;
   }[]>("/api/v1/applications"),
-
-  applyToJob: (data: { job_posting_id: string }) =>
-    apiFetch<any>("/api/v1/applications", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
 
   // Candidate profile endpoints
   candidateProfile: () => apiFetch<{
