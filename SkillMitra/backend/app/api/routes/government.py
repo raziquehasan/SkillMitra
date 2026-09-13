@@ -8,7 +8,8 @@ from app.core.database import get_db
 from app.core.auth import require_roles, require_government_user
 from app.models.identity import User
 from app.models.market import Application, Placement, JobPosting, JobPostingSkill
-from app.models.career import CourseEnrollment, JobRole, CourseSkill
+from app.models.career import CourseEnrollment, JobRole, CourseSkill, Course
+from app.models.identity import Employer
 from app.models.phase4 import (
     CourseOffering, DistrictTrainingPlanItem, TrainingProvider,
     CourseEquipmentRequirement, Equipment, Trainer, TrainerSkill, CandidateSkill,
@@ -413,13 +414,120 @@ def get_government_dashboard(
         capacity_status=district_intelligence.capacity_status,
     )
     
+    # Get course alignment data
+    course_alignment = []
+    # Get top courses with their alignment to industry demand
+    courses_query = select(Course).limit(10)
+    if district_id:
+        courses_query = courses_query.where(Course.district_id == district_id)
+    if sector_id:
+        courses_query = courses_query.where(Course.industry_sector_id == sector_id)
+    
+    courses = db.scalars(courses_query).all()
+    
+    for course in courses:
+        # Get skills taught by this course
+        course_skills = db.scalars(
+            select(Skill.name).join(CourseSkill).where(CourseSkill.course_id == course.id)
+        ).all()
+        
+        # Get demanded skills for this course's sector
+        demanded_skills_query = select(Skill.name).join(IndustryDemand).where(
+            IndustryDemand.industry_sector_id == course.industry_sector_id
+        )
+        if district_id:
+            demanded_skills_query = demanded_skills_query.where(IndustryDemand.district_id == district_id)
+        
+        demanded_skills = db.scalars(demanded_skills_query).all()
+        
+        # Calculate alignment
+        skills_covered = set(course_skills)
+        skills_demanded = set(demanded_skills)
+        gaps = skills_demanded - skills_covered
+        
+        # Determine alignment status
+        if not skills_demanded:
+            alignment_status = "NO_DEMAND"
+        elif gaps:
+            alignment_status = "PARTIAL" if len(skills_covered) > 0 else "NOT_ALIGNED"
+        else:
+            alignment_status = "ALIGNED"
+        
+        course_alignment.append({
+            "course_id": str(course.id),
+            "course_title": course.title,
+            "alignment_status": alignment_status,
+            "skills_covered": list(skills_covered),
+            "skills_demanded": list(skills_demanded),
+            "gaps": list(gaps)
+        })
+    
+    # Get employer demand data
+    employer_demand = []
+    # Use the same logic as employer insights but simplified
+    from app.models.market import JobPosting
+    from app.models.career import JobRole
+    from app.models.identity import Employer
+    from app.models.demand import IndustrySector
+    
+    employer_query = select(
+        JobPosting,
+        JobRole.title.label("job_role_title"),
+        IndustrySector.name.label("sector_name")
+    ).join(
+        JobRole, JobPosting.job_role_id == JobRole.id
+    ).join(
+        Employer, JobPosting.employer_id == Employer.id
+    ).join(
+        IndustrySector, Employer.industry_sector_id == IndustrySector.id
+    ).options(
+        selectinload(JobPosting.job_posting_skills).selectinload(JobPostingSkill.skill)
+    )
+    
+    if district_id:
+        employer_query = employer_query.where(JobPosting.district_id == district_id)
+    if sector_id:
+        employer_query = employer_query.where(IndustrySector.id == sector_id)
+    
+    employer_results = db.execute(employer_query).all()
+    
+    # Group by sector and job role
+    employer_demand_map = {}
+    for posting, job_role_title, sector_name in employer_results:
+        key = f"{sector_name}:{job_role_title}"
+        
+        if key not in employer_demand_map:
+            employer_demand_map[key] = {
+                "sector": sector_name,
+                "job_role": job_role_title,
+                "required_skills": set(),
+                "posting_count": 0
+            }
+        
+        employer_demand_map[key]["posting_count"] += 1
+        
+        # Add required skills
+        if posting.job_posting_skills:
+            for jps in posting.job_posting_skills:
+                if jps.skill:
+                    employer_demand_map[key]["required_skills"].add(jps.skill.name)
+    
+    # Convert to response format
+    for data in employer_demand_map.values():
+        employer_demand.append({
+            "sector": data["sector"],
+            "job_role": data["job_role"],
+            "required_skills": list(data["required_skills"]),
+            "posting_count": data["posting_count"]
+        })
+    
     return {
         "kpis": kpis,
         "district_intelligence": district_intelligence,
         "skill_gaps": skill_gaps,
         "training_capacity": training_capacity,
-        "course_alignment": [],  # Will be implemented separately
-        "employer_demand": [],  # Will be implemented separately
+        "course_alignment": course_alignment,
+        "employer_demand": employer_demand,
         "district_training_plan": None,  # Will be implemented separately
         "filters": filters.get_filter_metadata(),
         "mode": "live"
