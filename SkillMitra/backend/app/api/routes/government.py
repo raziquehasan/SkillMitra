@@ -1135,18 +1135,27 @@ def get_employer_insights(
     """
     from app.models.market import JobPosting
     from app.models.career import JobRole
+    from app.models.identity import Employer
+    from app.models.demand import IndustrySector
     
     # Build query for job postings with joins
     query = select(
         JobPosting,
         District.name.label("district_name"),
-        JobRole.title.label("job_role_title")
+        JobRole.title.label("job_role_title"),
+        IndustrySector.name.label("sector_name"),
+        IndustrySector.id.label("sector_id")
     ).join(
         District, JobPosting.district_id == District.id
     ).join(
         JobRole, JobPosting.job_role_id == JobRole.id
+    ).join(
+        Employer, JobPosting.employer_id == Employer.id
+    ).join(
+        IndustrySector, Employer.industry_sector_id == IndustrySector.id
     ).options(
-        selectinload(JobPosting.job_posting_skills).selectinload(JobPostingSkill.skill)
+        selectinload(JobPosting.job_posting_skills).selectinload(JobPostingSkill.skill),
+        selectinload(JobPosting.employer)
     )
     
     if district_id:
@@ -1158,20 +1167,20 @@ def get_employer_insights(
     
     # Group by district and job role
     insights_map = {}
-    for posting, district_name, job_role_title in results:
+    for posting, district_name, job_role_title, sector_name, sector_id in results:
         key = f"{posting.district_id}:{posting.job_role_id}"
         
         if key not in insights_map:
             insights_map[key] = {
                 "district_id": str(posting.district_id) if posting.district_id else "",
                 "district_name": district_name or "Unknown District",
-                "sector_id": "",
-                "sector_name": "Unknown Sector",
+                "sector_id": str(sector_id) if sector_id else "",
+                "sector_name": sector_name or "Unknown Sector",
                 "job_role_id": str(posting.job_role_id) if posting.job_role_id else "",
                 "job_role_title": job_role_title or "Unknown Role",
                 "posting_count": 0,
                 "required_skills": set(),
-                "employers": set()
+                "employers": {}
             }
         
         insights_map[key]["posting_count"] += 1
@@ -1182,9 +1191,14 @@ def get_employer_insights(
                 if jps.skill:
                     insights_map[key]["required_skills"].add(jps.skill.name)
         
-        # Add employer
-        if posting.employer_id:
-            insights_map[key]["employers"].add(str(posting.employer_id))
+        # Add employer with company name
+        if posting.employer:
+            employer_key = str(posting.employer.id)
+            if employer_key not in insights_map[key]["employers"]:
+                insights_map[key]["employers"][employer_key] = {
+                    "employer_id": employer_key,
+                    "company_name": posting.employer.company_name or "Unknown Company"
+                }
     
     # Convert to response format
     insights = []
@@ -1199,7 +1213,7 @@ def get_employer_insights(
                 job_role_title=data["job_role_title"],
                 posting_count=data["posting_count"],
                 required_skills=list(data["required_skills"]),
-                employers=[{"employer_id": eid} for eid in data["employers"]]
+                employers=list(data["employers"].values())
             )
         )
     
