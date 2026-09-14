@@ -252,7 +252,7 @@ export default function SkillGapPage() {
                     className="border border-slate-300 bg-white px-4 py-2 text-sm rounded focus:ring-2 focus:ring-[#123b68] focus:border-transparent"
                   >
                     <option value="">Select a role</option>
-                    {jobRoles.map((role) => (
+                    {jobRoles.map((role: any) => (
                       <option key={role.id} value={role.id}>{role.title}</option>
                     ))}
                   </select>
@@ -507,7 +507,7 @@ export default function SkillGapPage() {
                       </p>
 
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {role.strong.slice(0, 3).map((skill) => (
+                        {role.strong.slice(0, 3).map((skill: string) => (
                           <span
                             key={skill}
                             className="rounded-md bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700"
@@ -524,7 +524,7 @@ export default function SkillGapPage() {
                       </p>
 
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {role.missing.slice(0, 3).map((skill) => (
+                        {role.missing.slice(0, 3).map((skill: string) => (
                           <span
                             key={skill}
                             className="rounded-md bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700"
