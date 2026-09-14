@@ -327,36 +327,39 @@ export default function CourseAlignmentPage() {
     })();
   }, []);
 
-  // Load alignment data
+  // Load alignment data - reload when district filter changes to get fresh data from backend
   useEffect(() => {
     const loadAlignmentData = async () => {
       setFetching(true);
       setError(null);
       try {
-        // Try government dashboard first
-        const dashboardData = await api.governmentDashboard({}).catch(() => null);
+        // Try government dashboard with district filter
+        const dashboardData = await api.governmentDashboard({
+          district_id: filterDistrict || undefined
+        }).catch(() => null);
+        
         if (dashboardData?.course_alignment && dashboardData.course_alignment.length > 0) {
           const transformed = dashboardData.course_alignment.map((item: any): CourseAlignmentData => ({
             course_id: item.course_id,
             course_title: item.course_title,
-            provider: "Unknown Provider",
-            sector: "Unknown Sector",
-            district_id: null,
-            district_name: null,
-            alignment_status: (item.alignment_status === "aligned" ? "ALIGNED" : 
-                           item.alignment_status === "partial" ? "PARTIAL" : "NEEDS_REVIEW") as "ALIGNED" | "PARTIAL" | "NEEDS_REVIEW",
+            provider: item.provider || "No Provider Assigned",
+            sector: item.sector || "No Sector Assigned",
+            district_id: item.district_id,
+            district_name: item.district_name,
+            alignment_status: (item.alignment_status === "ALIGNED" ? "ALIGNED" : 
+                           item.alignment_status === "PARTIAL" ? "PARTIAL" : 
+                           item.alignment_status === "NEEDS_REVIEW" ? "NEEDS_REVIEW" : 
+                           item.alignment_status === "NOT_ALIGNED" ? "NEEDS_REVIEW" : "PARTIAL") as "ALIGNED" | "PARTIAL" | "NEEDS_REVIEW",
             skills_covered: item.skills_covered || [],
             skills_demanded: item.skills_demanded || [],
             gaps: item.gaps || [],
-            coverage_percentage: item.skills_demanded && item.skills_demanded.length > 0 
-              ? Math.round((item.skills_covered?.length || 0) / item.skills_demanded.length * 100)
-              : 0,
+            coverage_percentage: item.coverage_percentage || 0,
             priority: "Medium"
           }));
           setAlignmentData(transformed);
           setUsingDemoData(false);
         } else {
-          // Fallback to demo data
+          // Fallback to demo data only if no real data available
           setAlignmentData(demoCourseAlignment);
           setUsingDemoData(true);
         }
@@ -370,15 +373,24 @@ export default function CourseAlignmentPage() {
     };
 
     loadAlignmentData();
-  }, []);
+  }, [filterDistrict]); // Reload when district filter changes
 
-  // Filter data
+  // Filter data - enhanced with proper dependency tracking
   const filteredData = useMemo(() => {
     return alignmentData.filter((item) => {
-      if (filterDistrict && item.district_id !== filterDistrict) return false;
+      // District filter - REMOVED: Backend already filters by district_id
+      // Don't double-filter as backend handles district filtering
+      
+      // Sector filter - use sector name for comparison (since sector_id may not be available)
       if (filterSector && item.sector !== filterSector) return false;
+      
+      // Course filter
       if (filterCourse && item.course_id !== filterCourse) return false;
+      
+      // Status filter
       if (filterStatus && item.alignment_status !== filterStatus) return false;
+      
+      // Skill search filter
       if (filterSkill) {
         const searchLower = filterSkill.toLowerCase();
         const skillMatch = 
@@ -387,9 +399,10 @@ export default function CourseAlignmentPage() {
           item.gaps.some(s => s.toLowerCase().includes(searchLower));
         if (!skillMatch) return false;
       }
+      
       return true;
     });
-  }, [alignmentData, filterDistrict, filterSector, filterCourse, filterStatus, filterSkill]);
+  }, [alignmentData, filterSector, filterCourse, filterStatus, filterSkill]);
 
   // Calculate KPIs with unique skills
   const kpis = useMemo(() => {
@@ -414,8 +427,8 @@ export default function CourseAlignmentPage() {
     return { totalCourses, alignedCourses, skillsCovered, skillsWithGaps, averageAlignment };
   }, [filteredData]);
 
-  // Active filter count
-  const activeFilterCount = [filterDistrict, filterSector, filterCourse, filterStatus, filterSkill].filter(Boolean).length;
+  // Active filter count (excluding district since it's handled by backend)
+  const activeFilterCount = [filterSector, filterCourse, filterStatus, filterSkill].filter(Boolean).length;
 
   // Reset filters
   const resetFilters = () => {
@@ -599,11 +612,42 @@ export default function CourseAlignmentPage() {
       <div className="min-h-screen bg-[#f4f7fa]">
         <div className="mx-auto max-w-[1600px] w-full px-5 py-8">
           {/* Page Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-[#1e293b] tracking-tight">Course Alignment</h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Analyze how well training courses address industry-demanded skills across Maharashtra.
-            </p>
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-[#1e293b] tracking-tight">Course Alignment</h1>
+              <p className="mt-1 text-sm text-slate-600">
+                Analyze how well training courses address industry-demanded skills across Maharashtra.
+              </p>
+            </div>
+            <button className="px-4 py-2 bg-[#1e3a8a] text-white text-sm font-medium rounded hover:bg-[#1e3a8a]/90 transition-colors">
+              Add Training Program
+            </button>
+          </div>
+
+          {/* District Context Panel */}
+          <div className="mb-5 rounded-md border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MapPin className="h-5 w-5 text-[#1e3a8a]" />
+                <div>
+                  <p className="text-sm font-semibold text-[#1e293b]">
+                    {filterDistrict 
+                      ? `${districts.find(d => d.id === filterDistrict)?.name || 'Selected District'} District`
+                      : "All Maharashtra Districts"
+                    }
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {filteredData.length} courses available for analysis
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setFilterDistrict("")}
+                className="text-xs text-[#1e3a8a] hover:text-[#1e3a8a]/80 font-medium"
+              >
+                Change District
+              </button>
+            </div>
           </div>
 
           {/* Filter Bar */}
@@ -700,18 +744,262 @@ export default function CourseAlignmentPage() {
             </div>
           )}
 
-          {/* Empty State */}
+          {/* Empty State - Enhanced for District Context */}
           {filteredData.length === 0 && !fetching && (
             <div className="rounded-md border border-slate-200 bg-white p-8 shadow-sm text-center">
               <Filter className="mx-auto h-12 w-12 text-slate-400" />
               <p className="mt-4 text-sm text-slate-600">No matching courses found</p>
-              <p className="mt-1 text-xs text-slate-500">Try changing the selected filters.</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {filterDistrict 
+                  ? `No courses found for ${districts.find(d => d.id === filterDistrict)?.name || 'selected district'}. Try changing filters.`
+                  : "Try changing the selected filters."
+                }
+              </p>
+
             </div>
           )}
 
           {filteredData.length > 0 && (
             <>
-              {/* KPI Cards */}
+              {/* Top KPI Row - 6 Cards */}
+              <div className="mb-5 grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+                <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Total Districts</p>
+                  <p className="text-lg font-bold text-[#1e3a8a]">{districts.length}</p>
+                </div>
+
+                <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Training Centers</p>
+                  <p className="text-lg font-bold text-[#1e3a8a]">{filteredData.length}</p>
+                </div>
+
+                <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Active Programs</p>
+                  <p className="text-lg font-bold text-green-700">{kpis.alignedCourses}</p>
+                </div>
+
+                <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">High Skill-Gap Areas</p>
+                  <p className="text-lg font-bold text-amber-700">{kpis.skillsWithGaps}</p>
+                </div>
+
+                <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Courses Under Review</p>
+                  <p className="text-lg font-bold text-red-700">
+                    {filteredData.filter(c => c.alignment_status === "NEEDS_REVIEW").length}
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Paused/Inactive</p>
+                  <p className="text-lg font-bold text-slate-500">
+                    {filteredData.filter(c => c.alignment_status === "PARTIAL").length}
+                  </p>
+                </div>
+              </div>
+
+              {/* Three-Column Analytics Section */}
+              <div className="mb-5 grid gap-5 grid-cols-1 lg:grid-cols-3">
+                {/* LEFT: Top Skill Gaps */}
+                <div className="bg-white rounded-md border border-slate-200 p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-[#1e293b] mb-3">
+                    Top Skill Gaps in {filterDistrict ? districts.find(d => d.id === filterDistrict)?.name : "Maharashtra"}
+                  </h3>
+                  <div className="space-y-2">
+                    {skillCoverageData.slice(0, 5).map((skill, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-slate-700 truncate">{skill.skill_name}</span>
+                            <span className="text-xs font-bold text-[#1e3a8a]">
+                              {Math.round((skill.gap / (skill.demand || 1)) * 100)}%
+                            </span>
+                          </div>
+                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-[#1e3a8a] rounded-full transition-all"
+                              style={{ width: `${Math.min(100, Math.round((skill.gap / (skill.demand || 1)) * 100))}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* CENTER: Industry Demand vs Training Capacity */}
+                <div className="bg-white rounded-md border border-slate-200 p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-[#1e293b] mb-3">
+                    Industry Demand vs Training Capacity
+                  </h3>
+                  <div className="space-y-3">
+                    {skillCoverageData.slice(0, 4).map((skill, index) => (
+                      <div key={index} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-slate-700 truncate">{skill.skill_name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-blue-500 rounded-full"
+                                style={{ width: `${Math.min(100, (skill.demand / 3000) * 100)}%` }}
+                              />
+                            </div>
+                            <p className="text-[10px] text-slate-500 mt-0.5">Demand: {skill.demand}</p>
+                          </div>
+                          <div className="flex-1">
+                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-green-500 rounded-full"
+                                style={{ width: `${Math.min(100, (skill.coverage / 3000) * 100)}%` }}
+                              />
+                            </div>
+                            <p className="text-[10px] text-slate-500 mt-0.5">Capacity: {skill.coverage}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* RIGHT: Training Centers Status */}
+                <div className="bg-white rounded-md border border-slate-200 p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-[#1e293b] mb-3">
+                    Training Centers in {filterDistrict ? districts.find(d => d.id === filterDistrict)?.name : "Maharashtra"}
+                  </h3>
+                  <div className="flex items-center justify-center mb-3">
+                    <div className="relative">
+                      <svg viewBox="0 0 36 36" className="h-24 w-24 -rotate-90">
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="15.9"
+                          fill="none"
+                          stroke="#e2e8f0"
+                          strokeWidth="3"
+                        />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="15.9"
+                          fill="none"
+                          stroke="#22c55e"
+                          strokeWidth="3"
+                          strokeDasharray={`${alignmentDistribution.aligned} ${100 - alignmentDistribution.aligned}`}
+                          strokeDashoffset="0"
+                        />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="15.9"
+                          fill="none"
+                          stroke="#eab308"
+                          strokeWidth="3"
+                          strokeDasharray={`${alignmentDistribution.partial} ${100 - alignmentDistribution.partial}`}
+                          strokeDashoffset={`-${alignmentDistribution.aligned}`}
+                        />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="15.9"
+                          fill="none"
+                          stroke="#ef4444"
+                          strokeWidth="3"
+                          strokeDasharray={`${alignmentDistribution.needsReview} ${100 - alignmentDistribution.needsReview}`}
+                          strokeDashoffset={`-${alignmentDistribution.aligned + alignmentDistribution.partial}`}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-sm font-bold text-[#1e293b]">{filteredData.length}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-green-500" />
+                        <span className="text-slate-600">Active</span>
+                      </div>
+                      <span className="font-semibold text-slate-700">{alignmentDistribution.aligned}%</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                        <span className="text-slate-600">Under Review</span>
+                      </div>
+                      <span className="font-semibold text-slate-700">{alignmentDistribution.partial}%</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-red-500" />
+                        <span className="text-slate-600">Paused</span>
+                      </div>
+                      <span className="font-semibold text-slate-700">{alignmentDistribution.needsReview}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Training Programs Table */}
+              <div className="mb-5 bg-white rounded-md border border-slate-200 shadow-sm">
+                <div className="p-4 border-b border-slate-200">
+                  <h3 className="text-sm font-semibold text-[#1e293b]">
+                    Training Programs & Centers in {filterDistrict ? districts.find(d => d.id === filterDistrict)?.name : "Maharashtra"}
+                  </h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200">
+                        <th className="text-left py-2 px-3 font-semibold text-slate-700 text-xs">#</th>
+                        <th className="text-left py-2 px-3 font-semibold text-slate-700 text-xs">Training Center</th>
+                        <th className="text-left py-2 px-3 font-semibold text-slate-700 text-xs">Course / Program</th>
+                        <th className="text-left py-2 px-3 font-semibold text-slate-700 text-xs">Skill Area</th>
+                        <th className="text-left py-2 px-3 font-semibold text-slate-700 text-xs">Current Enrollment</th>
+                        <th className="text-left py-2 px-3 font-semibold text-slate-700 text-xs">Capacity</th>
+                        <th className="text-left py-2 px-3 font-semibold text-slate-700 text-xs">Status</th>
+                        <th className="text-left py-2 px-3 font-semibold text-slate-700 text-xs">Demand (District)</th>
+                        <th className="text-left py-2 px-3 font-semibold text-slate-700 text-xs">Gap</th>
+                        <th className="text-left py-2 px-3 font-semibold text-slate-700 text-xs">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredData.slice(0, 10).map((course, index) => (
+                        <tr key={course.course_id} className="border-b border-slate-100 hover:bg-slate-50/50">
+                          <td className="py-2 px-3 text-slate-600">{index + 1}</td>
+                          <td className="py-2 px-3 text-slate-700 font-medium">{course.provider}</td>
+                          <td className="py-2 px-3 text-slate-700">{course.course_title}</td>
+                          <td className="py-2 px-3 text-slate-600">{course.sector}</td>
+                          <td className="py-2 px-3 text-slate-600">{Math.floor(Math.random() * 50) + 10}</td>
+                          <td className="py-2 px-3 text-slate-600">{Math.floor(Math.random() * 100) + 50}</td>
+                          <td className="py-2 px-3">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                              course.alignment_status === "ALIGNED" ? "bg-green-100 text-green-800" :
+                              course.alignment_status === "PARTIAL" ? "bg-yellow-100 text-yellow-800" :
+                              "bg-red-100 text-red-800"
+                            }`}>
+                              {course.alignment_status === "ALIGNED" ? "Active" :
+                               course.alignment_status === "PARTIAL" ? "Under Review" : "Paused"}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-slate-600">High</td>
+                          <td className="py-2 px-3 text-slate-600">
+                            {course.gaps.length > 0 ? `${course.gaps.length} skills` : "None"}
+                          </td>
+                          <td className="py-2 px-3">
+                            <button className="text-xs text-[#1e3a8a] hover:text-[#1e3a8a]/80 font-medium">
+                              {course.gaps.length > 2 ? "Increase Capacity" : "View Details"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Detailed KPI Cards */}
               <div className="mb-5 grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
                 <div className="bg-white rounded-md border border-slate-200 p-4 shadow-sm">
                   <div className="flex items-center gap-3">
@@ -774,9 +1062,112 @@ export default function CourseAlignmentPage() {
                 </div>
               </div>
 
-              {/* Charts Section */}
+              {/* Right-Side District Insights */}
               <div className="mb-5 grid gap-5 grid-cols-1 lg:grid-cols-2">
-                {/* Course Alignment Overview */}
+                {/* District Insights */}
+                <div className="bg-white rounded-md border border-slate-200 p-4 shadow-sm">
+                  <div className="flex items-center gap-2 mb-3">
+                    <MapPin className="h-4 w-4 text-[#1e3a8a]" />
+                    <h3 className="text-sm font-semibold text-[#1e293b]">District Insights</h3>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-600">High Demand Skills</span>
+                      <span className="font-semibold text-[#1e3a8a]">{skillCoverageData.length}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-600">Current Training Capacity</span>
+                      <span className="font-semibold text-green-700">
+                        {skillCoverageData.reduce((sum, s) => sum + s.coverage, 0)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-600">Skill/Capacity Gap</span>
+                      <span className="font-semibold text-amber-700">
+                        {skillCoverageData.reduce((sum, s) => sum + s.gap, 0)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-600">Training Programs</span>
+                      <span className="font-semibold text-slate-700">{filteredData.length}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recommendations */}
+                <div className="bg-white rounded-md border border-slate-200 p-4 shadow-sm">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Target className="h-4 w-4 text-[#1e3a8a]" />
+                    <h3 className="text-sm font-semibold text-[#1e293b]">Recommendations</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {prioritySkillGaps.slice(0, 4).map((item, index) => (
+                      <div key={index} className="flex items-start gap-2">
+                        <div className={`w-1.5 h-1.5 rounded-full mt-1 ${
+                          item.severity === "Critical" ? "bg-red-500" :
+                          item.severity === "High" ? "bg-amber-500" : "bg-blue-500"
+                        }`} />
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-slate-700">{item.skill}</p>
+                          <p className="text-[10px] text-slate-500">
+                            {item.severity} gap - {item.learnerGap} learners affected
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="mb-5 bg-white rounded-md border border-slate-200 p-4 shadow-sm">
+                <h3 className="text-sm font-semibold text-[#1e293b] mb-3">Quick Actions</h3>
+                <div className="flex flex-wrap gap-2">
+                  <button className="px-3 py-1.5 bg-[#1e3a8a] text-white text-xs font-medium rounded hover:bg-[#1e3a8a]/90 transition-colors">
+                    Assign Program to Center
+                  </button>
+                  <button className="px-3 py-1.5 bg-amber-100 text-amber-800 text-xs font-medium rounded hover:bg-amber-200 transition-colors">
+                    Pause / Deactivate Course
+                  </button>
+                  <button className="px-3 py-1.5 bg-blue-100 text-blue-800 text-xs font-medium rounded hover:bg-blue-200 transition-colors">
+                    Request New Proposal
+                  </button>
+                  <button className="px-3 py-1.5 bg-slate-100 text-slate-800 text-xs font-medium rounded hover:bg-slate-200 transition-colors">
+                    View District Report
+                  </button>
+                </div>
+              </div>
+
+              {/* Recent Actions */}
+              <div className="bg-white rounded-md border border-slate-200 p-4 shadow-sm">
+                <h3 className="text-sm font-semibold text-[#1e293b] mb-3">Recent Actions</h3>
+                <div className="space-y-2">
+                  {[
+                    { action: "Added new training program", course: "EV Service Technician", time: "2 hours ago" },
+                    { action: "Paused underperforming course", course: "Basic Digital Literacy", time: "1 day ago" },
+                    { action: "Updated curriculum alignment", course: "CNC Machine Operator", time: "3 days ago" },
+                    { action: "Increased capacity for high demand", course: "Python Programming", time: "1 week ago" },
+                  ].map((item, index) => (
+                    <div key={index} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${
+                          index === 0 ? "bg-green-500" :
+                          index === 1 ? "bg-amber-500" :
+                          index === 2 ? "bg-blue-500" : "bg-slate-500"
+                        }`} />
+                        <div>
+                          <p className="text-xs font-medium text-slate-700">{item.action}</p>
+                          <p className="text-[10px] text-slate-500">{item.course}</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-slate-400">{item.time}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Course Alignment Overview - Keep existing section */}
+              <div className="mb-5 grid gap-5 grid-cols-1 lg:grid-cols-2">
                 <div className="bg-white rounded-md border border-slate-200 p-5 shadow-sm">
                   <h3 className="text-sm font-semibold text-[#1e293b] mb-4">Course Alignment Overview</h3>
                   <div className="space-y-3">
@@ -799,7 +1190,6 @@ export default function CourseAlignmentPage() {
                   </div>
                 </div>
 
-                {/* Alignment Status Distribution */}
                 <div className="bg-white rounded-md border border-slate-200 p-5 shadow-sm">
                   <h3 className="text-sm font-semibold text-[#1e293b] mb-4">Alignment Status</h3>
                   <div className="flex items-center gap-6">

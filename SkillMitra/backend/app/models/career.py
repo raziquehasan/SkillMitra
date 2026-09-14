@@ -158,6 +158,9 @@ class Course(TimestampMixin, Base):
     district: Mapped["District | None"] = relationship(
         "District", back_populates="courses"
     )
+    industry_sector: Mapped["IndustrySector | None"] = relationship(
+        "IndustrySector"
+    )
     course_skills: Mapped[list["CourseSkill"]] = relationship(
         "CourseSkill", back_populates="course", cascade="all, delete-orphan"
     )
