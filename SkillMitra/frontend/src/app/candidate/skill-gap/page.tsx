@@ -1,68 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import CandidateSidebar from "@/components/candidate/CandidateSidebar";
-
-const skillGaps = [
-  {
-    skill: "TypeScript",
-    targetRole: "Software Developer",
-    currentLevel: "Beginner",
-    requiredLevel: "Intermediate",
-    gap: 32,
-    priority: "Critical",
-    reason: "Frequently required for modern software development roles.",
-  },
-  {
-    skill: "Advanced Excel",
-    targetRole: "Data Analyst",
-    currentLevel: "Beginner",
-    requiredLevel: "Intermediate",
-    gap: 28,
-    priority: "High",
-    reason: "Important for data analysis, reporting and business insights.",
-  },
-  {
-    skill: "Cloud Computing",
-    targetRole: "Software Developer",
-    currentLevel: "Beginner",
-    requiredLevel: "Intermediate",
-    gap: 25,
-    priority: "High",
-    reason: "Cloud knowledge can improve opportunities in modern software roles.",
-  },
-  {
-    skill: "UX Research",
-    targetRole: "UI/UX Designer",
-    currentLevel: "Beginner",
-    requiredLevel: "Intermediate",
-    gap: 20,
-    priority: "Medium",
-    reason: "Useful for understanding users and creating better digital experiences.",
-  },
-];
-
-const roleAnalysis = [
-  {
-    role: "Software Developer",
-    match: 78,
-    strong: ["JavaScript", "React", "SQL"],
-    missing: ["TypeScript", "Cloud Computing"],
-  },
-  {
-    role: "Data Analyst",
-    match: 71,
-    strong: ["Python", "SQL"],
-    missing: ["Advanced Excel", "Power BI"],
-  },
-  {
-    role: "UI/UX Designer",
-    match: 66,
-    strong: ["HTML & CSS"],
-    missing: ["UX Research", "Design Systems"],
-  },
-];
+import { api } from "@/lib/api";
 
 function SummaryCard({
   label,
@@ -108,6 +50,106 @@ function PriorityBadge({ priority }: { priority: string }) {
 }
 
 export default function SkillGapPage() {
+  const [skillGaps, setSkillGaps] = useState<any[]>([]);
+  const [roleAnalysis, setRoleAnalysis] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedJobRole, setSelectedJobRole] = useState<string>("");
+  const [jobRoles, setJobRoles] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Load job roles for dropdown
+        const rolesRes = await api.allJobRoles();
+        setJobRoles(rolesRes);
+
+        // Load skill gaps
+        const gaps = await api.candidateSkillGaps();
+        setSkillGaps(gaps);
+
+        // Convert skill gaps to role analysis format
+        const analysis = gaps.map((gap: any) => ({
+          role: gap.job_role_title,
+          match: calculateMatchPercentage(gap.matched_skill_ids?.length || 0, gap.missing_skill_ids?.length || 0),
+          strong: gap.matched_skill_ids || [],
+          missing: gap.missing_skill_ids || [],
+        }));
+        setRoleAnalysis(analysis);
+      } catch (error) {
+        console.error("Failed to load skill gap data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const calculateMatchPercentage = (matched: number, missing: number) => {
+    const total = matched + missing;
+    return total > 0 ? Math.round((matched / total) * 100) : 0;
+  };
+
+  const handleCheckSkillGap = async () => {
+    if (!selectedJobRole) return;
+    
+    setLoading(true);
+    try {
+      const gaps = await api.candidateSkillGaps(selectedJobRole);
+      setSkillGaps(gaps);
+
+      const analysis = gaps.map((gap: any) => ({
+        role: gap.job_role_title,
+        match: calculateMatchPercentage(gap.matched_skill_ids?.length || 0, gap.missing_skill_ids?.length || 0),
+        strong: gap.matched_skill_ids || [],
+        missing: gap.missing_skill_ids || [],
+      }));
+      setRoleAnalysis(analysis);
+    } catch (error) {
+      console.error("Failed to load skill gap data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
+        <header className="fixed left-0 right-0 top-0 z-50 h-[72px] bg-[#123b68] text-white">
+          <div className="mx-auto flex h-full max-w-[1600px] items-center justify-between px-6 text-sm">
+            <div className="flex items-center gap-3">
+              <Image
+                src="/maharashtra-gov-logo.png"
+                alt="Government of Maharashtra"
+                width={48}
+                height={48}
+                priority
+                className="h-12 w-12 object-contain"
+              />
+              <div>
+                <div className="font-semibold">Government of Maharashtra</div>
+                <div className="text-[11px] text-blue-100">Skills, Employment, Entrepreneurship & Innovation Department</div>
+              </div>
+            </div>
+            <div className="hidden font-semibold md:block">SkillMitra | Candidate Portal</div>
+          </div>
+        </header>
+        <div className="fixed left-0 right-0 top-[72px] z-50 h-1 bg-[#c2410c]" />
+        <div className="min-h-screen pt-[76px]">
+          <CandidateSidebar />
+          <section className="min-w-0 lg:ml-72">
+            <div className="mx-auto max-w-[1250px] px-5 py-7 lg:px-8">
+              <div className="flex items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#123b68] border-r-transparent"></div>
+                <p className="ml-3 text-sm text-slate-600">Loading skill gap analysis...</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
       {/* Government Header */}
@@ -192,29 +234,62 @@ export default function SkillGapPage() {
               </p>
             </div>
 
+            {/* Target Role Selection */}
+            <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-[#123b68]">
+                    Target Role
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Select a role to analyze your skill gaps
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <select
+                    value={selectedJobRole}
+                    onChange={(e) => setSelectedJobRole(e.target.value)}
+                    className="border border-slate-300 bg-white px-4 py-2 text-sm rounded focus:ring-2 focus:ring-[#123b68] focus:border-transparent"
+                  >
+                    <option value="">Select a role</option>
+                    {jobRoles.map((role) => (
+                      <option key={role.id} value={role.id}>{role.title}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleCheckSkillGap}
+                    disabled={!selectedJobRole}
+                    className="rounded-lg bg-[#123b68] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f3155] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Check My Skill Gap →
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Summary Cards */}
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <SummaryCard
                 label="Skill Gaps"
-                value="04"
+                value={skillGaps.reduce((acc, gap) => acc + (gap.missing_skill_ids?.length || 0), 0).toString()}
                 description="Skills to improve"
               />
 
               <SummaryCard
                 label="Critical Gaps"
-                value="01"
+                value={skillGaps.filter(gap => gap.proficiency_gaps?.some((pg: any) => pg.importance === 'mandatory')).length.toString()}
                 description="High-impact skill gap"
               />
 
               <SummaryCard
                 label="High Priority"
-                value="02"
+                value={skillGaps.filter(gap => gap.proficiency_gaps?.some((pg: any) => pg.importance === 'preferred')).length.toString()}
                 description="Skills requiring attention"
               />
 
               <SummaryCard
                 label="Current Readiness"
-                value="72%"
+                value={`${Math.round(roleAnalysis.reduce((acc, role) => acc + role.match, 0) / Math.max(roleAnalysis.length, 1))}%`}
                 description="Overall skill readiness"
               />
             </div>
@@ -270,46 +345,44 @@ export default function SkillGapPage() {
                     </thead>
 
                     <tbody className="divide-y divide-slate-100">
-                      {skillGaps.map((item) => (
-                        <tr
-                          key={item.skill}
-                          className="hover:bg-slate-50"
-                        >
-                          <td className="px-5 py-4">
-                            <div>
-                              <p className="font-semibold text-slate-800">
-                                {item.skill}
-                              </p>
+                      {skillGaps.flatMap((gap) => 
+                        gap.proficiency_gaps?.map((pg: any, idx: number) => (
+                          <tr
+                            key={`${gap.job_role_id}-${pg.skill_id}-${idx}`}
+                            className="hover:bg-slate-50"
+                          >
+                            <td className="px-5 py-4">
+                              <div>
+                                <p className="font-semibold text-slate-800">
+                                  {pg.skill_id}
+                                </p>
+                              </div>
+                            </td>
 
-                              <p className="mt-1 max-w-xs text-xs text-slate-500">
-                                {item.reason}
-                              </p>
-                            </div>
-                          </td>
+                            <td className="px-5 py-4 text-slate-600">
+                              {gap.job_role_title}
+                            </td>
 
-                          <td className="px-5 py-4 text-slate-600">
-                            {item.targetRole}
-                          </td>
+                            <td className="px-5 py-4 text-slate-600">
+                              {pg.candidate_proficiency || "None"}
+                            </td>
 
-                          <td className="px-5 py-4 text-slate-600">
-                            {item.currentLevel}
-                          </td>
+                            <td className="px-5 py-4 font-medium text-[#123b68]">
+                              {pg.required_proficiency || "Unknown"}
+                            </td>
 
-                          <td className="px-5 py-4 font-medium text-[#123b68]">
-                            {item.requiredLevel}
-                          </td>
+                            <td className="px-5 py-4">
+                              <span className="font-semibold text-slate-700">
+                                {pg.candidate_proficiency ? "Proficiency Gap" : "Missing"}
+                              </span>
+                            </td>
 
-                          <td className="px-5 py-4">
-                            <span className="font-semibold text-slate-700">
-                              {item.gap}%
-                            </span>
-                          </td>
-
-                          <td className="px-5 py-4">
-                            <PriorityBadge priority={item.priority} />
-                          </td>
-                        </tr>
-                      ))}
+                            <td className="px-5 py-4">
+                              <PriorityBadge priority={pg.importance === 'mandatory' ? 'Critical' : pg.importance === 'preferred' ? 'High' : 'Medium'} />
+                            </td>
+                          </tr>
+                        )) || []
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -323,79 +396,60 @@ export default function SkillGapPage() {
               </h2>
 
               <div className="mt-4 grid gap-4 md:grid-cols-2">
-                {skillGaps.map((item) => (
-                  <div
-                    key={item.skill}
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="font-semibold text-slate-800">
-                          {item.skill}
-                        </h3>
+                {skillGaps.flatMap((gap) => 
+                  gap.proficiency_gaps?.slice(0, 4).map((pg: any, idx: number) => (
+                    <div
+                      key={`${gap.job_role_id}-${pg.skill_id}-card-${idx}`}
+                      className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="font-semibold text-slate-800">
+                            {pg.skill_id}
+                          </h3>
 
-                        <p className="mt-1 text-xs text-slate-500">
-                          Target role: {item.targetRole}
-                        </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            Target role: {gap.job_role_title}
+                          </p>
+                        </div>
+
+                        <PriorityBadge priority={pg.importance === 'mandatory' ? 'Critical' : pg.importance === 'preferred' ? 'High' : 'Medium'} />
                       </div>
 
-                      <PriorityBadge priority={item.priority} />
-                    </div>
+                      <div className="mt-5 grid grid-cols-3 gap-3">
+                        <div className="rounded-lg bg-slate-50 p-3">
+                          <p className="text-[11px] text-slate-400">
+                            Current
+                          </p>
 
-                    <div className="mt-5 grid grid-cols-3 gap-3">
-                      <div className="rounded-lg bg-slate-50 p-3">
-                        <p className="text-[11px] text-slate-400">
-                          Current
-                        </p>
+                          <p className="mt-1 text-sm font-semibold text-slate-700">
+                            {pg.candidate_proficiency || "None"}
+                          </p>
+                        </div>
 
-                        <p className="mt-1 text-sm font-semibold text-slate-700">
-                          {item.currentLevel}
-                        </p>
-                      </div>
+                        <div className="rounded-lg bg-slate-50 p-3">
+                          <p className="text-[11px] text-slate-400">
+                            Required
+                          </p>
 
-                      <div className="rounded-lg bg-slate-50 p-3">
-                        <p className="text-[11px] text-slate-400">
-                          Required
-                        </p>
+                          <p className="mt-1 text-sm font-semibold text-[#123b68]">
+                            {pg.required_proficiency || "Unknown"}
+                          </p>
+                        </div>
 
-                        <p className="mt-1 text-sm font-semibold text-[#123b68]">
-                          {item.requiredLevel}
-                        </p>
-                      </div>
+                        <div className="rounded-lg bg-slate-50 p-3">
+                          <p className="text-[11px] text-slate-400">
+                            Gap
+                          </p>
 
-                      <div className="rounded-lg bg-slate-50 p-3">
-                        <p className="text-[11px] text-slate-400">
-                          Gap
-                        </p>
-
-                        <p className="mt-1 text-sm font-semibold text-[#c2410c]">
-                          {item.gap}%
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4">
-                      <div className="mb-1 flex justify-between text-xs">
-                        <span className="text-slate-500">
-                          Current → Required
-                        </span>
-
-                        <span className="font-semibold text-[#123b68]">
-                          {item.gap}% gap
-                        </span>
-                      </div>
-
-                      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                        <div
-                          className="h-full rounded-full bg-[#123b68]"
-                          style={{
-                            width: `${100 - item.gap}%`,
-                          }}
-                        />
+                          <p className="mt-1 text-sm font-semibold text-[#c2410c]">
+                            {pg.candidate_proficiency ? "Gap" : "Missing"}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  )) || []
+                )}
               </div>
             </div>
 
@@ -413,7 +467,7 @@ export default function SkillGapPage() {
               </div>
 
               <div className="grid gap-4 lg:grid-cols-3">
-                {roleAnalysis.map((role) => (
+                {roleAnalysis.length > 0 ? roleAnalysis.map((role) => (
                   <div
                     key={role.role}
                     className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
@@ -453,7 +507,7 @@ export default function SkillGapPage() {
                       </p>
 
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {role.strong.map((skill) => (
+                        {role.strong.slice(0, 3).map((skill) => (
                           <span
                             key={skill}
                             className="rounded-md bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700"
@@ -470,7 +524,7 @@ export default function SkillGapPage() {
                       </p>
 
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {role.missing.map((skill) => (
+                        {role.missing.slice(0, 3).map((skill) => (
                           <span
                             key={skill}
                             className="rounded-md bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700"
@@ -481,7 +535,11 @@ export default function SkillGapPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="col-span-3 text-center py-8 text-slate-500">
+                    No role analysis data available. Select a target role to see analysis.
+                  </div>
+                )}
               </div>
             </div>
 
@@ -494,13 +552,14 @@ export default function SkillGapPage() {
                   </p>
 
                   <h2 className="mt-1 text-lg font-bold text-[#123b68]">
-                    Close your highest-priority skill gaps
+                    {skillGaps.length > 0 ? "Close your highest-priority skill gaps" : "Select a target role to get recommendations"}
                   </h2>
 
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                    Start with TypeScript, followed by Advanced Excel and
-                    Cloud Computing. These skills are aligned with roles
-                    that match your current profile.
+                    {skillGaps.length > 0 
+                      ? `Focus on ${skillGaps[0]?.proficiency_gaps?.[0]?.skill_id || "key skills"} to improve your match with target roles.`
+                      : "Choose a target role above to analyze your skill gaps and get personalized recommendations."
+                    }
                   </p>
                 </div>
 

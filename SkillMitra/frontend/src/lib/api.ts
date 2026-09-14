@@ -253,6 +253,8 @@ export const api = {
       `/api/v1/industry/job-roles${queryString ? `?${queryString}` : ""}`,
     );
   },
+
+  allJobRoles: () => apiFetch<JobRole[]>("/api/v1/job-roles"),
   industryDemand: (params?: {
     industry_sector_id?: string;
     district_id?: string;
@@ -947,6 +949,9 @@ export const api = {
   deleteCandidateSkill: (skillId: string) => apiFetch<{ message: string }>(`/api/v1/candidates/me/skills/${skillId}`, {
     method: "DELETE",
   }),
+
+  candidateSkillGaps: (jobRoleId?: string) => 
+    apiFetch<any[]>(`/api/v1/candidates/me/skill-gaps${jobRoleId ? `?job_role_id=${jobRoleId}` : ""}`),
 
   requestSkillVerification: (skillId: string, data: {
     evidence_reference?: string;
