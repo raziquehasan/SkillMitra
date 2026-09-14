@@ -6,18 +6,15 @@ from sqlalchemy import func, select, and_, or_
 from sqlalchemy.orm import Session, selectinload
 from app.core.database import get_db
 from app.core.auth import require_roles, require_government_user
-from app.models.identity import User
+from app.models.identity import User, Employer, CandidateProfile
 from app.models.market import Application, Placement, JobPosting, JobPostingSkill
 from app.models.career import CourseEnrollment, JobRole, CourseSkill, Course
-from app.models.identity import Employer
 from app.models.phase4 import (
     CourseOffering, DistrictTrainingPlanItem, TrainingProvider,
     CourseEquipmentRequirement, Equipment, Trainer, TrainerSkill, CandidateSkill,
 )
-from app.models.identity import CandidateProfile
 from app.models.phase8 import GovernmentOfficial
 from app.models.geography import District
-from app.models.career import Course
 from app.models.demand import DataSource, IndustryDemand, IndustrySector
 from app.models.skills import Skill
 from app.services.training_alignment_service import (
@@ -65,10 +62,17 @@ class DashboardTrainingCapacity(BaseModel):
 class DashboardCourseAlignment(BaseModel):
     course_id: str
     course_title: str
+    provider: str | None
+    provider_id: str | None
+    sector: str | None
+    sector_id: str | None
+    district_id: str | None
+    district_name: str | None
     alignment_status: str
     skills_covered: list[str]
     skills_demanded: list[str]
     gaps: list[str]
+    coverage_percentage: int
 
 
 class DashboardEmployerDemand(BaseModel):
@@ -414,57 +418,199 @@ def get_government_dashboard(
         capacity_status=district_intelligence.capacity_status,
     )
     
-    # Get course alignment data
+    # Get course alignment data with optimized queries to avoid N+1 problem
     course_alignment = []
-    # Get top courses with their alignment to industry demand
-    courses_query = select(Course).limit(10)
+    
+    from sqlalchemy.orm import selectinload
+    
+    # Step 1: Get courses with basic relationships loaded
+    courses_query = select(Course).options(
+        selectinload(Course.district),
+        selectinload(Course.course_skills).selectinload(CourseSkill.skill),
+        selectinload(Course.industry_sector)
+    )
+    
     if district_id:
-        courses_query = courses_query.where(Course.district_id == district_id)
+        # Filter courses that either have the district_id directly OR have offerings in that district
+        offering_course_ids = db.scalars(
+            select(CourseOffering.course_id).where(CourseOffering.district_id == district_id)
+        ).all()
+        
+        courses_query = courses_query.where(
+            or_(
+                Course.district_id == district_id,
+                Course.id.in_(offering_course_ids)
+            )
+        )
+    
     if sector_id:
         courses_query = courses_query.where(Course.industry_sector_id == sector_id)
     
-    courses = db.scalars(courses_query).all()
+    courses_query = courses_query.limit(50)
+    courses = db.scalars(courses_query).unique().all()
     
-    for course in courses:
-        # Get skills taught by this course
-        course_skills = db.scalars(
-            select(Skill.name).join(CourseSkill).where(CourseSkill.course_id == course.id)
-        ).all()
+    if not courses:
+        # No courses found, return empty list
+        course_alignment = []
+    else:
+        # Step 2: Batch load all related data to avoid N+1 queries
+        course_ids = [course.id for course in courses]
         
-        # Get demanded skills for this course's sector
-        demanded_skills_query = select(Skill.name).join(IndustryDemand).where(
-            IndustryDemand.industry_sector_id == course.industry_sector_id
-        )
+        # Get all course offerings for these courses in one query
+        offerings_query = select(CourseOffering).where(CourseOffering.course_id.in_(course_ids))
         if district_id:
-            demanded_skills_query = demanded_skills_query.where(IndustryDemand.district_id == district_id)
+            offerings_query = offerings_query.where(CourseOffering.district_id == district_id)
         
-        demanded_skills = db.scalars(demanded_skills_query).all()
+        all_offerings = db.scalars(offerings_query).all()
         
-        # Calculate alignment
-        skills_covered = set(course_skills)
-        skills_demanded = set(demanded_skills)
-        gaps = skills_demanded - skills_covered
+        # Build mapping: course_id -> list of offerings
+        course_offerings_map = {}
+        for offering in all_offerings:
+            if offering.course_id not in course_offerings_map:
+                course_offerings_map[offering.course_id] = []
+            course_offerings_map[offering.course_id].append(offering)
         
-        # Determine alignment status
-        if not skills_demanded:
-            alignment_status = "NO_DEMAND"
-        elif gaps:
-            alignment_status = "PARTIAL" if len(skills_covered) > 0 else "NOT_ALIGNED"
-        else:
-            alignment_status = "ALIGNED"
+        # Get all unique provider IDs from offerings
+        provider_ids = list(set(offering.provider_id for offering in all_offerings if offering.provider_id))
         
-        course_alignment.append({
-            "course_id": str(course.id),
-            "course_title": course.title,
-            "alignment_status": alignment_status,
-            "skills_covered": list(skills_covered),
-            "skills_demanded": list(skills_demanded),
-            "gaps": list(gaps)
-        })
+        # Batch load all providers
+        providers_map = {}
+        if provider_ids:
+            providers = db.scalars(select(TrainingProvider).where(TrainingProvider.id.in_(provider_ids))).all()
+            providers_map = {provider.id: provider for provider in providers}
+        
+        # Get all unique district IDs from offerings
+        district_ids_from_offerings = list(set(offering.district_id for offering in all_offerings if offering.district_id))
+        
+        # Batch load all districts
+        districts_map = {}
+        if district_ids_from_offerings:
+            districts = db.scalars(select(District).where(District.id.in_(district_ids_from_offerings))).all()
+            districts_map = {district.id: district for district in districts}
+        
+        # Also load the filter district if specified
+        if district_id and district_id not in districts_map:
+            filter_district = db.get(District, district_id)
+            if filter_district:
+                districts_map[district_id] = filter_district
+        
+        # Get all unique sector IDs from courses
+        sector_ids = list(set(course.industry_sector_id for course in courses if course.industry_sector_id))
+        
+        # Batch load demanded skills for all sectors
+        demanded_skills_map = {}
+        if sector_ids:
+            demanded_skills_query = select(
+                IndustryDemand.industry_sector_id,
+                Skill.name
+            ).join(
+                Skill, IndustryDemand.skill_id == Skill.id
+            ).where(
+                IndustryDemand.industry_sector_id.in_(sector_ids)
+            )
+            
+            if district_id:
+                demanded_skills_query = demanded_skills_query.where(IndustryDemand.district_id == district_id)
+            
+            demanded_skills_results = db.execute(demanded_skills_query).all()
+            
+            for sector_id_key, skill_name in demanded_skills_results:
+                if sector_id_key not in demanded_skills_map:
+                    demanded_skills_map[sector_id_key] = []
+                demanded_skills_map[sector_id_key].append(skill_name)
+        
+        # Step 3: Build response with already loaded data
+        for course in courses:
+            # Get course skills from loaded relationship
+            course_skills = [cs.skill.name for cs in course.course_skills if cs.skill]
+            
+            # Get demanded skills from pre-loaded map
+            demanded_skills = []
+            if course.industry_sector_id and course.industry_sector_id in demanded_skills_map:
+                demanded_skills = demanded_skills_map[course.industry_sector_id]
+            
+            # Get provider info from pre-loaded offerings map
+            provider_name = None
+            provider_id = None
+            offering_district_id = None
+            
+            course_offerings = course_offerings_map.get(course.id, [])
+            if course_offerings:
+                # Use the first available offering
+                offering = course_offerings[0]
+                offering_district_id = offering.district_id
+                
+                if offering.provider_id and offering.provider_id in providers_map:
+                    provider = providers_map[offering.provider_id]
+                    provider_name = provider.name
+                    provider_id = str(provider.id)
+            
+            # Get sector name from loaded relationship
+            sector_name = None
+            actual_sector_id = None
+            if course.industry_sector:
+                sector_name = course.industry_sector.name
+                actual_sector_id = str(course.industry_sector.id)
+            
+            # Get district name - prioritize course.district, then offering district
+            district_name = None
+            actual_district_id = None
+            
+            if course.district:
+                district_name = course.district.name
+                actual_district_id = str(course.district.id)
+            elif offering_district_id and offering_district_id in districts_map:
+                district = districts_map[offering_district_id]
+                district_name = district.name
+                actual_district_id = str(district.id)
+            
+            # If still no district but we have a district_id filter, use that district
+            if not actual_district_id and district_id and district_id in districts_map:
+                district = districts_map[district_id]
+                district_name = district.name
+                actual_district_id = str(district.id)
+            
+            # Calculate alignment
+            skills_covered = set(course_skills)
+            skills_demanded = set(demanded_skills)
+            gaps = skills_demanded - skills_covered
+            
+            # Determine alignment status
+            if not skills_demanded:
+                alignment_status = "NO_DEMAND"
+            elif gaps:
+                alignment_status = "PARTIAL" if len(skills_covered) > 0 else "NOT_ALIGNED"
+            else:
+                alignment_status = "ALIGNED"
+            
+            # Calculate coverage percentage
+            coverage_percentage = 0
+            if skills_demanded:
+                matched_skills = skills_covered & skills_demanded
+                coverage_percentage = round((len(matched_skills) / len(skills_demanded)) * 100)
+                coverage_percentage = min(coverage_percentage, 100)
+            
+            course_alignment.append({
+                "course_id": str(course.id),
+                "course_title": course.title,
+                "provider": provider_name or "No Provider Assigned",
+                "provider_id": provider_id,
+                "sector": sector_name or "No Sector Assigned",
+                "sector_id": actual_sector_id,
+                "district_id": actual_district_id,
+                "district_name": district_name or "No District Assigned",
+                "alignment_status": alignment_status,
+                "skills_covered": list(skills_covered),
+                "skills_demanded": list(skills_demanded),
+                "gaps": list(gaps),
+                "coverage_percentage": coverage_percentage
+            })
     
-    # Get employer demand data
+    # Get employer demand data - TEMPORARILY DISABLED FOR DEBUGGING
     employer_demand = []
-    # Use the same logic as employer insights but simplified
+    # TODO: Re-enable after fixing the 500 error
+    # The complex join query below may be causing the Internal Server Error
+    """
     from app.models.market import JobPosting
     from app.models.career import JobRole
     from app.models.identity import Employer
@@ -520,6 +666,7 @@ def get_government_dashboard(
             "required_skills": list(data["required_skills"]),
             "posting_count": data["posting_count"]
         })
+    """
     
     return {
         "kpis": kpis,
@@ -529,7 +676,6 @@ def get_government_dashboard(
         "course_alignment": course_alignment,
         "employer_demand": employer_demand,
         "district_training_plan": None,  # Will be implemented separately
-        "filters": filters.get_filter_metadata(),
         "mode": "live"
     }
 
@@ -1369,3 +1515,98 @@ def get_demand_evidence(
         )
         for record in demand_records
     ]
+
+
+class UserManagementOut(BaseModel):
+    id: str
+    email: str
+    full_name: str
+    is_active: bool
+    roles: list[str]
+    created_at: str | None
+    phone: str | None
+    organization: str | None
+    district_id: str | None
+    district_name: str | None
+    last_active: str | None
+
+
+@router.get("/users", response_model=list[UserManagementOut])
+def get_government_users(
+    role: str | None = None,
+    current_user: User = Depends(require_roles("government_admin")),
+    db: Session = Depends(get_db),
+):
+    """
+    Get all platform users for government admin user management.
+    Filter by role if provided.
+    """
+    from sqlalchemy.orm import selectinload
+    
+    # Build base query with role filter
+    query = select(User).options(selectinload(User.user_roles).selectinload("role"))
+    
+    if role:
+        # Filter by specific role using subquery
+        from app.models.identity import UserRole, Role
+        user_ids_with_role = db.scalars(
+            select(UserRole.user_id).join(Role).where(Role.name == role)
+        ).all()
+        query = query.where(User.id.in_(user_ids_with_role))
+    
+    users = db.scalars(query).all()
+    
+    result = []
+    for user in users:
+        # Get organization and district info based on roles
+        organization = None
+        district_id = None
+        district_name = None
+        
+        # For employers, get company name and district
+        if "employer" in [ur.role.name for ur in user.user_roles]:
+            employer = db.scalar(select(Employer).where(Employer.user_id == user.id))
+            if employer:
+                organization = employer.company_name
+                district_id = str(employer.district_id) if employer.district_id else None
+                if employer.district_id:
+                    district = db.get(District, employer.district_id)
+                    district_name = district.name if district else None
+        
+        # For government officials, get department and district
+        elif "government_official" in [ur.role.name for ur in user.user_roles] or "government_admin" in [ur.role.name for ur in user.user_roles]:
+            gov_official = db.scalar(select(GovernmentOfficial).where(GovernmentOfficial.user_id == user.id))
+            if gov_official:
+                organization = gov_official.department
+                district_id = str(gov_official.district_id) if gov_official.district_id else None
+                if gov_official.district_id:
+                    district = db.get(District, gov_official.district_id)
+                    district_name = district.name if district else None
+        
+        # For training providers, get institute name and district
+        elif "training_provider" in [ur.role.name for ur in user.user_roles]:
+            provider = db.scalar(select(TrainingProvider).where(TrainingProvider.user_id == user.id))
+            if provider:
+                organization = provider.institute_name
+                district_id = str(provider.district_id) if provider.district_id else None
+                if provider.district_id:
+                    district = db.get(District, provider.district_id)
+                    district_name = district.name if district else None
+        
+        result.append(
+            UserManagementOut(
+                id=str(user.id),
+                email=user.email,
+                full_name=user.full_name,
+                is_active=user.is_active,
+                roles=[ur.role.name for ur in user.user_roles],
+                created_at=user.created_at.isoformat() if user.created_at else None,
+                phone=user.phone,
+                organization=organization,
+                district_id=district_id,
+                district_name=district_name,
+                last_active=user.last_login_at.isoformat() if user.last_login_at else None
+            )
+        )
+    
+    return result
