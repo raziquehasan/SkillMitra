@@ -45,7 +45,9 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
 
     # CORS Configuration
-    CORS_ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000,https://skill-mitra-henna.vercel.app,https://skill-mitra-henna-git-main-shihab-rahman2002.vercel.app"  # Updated for Render deployment
+    # Note: On Render, set CORS_ALLOWED_ORIGINS environment variable to include your frontend URL
+    # Example: CORS_ALLOWED_ORIGINS=https://your-frontend.vercel.app,http://localhost:3000
+    CORS_ALLOWED_ORIGINS: str = "*"  # Allow all origins for development - restrict in production
 
     class Config:
         env_file = ".env"
