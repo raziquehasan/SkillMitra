@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
 
     # CORS Configuration
-    CORS_ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000,https://skill-mitra-henna.vercel.app"
+    CORS_ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000,https://skill-mitra-henna.vercel.app,https://skill-mitra-henna-git-main-shihab-rahman2002.vercel.app"
 
     class Config:
         env_file = ".env"
