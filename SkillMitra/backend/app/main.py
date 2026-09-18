@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import auth, candidates, skills, courses, jobs, employers, applications, placements, career_guidance, demand, government, industry, training_providers, phase4, phase5, phase6, sih, geography, job_roles, ai_chatbot, employer_intelligence, career_planning
+from app.api.routes import auth, candidates, skills, courses, jobs, employers, applications, placements, career_guidance, demand, government, industry, training_providers, phase4, phase5, phase6, sih, geography, job_roles, ai_chatbot, employer_intelligence, career_planning, resume, training_recommendations, job_recommendations
 from app.core.config import settings
 
 app = FastAPI(
@@ -46,4 +46,7 @@ app.include_router(geography.router)
 app.include_router(job_roles.router)
 app.include_router(employer_intelligence.router)
 app.include_router(career_planning.router)
+app.include_router(resume.router)
+app.include_router(training_recommendations.router)
+app.include_router(job_recommendations.router)
 app.include_router(ai_chatbot.router, prefix="/api/v1/ai", tags=["AI Chatbot"])
