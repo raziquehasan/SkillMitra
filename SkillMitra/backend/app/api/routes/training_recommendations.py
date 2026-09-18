@@ -14,7 +14,7 @@ from app.models.career import Course, CourseSkill, JobRole, JobRoleSkill
 from app.models.skills import Skill
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/api/v1/candidates/training-recommendations", tags=["Training Recommendations"])
+router = APIRouter(prefix="/api/v1/candidates/me/training-recommendations", tags=["Training Recommendations"])
 
 
 class RecommendedCourse(BaseModel):

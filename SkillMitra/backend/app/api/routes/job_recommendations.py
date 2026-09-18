@@ -15,7 +15,7 @@ from app.models.career import JobRole
 from app.models.skills import Skill
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/api/v1/candidates/job-recommendations", tags=["Job Recommendations"])
+router = APIRouter(prefix="/api/v1/candidates/me/job-recommendations", tags=["Job Recommendations"])
 
 
 class RecommendedJob(BaseModel):
