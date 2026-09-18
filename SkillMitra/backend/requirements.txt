@@ -24,3 +24,10 @@ psycopg[binary]>=3.1
 
 # HTTP Client — AI Chatbot Service
 httpx
+
+# File upload support
+python-multipart
+
+# Text extraction for resume processing
+PyPDF2
+python-docx

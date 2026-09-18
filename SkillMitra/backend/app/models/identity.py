@@ -1,6 +1,6 @@
 """
 Identity models: users, candidate_profiles,
-candidate_education_history, candidate_career_interests.
+candidate_education_history, candidate_career_interests, candidate_resumes.
 
 Phase 2A scope.
 Phase 1 source: docs/database/ENTITY_DICTIONARY.md §1
@@ -10,10 +10,10 @@ NOTE: roles / user_roles are intentionally EXCLUDED from Phase 2A.
 """
 
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from sqlalchemy import (
-    Boolean, Date, DateTime, Float, ForeignKey,
+    Boolean, CheckConstraint, Date, DateTime, Float, ForeignKey,
     Integer, String, Text, Index,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -98,6 +98,9 @@ class CandidateProfile(TimestampMixin, Base):
     career_interests: Mapped[list["CandidateCareerInterest"]] = relationship(
         "CandidateCareerInterest", back_populates="candidate", cascade="all, delete-orphan"
     )
+    resumes: Mapped[list["CandidateResume"]] = relationship(
+        "CandidateResume", back_populates="candidate", cascade="all, delete-orphan"
+    )
     enrollments: Mapped[list["CourseEnrollment"]] = relationship(
         "CourseEnrollment", back_populates="candidate"
     )
@@ -180,6 +183,50 @@ class CandidateCareerInterest(Base):
     __table_args__ = (
         Index("ix_candidate_career_interests_candidate_id", "candidate_id"),
         Index("ix_candidate_career_interests_job_role_id", "target_job_role_id"),
+    )
+
+
+class CandidateResume(TimestampMixin, Base):
+    """
+    One candidate → many resume uploads.
+    Supports resume-based skill extraction and profile building.
+    """
+    __tablename__ = "candidate_resumes"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    candidate_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("candidate_profiles.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    file_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    file_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    file_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    processing_status: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="pending"
+    )
+    extracted_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    processing_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    uploaded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Relationships
+    candidate: Mapped["CandidateProfile"] = relationship(
+        "CandidateProfile", back_populates="resumes"
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "processing_status IN ('pending', 'processing', 'completed', 'failed')",
+            name="ck_resume_processing_status"
+        ),
+        CheckConstraint("file_size >= 0", name="ck_resume_file_size_positive"),
+        Index("ix_candidate_resumes_candidate_id", "candidate_id"),
     )
 
 class Employer(TimestampMixin, Base):

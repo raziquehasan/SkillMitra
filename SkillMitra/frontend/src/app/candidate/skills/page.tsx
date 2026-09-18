@@ -293,6 +293,12 @@ export default function MySkillsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  
+  // Resume upload state
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [resumes, setResumes] = useState<any[]>([]);
+  const [resumeError, setResumeError] = useState<string | null>(null);
 
   // Load data
   useEffect(() => {
@@ -309,6 +315,9 @@ export default function MySkillsPage() {
         setProficiencyLevels(proficiencyRes);
         setCandidateSkills(candidateSkillsRes);
         setError(null);
+        
+        // Load resume history
+        await loadResumes();
       } catch (err) {
         console.error("Failed to load skills data:", err);
         setError("Failed to load skills. Please try again.");
@@ -356,6 +365,95 @@ export default function MySkillsPage() {
     } catch (err) {
       console.error("Failed to request verification:", err);
       alert("Failed to request verification. Please try again.");
+    }
+  };
+
+  // Resume upload handlers
+  const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'];
+      if (!allowedTypes.includes(file.type)) {
+        setResumeError('Only PDF and DOCX files are allowed');
+        setResumeFile(null);
+        return;
+      }
+      
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setResumeError('File size must be less than 5MB');
+        setResumeFile(null);
+        return;
+      }
+      
+      setResumeFile(file);
+      setResumeError('');
+    }
+  };
+
+  const handleResumeUpload = async () => {
+    if (!resumeFile) return;
+
+    try {
+      setResumeUploading(true);
+      setResumeError('');
+      const formData = new FormData();
+      formData.append('file', resumeFile);
+      
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('/api/v1/candidates/resume/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload resume');
+      }
+      
+      const data = await response.json();
+      
+      // Process the resume
+      const processResponse = await fetch(`/api/v1/candidates/resume/${data.id}/process`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (processResponse.ok) {
+        // Redirect to review page
+        localStorage.setItem('pending_resume_id', data.id);
+        window.location.href = '/candidate/resume-review';
+      } else {
+        throw new Error('Failed to process resume');
+      }
+      
+    } catch (err) {
+      setResumeError(err instanceof Error ? err.message : 'Failed to upload resume');
+    } finally {
+      setResumeUploading(false);
+    }
+  };
+
+  const loadResumes = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('/api/v1/candidates/resume/list', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setResumes(data);
+      }
+    } catch (err) {
+      console.error("Failed to load resumes:", err);
     }
   };
 
@@ -448,6 +546,71 @@ export default function MySkillsPage() {
                 View your current skills, proficiency levels and identify
                 skills that can improve your career opportunities.
               </p>
+            </div>
+
+            {/* Resume Upload Section */}
+            <div className="mb-6 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-white p-5 shadow-sm">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#123b68] text-white">
+                      📄
+                    </div>
+                    <h3 className="text-base font-bold text-[#123b68]">
+                      Build Your Skills Profile
+                    </h3>
+                  </div>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    Upload your latest resume and we'll extract relevant skills for you automatically.
+                  </p>
+                  
+                  {resumeError && (
+                    <div className="mt-2 rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">
+                      {resumeError}
+                    </div>
+                  )}
+                  
+                  {resumes.length > 0 && (
+                    <div className="mt-3 rounded-md bg-white border border-slate-200 px-3 py-2">
+                      <p className="text-xs font-medium text-slate-700">
+                        Current Resume: {resumes[0].file_name}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Status: {resumes[0].processing_status} • Uploaded: {new Date(resumes[0].uploaded_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2 md:w-auto">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept=".pdf,.docx,.doc"
+                      onChange={handleResumeChange}
+                      disabled={resumeUploading}
+                      className="flex-1 rounded border border-slate-300 bg-white px-3 py-2 text-sm file:mr-4 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium disabled:bg-slate-100 disabled:cursor-not-allowed"
+                    />
+                    
+                    {resumeFile && (
+                      <button
+                        onClick={handleResumeUpload}
+                        disabled={resumeUploading}
+                        className="shrink-0 rounded bg-[#123b68] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f3155] disabled:bg-slate-300 disabled:cursor-not-allowed"
+                      >
+                        {resumeUploading ? 'Uploading...' : 'Upload'}
+                      </button>
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={() => setShowAddModal(true)}
+                    className="text-xs text-[#123b63] hover:underline"
+                  >
+                    Or manage skills manually →
+                  </button>
+                </div>
+              </div>
             </div>
 
             {loading ? (
