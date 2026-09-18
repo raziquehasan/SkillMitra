@@ -166,10 +166,13 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${getApiBase()}${path}`;
   console.log(`API Request: ${url}`, init);
   
+  // Don't set Content-Type for FormData - let browser set it with boundary
+  const isFormData = init?.body instanceof FormData;
+  
   const response = await fetch(url, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...authHeaders(),
       ...(init?.headers ?? {}),
     },
@@ -1229,4 +1232,59 @@ export const api = {
   }>>("/api/v1/career-planning/districts"),
 
   careerPlanningSectors: () => apiFetch<string[]>("/api/v1/career-planning/sectors"),
+
+  // Resume endpoints
+  resumeUpload: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    return apiFetch<{ id: string; filename: string; upload_date: string }>("/api/v1/candidates/resume/upload", {
+      method: "POST",
+      headers: {
+        // Don't set Content-Type for FormData - let browser set it with boundary
+      },
+      body: formData as any, // Type assertion needed for FormData
+    });
+  },
+
+  resumeList: () => apiFetch<Array<{
+    id: string;
+    filename: string;
+    upload_date: string;
+    status: string;
+  }>>("/api/v1/candidates/resume/list"),
+
+  resumeProcess: (resumeId: string) => 
+    apiFetch<{ message: string }>(`/api/v1/candidates/resume/${resumeId}/process`, {
+      method: "POST",
+    }),
+
+  resumeReview: (resumeId: string) => 
+    apiFetch<{
+      id: string;
+      filename: string;
+      upload_date: string;
+      extracted_skills: Array<{
+        skill_id: string;
+        skill_name: string;
+        confidence: number;
+      }>;
+      extracted_education: any[];
+      extracted_experience: any[];
+    }>(`/api/v1/candidates/resume/${resumeId}/review`),
+
+  resumeConfirmSkills: (resumeId: string, data: {
+    resume_id: string;
+    confirmed_skills: string[];
+    rejected_skills: string[];
+    additional_skills: Array<{
+      skill_name: string;
+      confidence: number;
+      category: string;
+    }>;
+  }) => 
+    apiFetch<{ message: string }>(`/api/v1/candidates/resume/${resumeId}/confirm-skills`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };

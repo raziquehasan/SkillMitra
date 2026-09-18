@@ -8,17 +8,18 @@ import { api } from '@/lib/api';
 type ExtractedSkill = {
   skill_id: string;
   skill_name: string;
-  confidence: string;
-  category: string;
-  source_context: string | null;
+  confidence: number;
+  category?: string;
+  source_context?: string | null;
 };
 
 type ResumeReviewData = {
-  resume_id: string;
+  id: string;
+  filename: string;
+  upload_date: string;
   extracted_skills: ExtractedSkill[];
   extracted_education: any[];
   extracted_experience: any[];
-  candidate_id: string;
 };
 
 export default function ResumeReviewPage() {
@@ -46,19 +47,8 @@ export default function ResumeReviewPage() {
   const loadResumeReview = async (resumeId: string) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('access_token');
       
-      const response = await fetch(`/api/v1/candidates/resume/${resumeId}/review`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to load resume data');
-      }
-
-      const data = await response.json();
+      const data = await api.resumeReview(resumeId);
       setReviewData(data);
       
       // Select all skills by default
@@ -98,7 +88,6 @@ export default function ResumeReviewPage() {
 
     try {
       setProcessing(true);
-      const token = localStorage.getItem('access_token');
       
       const confirmedSkillIds = Array.from(selectedSkills);
       const rejectedSkillIds = reviewData.extracted_skills
@@ -107,29 +96,16 @@ export default function ResumeReviewPage() {
       
       const additionalSkills = manualSkills.map(skillName => ({
         skill_name: skillName,
-        confidence: 'medium',
+        confidence: 0.5,
         category: 'technical'
       }));
 
-      const response = await fetch(`/api/v1/candidates/resume/${reviewData.resume_id}/confirm-skills`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          resume_id: reviewData.resume_id,
-          confirmed_skills: confirmedSkillIds,
-          rejected_skills: rejectedSkillIds,
-          additional_skills: additionalSkills
-        }),
+      await api.resumeConfirmSkills(reviewData.id, {
+        resume_id: reviewData.id,
+        confirmed_skills: confirmedSkillIds,
+        rejected_skills: rejectedSkillIds,
+        additional_skills: additionalSkills
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to confirm skills');
-      }
-
-      const result = await response.json();
       
       // Clear pending resume data
       localStorage.removeItem('pending_resume_id');
@@ -199,7 +175,7 @@ export default function ResumeReviewPage() {
     return null;
   }
 
-  const getCategoryColor = (category: string) => {
+  const getCategoryColor = (category?: string) => {
     switch (category) {
       case 'technical': return 'bg-blue-100 text-blue-800';
       case 'soft': return 'bg-green-100 text-green-800';
@@ -208,13 +184,16 @@ export default function ResumeReviewPage() {
     }
   };
 
-  const getConfidenceBadge = (confidence: string) => {
-    switch (confidence) {
-      case 'high': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const getConfidenceBadge = (confidence: number) => {
+    if (confidence >= 0.8) return 'bg-green-100 text-green-800';
+    if (confidence >= 0.5) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
+  };
+
+  const getConfidenceLabel = (confidence: number) => {
+    if (confidence >= 0.8) return 'high';
+    if (confidence >= 0.5) return 'medium';
+    return 'low';
   };
 
   return (
@@ -289,7 +268,7 @@ export default function ResumeReviewPage() {
                         {skill.category}
                       </span>
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getConfidenceBadge(skill.confidence)}`}>
-                        {skill.confidence} confidence
+                        {getConfidenceLabel(skill.confidence)} confidence
                       </span>
                     </div>
                     {skill.source_context && (
