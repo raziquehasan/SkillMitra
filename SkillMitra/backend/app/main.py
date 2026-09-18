@@ -20,13 +20,21 @@ else:
     cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
     allow_credentials = True
 
+# Add CORS middleware with explicit configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600,
 )
+
+# Add OPTIONS handler for preflight requests
+@app.options("/{path:path}")
+async def options_handler(path: str):
+    return {"status": "ok"}
 
 @app.get("/health")
 def health_check():
