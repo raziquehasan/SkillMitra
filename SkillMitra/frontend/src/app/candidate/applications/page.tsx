@@ -26,8 +26,10 @@ export default function MyApplicationsPage() {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState("All Applications");
   const [applications, setApplications] = useState<any[]>([]);
+  const [courseApplications, setCourseApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"jobs" | "courses">("jobs");
 
   useEffect(() => {
     // Redirect to login if not authenticated
@@ -42,8 +44,12 @@ export default function MyApplicationsPage() {
       try {
         setLoading(true);
         setError(null);
-        const response = await api.applications();
-        setApplications(response);
+        const [jobAppsResponse, courseAppsResponse] = await Promise.all([
+          api.applications().catch(() => []),
+          api.courseApplications().catch(() => [])
+        ]);
+        setApplications(jobAppsResponse);
+        setCourseApplications(courseAppsResponse);
       } catch (err) {
         console.error("Failed to load applications:", err);
         const errorMessage = err instanceof Error ? err.message : 'Unable to load applications. Please try again.';
@@ -173,34 +179,82 @@ export default function MyApplicationsPage() {
               </p>
             </div>
 
-            {/* Summary Cards */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
-              <SummaryCard
-                title="Total Applications"
-                value={String(totalApplications).padStart(2, "0")}
-                description="Jobs you have applied for"
-              />
-
-              <SummaryCard
-                title="Under Review"
-                value={String(underReview).padStart(2, "0")}
-                description="Applications being reviewed"
-              />
-
-              <SummaryCard
-                title="Shortlisted"
-                value={String(shortlisted).padStart(2, "0")}
-                description="Applications shortlisted"
-              />
-
-              <SummaryCard
-                title="Interviews"
-                value={String(interviews).padStart(2, "0")}
-                description="Interview opportunities"
-              />
-
+            {/* Tabs */}
+            <div className="mb-6">
+              <div className="flex gap-2 border-b border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("jobs")}
+                  className={`px-4 py-3 text-sm font-semibold transition ${
+                    activeTab === "jobs"
+                      ? "border-b-2 border-[#123b68] text-[#123b68]"
+                      : "text-slate-600 hover:text-[#123b68]"
+                  }`}
+                >
+                  Job Applications ({applications.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("courses")}
+                  className={`px-4 py-3 text-sm font-semibold transition ${
+                    activeTab === "courses"
+                      ? "border-b-2 border-[#123b68] text-[#123b68]"
+                      : "text-slate-600 hover:text-[#123b68]"
+                  }`}
+                >
+                  Course Applications ({courseApplications.length})
+                </button>
+              </div>
             </div>
+
+            {/* Summary Cards */}
+            {activeTab === "jobs" ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <SummaryCard
+                  title="Total Applications"
+                  value={String(totalApplications).padStart(2, "0")}
+                  description="Jobs you have applied for"
+                />
+                <SummaryCard
+                  title="Under Review"
+                  value={String(underReview).padStart(2, "0")}
+                  description="Applications being reviewed"
+                />
+                <SummaryCard
+                  title="Shortlisted"
+                  value={String(shortlisted).padStart(2, "0")}
+                  description="Applications shortlisted"
+                />
+                <SummaryCard
+                  title="Interviews"
+                  value={String(interviews).padStart(2, "0")}
+                  description="Interview opportunities"
+                />
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <SummaryCard
+                  title="Course Applications"
+                  value={String(courseApplications.length).padStart(2, "0")}
+                  description="Courses applied for"
+                />
+                <SummaryCard
+                  title="Enrolled"
+                  value={String(courseApplications.filter(c => c.status === 'enrolled').length).padStart(2, "0")}
+                  description="Currently enrolled"
+                />
+                <SummaryCard
+                  title="Completed"
+                  value={String(courseApplications.filter(c => c.status === 'completed').length).padStart(2, "0")}
+                  description="Completed courses"
+                />
+                <SummaryCard
+                  title="Active Learning"
+                  value={String(courseApplications.filter(c => c.status === 'enrolled').length).padStart(2, "0")}
+                  description="Courses in progress"
+                />
+              </div>
+            )}
 
             {/* Application Status Overview */}
             <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
