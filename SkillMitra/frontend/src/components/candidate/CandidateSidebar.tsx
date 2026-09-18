@@ -49,6 +49,11 @@ const navigation = [
     icon: "▣",
   },
   {
+    label: "Career Recommendation",
+    href: "/candidate/career-recommendation",
+    icon: "✦",
+  },
+  {
     label: "Profile",
     href: "/candidate/profile",
     icon: "●",

@@ -8,7 +8,7 @@ services:
     build:
       context: ./SkillMitra/backend
       dockerfile: Dockerfile
-    container_name: skillmitra-backend
+    container_name: skillmitra-backend-v2
     ports:
       - "8080:8080"
     volumes:
@@ -25,7 +25,7 @@ services:
     build:
       context: ./SkillMitra/frontend
       dockerfile: Dockerfile
-    container_name: skillmitra-frontend
+    container_name: skillmitra-frontend-v2
     ports:
       - "3000:3000"
     volumes:

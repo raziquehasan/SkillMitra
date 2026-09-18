@@ -2,19 +2,29 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CandidateSidebar from "@/components/candidate/CandidateSidebar";
+import { api } from "@/lib/api";
 
 function SettingToggle({
   label,
   description,
   defaultChecked = false,
+  disabled = false,
 }: {
   label: string;
   description: string;
   defaultChecked?: boolean;
+  disabled?: boolean;
 }) {
   const [enabled, setEnabled] = useState(defaultChecked);
+
+  const handleToggle = () => {
+    if (disabled) return;
+    setEnabled(!enabled);
+    // TODO: Persist to backend when API is available
+    console.log(`Setting ${label} to ${!enabled}`);
+  };
 
   return (
     <div className="flex items-center justify-between gap-4 border-b border-slate-100 py-4 last:border-b-0">
@@ -27,10 +37,11 @@ function SettingToggle({
 
       <button
         type="button"
-        onClick={() => setEnabled(!enabled)}
+        onClick={handleToggle}
+        disabled={disabled}
         className={`relative h-6 w-11 shrink-0 rounded-full transition ${
           enabled ? "bg-[#123b68]" : "bg-slate-300"
-        }`}
+        } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
         aria-label={`Toggle ${label}`}
       >
         <span
@@ -67,6 +78,24 @@ function PreferenceRow({
 }
 
 export default function CandidateSettingsPage() {
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const profileData = await api.candidateProfile();
+        setProfile(profileData);
+      } catch (err) {
+        console.error("Failed to load profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, []);
+
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
       {/* Government Header */}
@@ -172,30 +201,39 @@ export default function CandidateSettingsPage() {
                       label="Job Recommendations"
                       description="Receive notifications about jobs that match your skills and profile."
                       defaultChecked={true}
+                      disabled={true}
                     />
 
                     <SettingToggle
                       label="Application Updates"
                       description="Get updates about the status of your job applications."
                       defaultChecked={true}
+                      disabled={true}
                     />
 
                     <SettingToggle
                       label="Skill Gap Alerts"
                       description="Receive updates when SkillMitra identifies important skill gaps."
                       defaultChecked={true}
+                      disabled={true}
                     />
 
                     <SettingToggle
                       label="Training Recommendations"
                       description="Get notifications about courses related to your career goals."
                       defaultChecked={true}
+                      disabled={true}
                     />
 
                     <SettingToggle
                       label="Career Intelligence Updates"
                       description="Receive relevant career and workforce intelligence updates."
+                      disabled={true}
                     />
+                  </div>
+
+                  <div className="mt-4 rounded-lg bg-amber-50 p-3 text-xs text-amber-700">
+                    <p className="font-semibold">Note: Notification preferences are currently managed at the system level. Individual preference customization will be available in a future update.</p>
                   </div>
                 </div>
 
@@ -215,22 +253,22 @@ export default function CandidateSettingsPage() {
                   <div className="mt-4">
                     <PreferenceRow
                       label="Preferred Role"
-                      value="Software Developer"
-                    />
-
-                    <PreferenceRow
-                      label="Preferred Sector"
-                      value="IT & Technology"
+                      value={profile?.career_interests?.length > 0 ? `${profile.career_interests.length} interests set` : "Not specified"}
                     />
 
                     <PreferenceRow
                       label="Preferred Location"
-                      value="Pune / Mumbai"
+                      value={profile?.district_id ? "Selected" : "Not specified"}
                     />
 
                     <PreferenceRow
-                      label="Employment Type"
-                      value="Full Time"
+                      label="Education Level"
+                      value={profile?.education_level || "Not specified"}
+                    />
+
+                    <PreferenceRow
+                      label="Current Status"
+                      value={profile?.current_status || "Not specified"}
                     />
                   </div>
 
@@ -260,19 +298,26 @@ export default function CandidateSettingsPage() {
                       label="Profile Visibility"
                       description="Allow your profile to be considered for suitable job opportunities."
                       defaultChecked={true}
+                      disabled={true}
                     />
 
                     <SettingToggle
                       label="Job Matching"
                       description="Allow SkillMitra to use your skills for job matching and recommendations."
                       defaultChecked={true}
+                      disabled={true}
                     />
 
                     <SettingToggle
                       label="Training Matching"
                       description="Allow your skill gaps to be used for relevant training recommendations."
                       defaultChecked={true}
+                      disabled={true}
                     />
+                  </div>
+
+                  <div className="mt-4 rounded-lg bg-amber-50 p-3 text-xs text-amber-700">
+                    <p className="font-semibold">Note: Privacy settings are currently managed at the system level. Individual privacy customization will be available in a future update.</p>
                   </div>
                 </div>
 
@@ -355,12 +400,15 @@ export default function CandidateSettingsPage() {
                       </p>
 
                       <p className="mt-1 text-sm font-semibold text-[#123b68]">
-                        82%
+                        Based on your profile
                       </p>
 
-                      <div className="mt-2 h-2 rounded-full bg-slate-100">
-                        <div className="h-full w-[82%] rounded-full bg-[#123b68]" />
-                      </div>
+                      <Link
+                        href="/candidate/profile"
+                        className="mt-2 inline-block text-xs font-semibold text-[#123b68] hover:underline"
+                      >
+                        View Profile →
+                      </Link>
                     </div>
                   </div>
                 </div>

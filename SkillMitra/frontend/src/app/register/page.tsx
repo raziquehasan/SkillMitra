@@ -34,6 +34,10 @@ export default function RegisterPage() {
   const [districtId, setDistrictId] = useState('');
   const [educationLevel, setEducationLevel] = useState('');
   const [streamSpecialization, setStreamSpecialization] = useState('');
+  
+  // Resume upload state
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [skipResumeUpload, setSkipResumeUpload] = useState(false);
 
   // Employer-specific fields
   const [companyName, setCompanyName] = useState('');
@@ -60,6 +64,40 @@ export default function RegisterPage() {
     setSelectedRole(role);
     setError('');
     setSuccess('');
+  };
+
+  const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'];
+      if (!allowedTypes.includes(file.type)) {
+        setError('Only PDF and DOCX files are allowed');
+        setResumeFile(null);
+        return;
+      }
+      
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File size must be less than 5MB');
+        setResumeFile(null);
+        return;
+      }
+      
+      setResumeFile(file);
+      setError('');
+    }
+  };
+
+  const handleResumeUpload = async (file: File): Promise<string | null> => {
+    // Store resume file for later upload after login
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      localStorage.setItem('pending_resume_data', reader.result as string);
+      localStorage.setItem('pending_resume_name', file.name);
+    };
+    return 'pending';
   };
 
   // Load districts and sectors for dropdowns
@@ -107,7 +145,28 @@ export default function RegisterPage() {
             district_id: districtId || undefined,
             education_level: educationLevel || undefined,
             stream_specialization: streamSpecialization || undefined,
+            skip_resume_upload: skipResumeUpload,
           });
+          
+          // Store resume file for upload after login if provided
+          if (resumeFile && !skipResumeUpload) {
+            // Store resume file as base64 for later upload
+            const reader = new FileReader();
+            reader.readAsDataURL(resumeFile);
+            reader.onload = () => {
+              localStorage.setItem('pending_resume_data', reader.result as string);
+              localStorage.setItem('pending_resume_name', resumeFile.name);
+            };
+          }
+          
+          // If resume upload was skipped, show message
+          if (skipResumeUpload) {
+            setSuccess('Registration successful! You can add skills manually or upload a resume later from your profile.');
+          } else if (resumeFile) {
+            setSuccess('Registration successful! Your resume will be processed after login.');
+          } else {
+            setSuccess('Registration successful! You can now log in.');
+          }
           break;
           
         case 'employer':
@@ -579,6 +638,61 @@ export default function RegisterPage() {
                       className={`${inputClass} disabled:bg-gray-100 disabled:cursor-not-allowed`}
                     />
                   </FormField>
+
+                  {/* Resume Upload Section */}
+                  <div className="rounded-lg border border-gray-300 bg-gray-50 p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                        <input
+                          type="checkbox"
+                          id="skipResumeUpload"
+                          checked={skipResumeUpload}
+                          onChange={(e) => setSkipResumeUpload(e.target.checked)}
+                          disabled={loading}
+                          className="h-4 w-4 rounded border-gray-300 text-[#123b63] focus:ring-[#123b63]"
+                        />
+                        <span>Skip Resume Upload</span>
+                      </label>
+                      <span className="text-xs text-gray-500">(Optional)</span>
+                    </div>
+
+                    {!skipResumeUpload && (
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                          Upload Resume
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="file"
+                            id="resumeFile"
+                            accept=".pdf,.docx,.doc"
+                            onChange={handleResumeChange}
+                            disabled={loading}
+                            className="flex-1 rounded border border-gray-300 bg-white px-3 py-2 text-sm file:mr-4 file:rounded file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          />
+                          {resumeFile && (
+                            <button
+                              type="button"
+                              onClick={() => setResumeFile(null)}
+                              disabled={loading}
+                              className="rounded bg-red-100 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        {resumeFile && (
+                          <div className="mt-2 text-xs text-gray-600">
+                            <span className="font-medium">Selected:</span> {resumeFile.name} 
+                            <span className="ml-2 text-gray-500">({(resumeFile.size / 1024).toFixed(1)} KB)</span>
+                          </div>
+                        )}
+                        <p className="mt-2 text-xs text-gray-500">
+                          Supported formats: PDF, DOCX (Max 5MB)
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
 
