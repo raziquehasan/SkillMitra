@@ -3,62 +3,61 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import CandidateSidebar from "@/components/candidate/CandidateSidebar";
-
-const recommendedSkills = [
-  {
-    skill: "TypeScript",
-    role: "Software Developer",
-    demand: "Very High",
-    importance: "Critical",
-    currentLevel: "Beginner",
-    targetLevel: "Intermediate",
-    reason:
-      "TypeScript is frequently required alongside React and JavaScript for modern software development roles.",
-  },
-  {
-    skill: "Advanced Excel",
-    role: "Data Analyst",
-    demand: "High",
-    importance: "High",
-    currentLevel: "Beginner",
-    targetLevel: "Intermediate",
-    reason:
-      "Improving Excel skills can strengthen your profile for data analysis and reporting opportunities.",
-  },
-  {
-    skill: "Cloud Computing",
-    role: "Software Developer",
-    demand: "High",
-    importance: "High",
-    currentLevel: "Beginner",
-    targetLevel: "Intermediate",
-    reason:
-      "Cloud knowledge can improve your readiness for software and technology-related roles.",
-  },
-  {
-    skill: "UX Research",
-    role: "UI/UX Designer",
-    demand: "Medium",
-    importance: "Medium",
-    currentLevel: "Beginner",
-    targetLevel: "Intermediate",
-    reason:
-      "UX Research complements UI design skills and is useful for user-focused design roles.",
-  },
-  {
-    skill: "Power BI",
-    role: "Data Analyst",
-    demand: "High",
-    importance: "High",
-    currentLevel: "Beginner",
-    targetLevel: "Intermediate",
-    reason:
-      "Power BI is widely useful for data visualization and business intelligence tasks.",
-  },
-];
+import { api } from "@/lib/api";
 
 export default function RecommendedSkillsPage() {
+  const [skillGaps, setSkillGaps] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hasSkills, setHasSkills] = useState<boolean | null>(null);
+  const [currentSkillsCount, setCurrentSkillsCount] = useState(0);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Check if user has skills
+        const skills = await api.candidateSkills();
+        setHasSkills(skills.length > 0);
+        setCurrentSkillsCount(skills.length);
+        
+        if (skills.length > 0) {
+          // Load skill gaps
+          const gaps = await api.candidateSkillGaps();
+          setSkillGaps(gaps);
+        }
+      } catch (err) {
+        console.error("Failed to load skill data:", err);
+        setError("Unable to load skill recommendations. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Extract missing skills from skill gaps
+  const missingSkills = skillGaps.flatMap(gap => 
+    gap.proficiency_gaps?.filter((pg: any) => pg.candidate_proficiency === null).map((pg: any) => ({
+      skill: pg.skill_name || pg.skill_id,
+      role: gap.job_role_title,
+      importance: pg.importance,
+      required_proficiency: pg.required_proficiency,
+      reason: `Required for ${gap.job_role_title} role`
+    })) || []
+  );
+
+  // Calculate summary stats
+  const totalRecommended = missingSkills.length;
+  const criticalSkills = missingSkills.filter(s => s.importance === 'mandatory').length;
+  const highDemandSkills = missingSkills.filter(s => s.importance === 'preferred').length;
+  const currentSkills = currentSkillsCount;
+
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-slate-800">
 
@@ -168,6 +167,34 @@ export default function RecommendedSkillsPage() {
 
             </div>
 
+            {/* No Skills Empty State */}
+            {hasSkills === false && (
+              <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-100 text-2xl text-amber-600">
+                      🎯
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-amber-900">
+                        Add Your Skills First
+                      </h2>
+                      <p className="mt-1 max-w-2xl text-sm leading-6 text-amber-800">
+                        To get personalized skill recommendations, you need to add your current skills to your profile.
+                      </p>
+                    </div>
+                  </div>
+
+                  <Link
+                    href="/candidate/skills"
+                    className="shrink-0 rounded-lg bg-[#123b68] px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-[#0f3155]"
+                  >
+                    Add My Skills
+                  </Link>
+                </div>
+              </div>
+            )}
+
             {/* Intelligence Banner */}
             <div className="rounded-xl border border-blue-100 bg-blue-50 p-5">
 
@@ -202,7 +229,7 @@ export default function RecommendedSkillsPage() {
                   </p>
 
                   <p className="text-xl font-bold text-[#123b68]">
-                    05
+                    {String(totalRecommended).padStart(2, '0')}
                   </p>
 
                 </div>
@@ -216,25 +243,25 @@ export default function RecommendedSkillsPage() {
 
               <SummaryCard
                 title="Recommended Skills"
-                value="05"
+                value={String(totalRecommended).padStart(2, '0')}
                 text="Skills identified for your profile"
               />
 
               <SummaryCard
-                title="High Demand"
-                value="04"
-                text="Skills with strong job demand"
+                title="High Priority"
+                value={String(criticalSkills).padStart(2, '0')}
+                text="Critical skills requiring attention"
               />
 
               <SummaryCard
-                title="Critical Skills"
-                value="01"
-                text="Skill requiring priority attention"
+                title="Medium Priority"
+                value={String(highDemandSkills).padStart(2, '0')}
+                text="Skills with strong relevance"
               />
 
               <SummaryCard
                 title="Current Skills"
-                value="14"
+                value={String(currentSkills).padStart(2, '0')}
                 text="Skills already in your profile"
               />
 
@@ -256,16 +283,38 @@ export default function RecommendedSkillsPage() {
 
               </div>
 
-              <div className="space-y-4">
+              {loading ? (
+                <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+                  <p className="text-slate-500">Loading skill recommendations...</p>
+                </div>
+              ) : error ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-12 text-center shadow-sm">
+                  <p className="text-red-600">{error}</p>
+                </div>
+              ) : missingSkills.length > 0 ? (
+                <div className="space-y-4">
 
-                {recommendedSkills.map((item) => (
-                  <SkillCard
-                    key={item.skill}
-                    skill={item}
-                  />
-                ))}
+                  {missingSkills.map((item, index) => (
+                    <SkillCard
+                      key={`${item.skill}-${index}`}
+                      skill={item}
+                    />
+                  ))}
 
-              </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-500">
+                    ✓
+                  </div>
+                  <h3 className="mt-4 font-semibold text-slate-700">
+                    No additional skills recommended
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Your current skills align well with your target roles.
+                  </p>
+                </div>
+              )}
 
             </div>
 
@@ -476,8 +525,16 @@ function SummaryCard({
 function SkillCard({
   skill,
 }: {
-  skill: (typeof recommendedSkills)[number];
+  skill: {
+    skill: string;
+    role: string;
+    importance: string;
+    required_proficiency: string;
+    reason: string;
+  };
 }) {
+  const importanceLabel = skill.importance === 'mandatory' ? 'Critical' : skill.importance === 'preferred' ? 'High' : 'Medium';
+  
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md">
 
@@ -496,7 +553,7 @@ function SkillCard({
                 </h3>
 
                 <PriorityBadge
-                  importance={skill.importance}
+                  importance={importanceLabel}
                 />
 
               </div>
@@ -510,11 +567,11 @@ function SkillCard({
             <div className="rounded-lg bg-blue-50 px-4 py-2 text-center">
 
               <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                Demand
+                Priority
               </p>
 
               <p className="text-sm font-bold text-[#123b68]">
-                {skill.demand}
+                {importanceLabel}
               </p>
 
             </div>
@@ -531,7 +588,7 @@ function SkillCard({
               </p>
 
               <p className="mt-1 text-sm font-semibold text-slate-700">
-                {skill.currentLevel}
+                None
               </p>
 
             </div>
@@ -539,11 +596,11 @@ function SkillCard({
             <div className="rounded-lg bg-blue-50 px-4 py-3">
 
               <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                Target Level
+                Required Level
               </p>
 
               <p className="mt-1 text-sm font-semibold text-[#123b68]">
-                {skill.targetLevel}
+                {skill.required_proficiency || 'Intermediate'}
               </p>
 
             </div>

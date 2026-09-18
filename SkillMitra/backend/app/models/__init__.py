@@ -23,6 +23,7 @@ from app.models.identity import (                         # noqa: F401
     CandidateProfile,
     CandidateEducationHistory,
     CandidateCareerInterest,
+    CandidateResume,
     Employer,
 )
 from app.models.career import (                           # noqa: F401
@@ -109,6 +110,7 @@ __all__ = [
     "CandidateProfile",
     "CandidateEducationHistory",
     "CandidateCareerInterest",
+    "CandidateResume",
     "JobRole",
     "JobRoleSkill",
     "Course",

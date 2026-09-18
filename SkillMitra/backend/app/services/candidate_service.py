@@ -7,6 +7,7 @@ from app.repositories.candidate_repository import CandidateRepository
 from app.schemas.candidates import CandidateProfileUpdate, CandidateEducationCreate, CandidateInterestCreate, SkillVerificationRequest
 from app.models.career import JobRole, JobRoleSkill
 from app.models.phase4 import CandidateSkill
+from app.models.identity import CandidateCareerInterest
 from app.models.skills import SkillProficiencyLevel
 
 
@@ -57,8 +58,57 @@ class CandidateService:
             raise HTTPException(status_code=404, detail="Interest not found")
         self.db.commit()
 
+    def calculate_profile_completion(self, profile):
+        """
+        Calculate profile completion percentage based on:
+        - Personal info (25%): name, email, phone, date_of_birth, gender
+        - Education (25%): education_level + education_history
+        - Career interests (25%): career_interests
+        - Skills (25%): candidate_skills
+        - Resume (optional, tracked separately)
+        """
+        from app.models.phase4 import CandidateSkill
+        from app.models.resume import CandidateResume
+        
+        score = 0
+        max_score = 100
+        
+        # Personal info (25 points)
+        user = profile.user
+        if user.full_name:
+            score += 5
+        if user.email:
+            score += 5
+        if user.phone:
+            score += 5
+        if profile.date_of_birth:
+            score += 5
+        if profile.gender:
+            score += 5
+        
+        # Education (25 points)
+        if profile.education_level:
+            score += 10
+        if profile.education_history and len(profile.education_history) > 0:
+            score += 15
+        
+        # Career interests (25 points)
+        if profile.career_interests and len(profile.career_interests) > 0:
+            score += 25
+        
+        # Skills (25 points)
+        from sqlalchemy import func
+        skills_count = self.db.scalar(
+            select(func.count()).select_from(CandidateSkill).where(CandidateSkill.candidate_id == profile.id)
+        )
+        if skills_count and skills_count > 0:
+            score += 25
+        
+        return round((score / max_score) * 100)
+
     def get_skill_gaps(self, user_id: uuid.UUID, job_role_id: uuid.UUID | None):
         from app.schemas.candidates import SkillGapResponse
+        from app.models.skills import Skill
         profile = self.repo.get_by_user_id(user_id)
         if not profile:
             return []
@@ -67,7 +117,12 @@ class CandidateService:
             select(CandidateSkill).where(CandidateSkill.candidate_id == profile.id)
         ).all()
         candidate_by_skill = {candidate_skill.skill_id: candidate_skill for candidate_skill in candidate_skills}
-        roles_to_check = [job_role_id] if job_role_id else [i.target_job_role_id for i in profile.career_interests]
+        
+        # Get career interests to determine which roles to check
+        interests = self.db.scalars(
+            select(CandidateCareerInterest).where(CandidateCareerInterest.candidate_id == profile.id)
+        ).all()
+        roles_to_check = [job_role_id] if job_role_id else [i.target_job_role_id for i in interests]
 
         if not roles_to_check:
             return []
@@ -93,19 +148,22 @@ class CandidateService:
             proficiency_gaps = []
             for requirement in role.job_role_skills:
                 candidate_skill = candidate_by_skill.get(requirement.skill_id)
+                skill_name = requirement.skill.name if requirement.skill else str(requirement.skill_id)
                 if candidate_skill is None:
-                    missing.append(str(requirement.skill_id))
+                    missing.append(skill_name)
                     proficiency_gaps.append({
                         "skill_id": str(requirement.skill_id),
+                        "skill_name": skill_name,
                         "required_proficiency": names.get(requirement.proficiency_level_id),
                         "candidate_proficiency": None,
                         "importance": requirement.importance,
                     })
                 elif ranks.get(candidate_skill.proficiency_level_id, 0) >= ranks.get(requirement.proficiency_level_id, 0):
-                    matched.append(str(requirement.skill_id))
+                    matched.append(skill_name)
                 else:
                     proficiency_gaps.append({
                         "skill_id": str(requirement.skill_id),
+                        "skill_name": skill_name,
                         "required_proficiency": names.get(requirement.proficiency_level_id),
                         "candidate_proficiency": names.get(candidate_skill.proficiency_level_id),
                         "importance": requirement.importance,
