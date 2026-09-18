@@ -7,74 +7,6 @@ import { useState, useEffect } from "react";
 import CandidateSidebar from "@/components/candidate/CandidateSidebar";
 import { api } from "@/lib/api";
 
-const applications = [
-  {
-    company: "Automotive Solutions",
-    role: "EV Technician",
-    location: "Pune",
-    status: "Under Review",
-  },
-  {
-    company: "Tech Solutions India",
-    role: "Software Developer",
-    location: "Mumbai",
-    status: "Shortlisted",
-  },
-  {
-    company: "DataWorks",
-    role: "Data Analyst",
-    location: "Nashik",
-    status: "Applied",
-  },
-];
-
-const recommendedJobs = [
-  {
-    title: "EV Technician",
-    company: "Maharashtra Automotive Systems",
-    location: "Pune",
-    match: "94%",
-    skills: ["EV Technology", "Battery Systems", "Diagnostics"],
-  },
-  {
-    title: "Software Developer",
-    company: "Digital Technology Solutions",
-    location: "Mumbai",
-    match: "89%",
-    skills: ["React", "JavaScript", "SQL"],
-  },
-  {
-    title: "Data Analyst",
-    company: "Industry Analytics Pvt. Ltd.",
-    location: "Nashik",
-    match: "84%",
-    skills: ["Python", "SQL", "Data Analysis"],
-  },
-];
-
-const skills = [
-  {
-    name: "JavaScript",
-    level: "Advanced",
-    percentage: 85,
-  },
-  {
-    name: "React",
-    level: "Intermediate",
-    percentage: 72,
-  },
-  {
-    name: "SQL",
-    level: "Intermediate",
-    percentage: 68,
-  },
-  {
-    name: "Python",
-    level: "Basic",
-    percentage: 48,
-  },
-];
-
 type CandidateSkill = {
   id: string;
   candidate_id: string;
@@ -92,16 +24,40 @@ export default function CandidateDashboardPage() {
   const [hasSkills, setHasSkills] = useState<boolean | null>(null);
   const [dismissedOnboarding, setDismissedOnboarding] = useState(false);
   const [candidateSkills, setCandidateSkills] = useState<CandidateSkill[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [recommendedJobs, setRecommendedJobs] = useState<any[]>([]);
+  const [trainingRecommendations, setTrainingRecommendations] = useState<any[]>([]);
+  const [skillGaps, setSkillGaps] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    const checkSkills = async () => {
+    const loadData = async () => {
       try {
-        const skills = await api.candidateSkills();
+        setLoading(true);
+        
+        // Load data in parallel
+        const [skills, profileData, apps, jobRecs, trainingRecs, gaps] = await Promise.all([
+          api.candidateSkills().catch(() => []),
+          api.candidateProfile().catch(() => null),
+          api.applications().catch(() => []),
+          api.candidateJobRecommendations().catch(() => ({ recommended_jobs: [] })),
+          api.candidateTrainingRecommendations().catch(() => ({ recommended_courses: [] })),
+          api.candidateSkillGaps().catch(() => [])
+        ]);
+
         setHasSkills(skills.length > 0);
         setCandidateSkills(skills);
+        setProfile(profileData);
+        setApplications(apps);
+        setRecommendedJobs(jobRecs.recommended_jobs || []);
+        setTrainingRecommendations(trainingRecs.recommended_courses || []);
+        setSkillGaps(gaps);
       } catch (err) {
-        console.error("Failed to check skills:", err);
+        console.error("Failed to load dashboard data:", err);
         setHasSkills(false);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -109,7 +65,7 @@ export default function CandidateDashboardPage() {
     const dismissed = localStorage.getItem("skillmitra_onboarding_dismissed");
     setDismissedOnboarding(dismissed === "true");
 
-    checkSkills();
+    loadData();
   }, []);
 
   const handleDismissOnboarding = () => {
@@ -244,28 +200,28 @@ export default function CandidateDashboardPage() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <SummaryCard
                 title="Profile Completion"
-                value="82%"
+                value={`${profile?.profile_completion || 0}%`}
                 description="Complete your profile"
                 icon="👤"
               />
 
               <SummaryCard
                 title="Applications"
-                value="08"
+                value={String(applications.length)}
                 description="Jobs applied"
                 icon="▣"
               />
 
               <SummaryCard
                 title="Recommended Jobs"
-                value="12"
+                value={String(recommendedJobs.length)}
                 description="Matching opportunities"
                 icon="★"
               />
 
               <SummaryCard
                 title="Skills"
-                value="14"
+                value={String(candidateSkills.length)}
                 description="Skills in your profile"
                 icon="◆"
               />
@@ -296,28 +252,50 @@ export default function CandidateDashboardPage() {
                 </div>
 
                 <div className="divide-y divide-slate-100">
-                  {applications.map((application) => (
-                    <div
-                      key={`${application.company}-${application.role}`}
-                      className="flex flex-col gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div>
-                        <p className="text-sm font-semibold text-slate-700">
-                          {application.role}
-                        </p>
-
-                        <p className="mt-1 text-xs text-slate-500">
-                          {application.company}
-                        </p>
-
-                        <p className="mt-1 text-xs text-slate-400">
-                          {application.location}
-                        </p>
-                      </div>
-
-                      <ApplicationStatus status={application.status} />
+                  {applications.length === 0 ? (
+                    <div className="px-6 py-8 text-center">
+                      <p className="text-sm text-slate-500">No applications yet</p>
+                      <Link
+                        href="/candidate/jobs"
+                        className="mt-2 inline-block text-xs font-semibold text-[#123b68] hover:underline"
+                      >
+                        Browse jobs to apply
+                      </Link>
                     </div>
-                  ))}
+                  ) : (
+                    applications.slice(0, 3).map((application) => (
+                      <div
+                        key={application.id}
+                        className="flex flex-col gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-slate-700">
+                            {application.job_title || application.course_title || 'Application'}
+                          </p>
+
+                          <p className="mt-1 text-xs text-slate-500">
+                            {application.employer_name || application.provider_name || 'N/A'}
+                          </p>
+
+                          <p className="mt-1 text-xs text-slate-400">
+                            {new Date(application.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+
+                        <ApplicationStatus status={application.status} />
+                      </div>
+                    ))
+                  )}
+                  {applications.length > 3 && (
+                    <div className="px-6 py-3 text-center">
+                      <Link
+                        href="/candidate/applications"
+                        className="text-xs font-semibold text-[#123b68] hover:underline"
+                      >
+                        View all {applications.length} applications
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -333,11 +311,17 @@ export default function CandidateDashboardPage() {
 
                 <div className="mt-6 flex items-center justify-center">
                   <div className="relative flex h-32 w-32 items-center justify-center rounded-full border-[10px] border-blue-100">
-                    <div className="absolute inset-[-10px] rounded-full border-[10px] border-transparent border-t-[#123b68] border-r-[#123b68] rotate-[-20deg]" />
+                    <div 
+                      className="absolute inset-[-10px] rounded-full border-[10px] border-transparent border-t-[#123b68] border-r-[#123b68]"
+                      style={{
+                        transform: `rotate(${(profile?.profile_completion || 0) * 3.6 - 90}deg)`,
+                        transition: 'transform 0.5s ease-in-out'
+                      }}
+                    />
 
                     <div className="text-center">
                       <p className="text-2xl font-bold text-[#123b68]">
-                        82%
+                        {profile?.profile_completion || 0}%
                       </p>
 
                       <p className="text-[10px] text-slate-400">
@@ -378,50 +362,76 @@ export default function CandidateDashboardPage() {
               </div>
 
               <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
-                {recommendedJobs.map((job) => (
-                  <div
-                    key={`${job.company}-${job.title}`}
-                    className="rounded-lg border border-slate-200 p-5 transition hover:border-blue-200 hover:shadow-sm"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-sm font-bold text-slate-700">
-                          {job.title}
-                        </h3>
+                {recommendedJobs.length === 0 ? (
+                  <div className="col-span-full px-6 py-8 text-center">
+                    <p className="text-sm text-slate-500">
+                      {hasSkills ? 'No job recommendations available yet' : 'Add skills to get job recommendations'}
+                    </p>
+                    {!hasSkills && (
+                      <Link
+                        href="/candidate/skills"
+                        className="mt-2 inline-block text-xs font-semibold text-[#123b68] hover:underline"
+                      >
+                        Add your skills
+                      </Link>
+                    )}
+                  </div>
+                ) : (
+                  recommendedJobs.slice(0, 3).map((job) => (
+                    <div
+                      key={job.id}
+                      className="rounded-lg border border-slate-200 p-5 transition hover:border-blue-200 hover:shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-700">
+                            {job.title}
+                          </h3>
 
-                        <p className="mt-1 text-xs text-slate-500">
-                          {job.company}
-                        </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {job.company_name || 'Company'}
+                          </p>
 
-                        <p className="mt-1 text-xs text-slate-400">
-                          {job.location}
-                        </p>
+                          <p className="mt-1 text-xs text-slate-400">
+                            {job.district_name || 'Location'}
+                          </p>
+                        </div>
+
+                        <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-700">
+                          {job.skill_match_score}% Match
+                        </span>
                       </div>
 
-                      <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-700">
-                        {job.match} Match
-                      </span>
-                    </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {job.required_skills?.slice(0, 3).map((skill: string) => (
+                          <span
+                            key={skill}
+                            className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-[#123b68]"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
 
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {job.skills.map((skill) => (
-                        <span
-                          key={skill}
-                          className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-[#123b68]"
-                        >
-                          {skill}
-                        </span>
-                      ))}
+                      <Link
+                        href="/candidate/jobs"
+                        className="mt-5 block rounded-lg border border-[#123b68] px-4 py-2.5 text-center text-xs font-semibold text-[#123b68] hover:bg-blue-50"
+                      >
+                        View Job
+                      </Link>
                     </div>
-
+                  ))
+                )}
+                {recommendedJobs.length > 3 && (
+                  <div className="col-span-full px-6 py-3 text-center">
                     <Link
-                      href="/candidate/jobs"
-                      className="mt-5 block rounded-lg border border-[#123b68] px-4 py-2.5 text-center text-xs font-semibold text-[#123b68] hover:bg-blue-50"
+                      href="/candidate/recommended-jobs"
+                      className="text-xs font-semibold text-[#123b68] hover:underline"
                     >
-                      View Job
+                      View all {recommendedJobs.length} recommended jobs
                     </Link>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
@@ -526,30 +536,30 @@ export default function CandidateDashboardPage() {
                     </p>
 
                     <h3 className="mt-2 text-lg font-bold text-orange-900">
-                      03 Skills
+                      {skillGaps.length} Skills
                     </h3>
 
                     <p className="mt-1 text-xs leading-5 text-orange-800">
-                      Some recommended jobs require skills that are not
-                      fully covered in your current profile.
+                      {skillGaps.length > 0 
+                        ? "Some recommended jobs require skills that are not fully covered in your current profile."
+                        : "Your current skill profile covers the requirements for available opportunities."}
                     </p>
                   </div>
 
                   <div className="mt-5 space-y-3">
-                    <SkillGapRow
-                      skill="TypeScript"
-                      status="Recommended"
-                    />
-
-                    <SkillGapRow
-                      skill="Advanced Excel"
-                      status="Recommended"
-                    />
-
-                    <SkillGapRow
-                      skill="Cloud Computing"
-                      status="Recommended"
-                    />
+                    {skillGaps.length === 0 ? (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-slate-500">No skill gaps identified</p>
+                      </div>
+                    ) : (
+                      skillGaps.slice(0, 3).map((gap, index) => (
+                        <SkillGapRow
+                          key={index}
+                          skill={gap.skill_name || gap.skill || `Skill ${index + 1}`}
+                          status={gap.gap_status || gap.status || "Recommended"}
+                        />
+                      ))
+                    )}
                   </div>
 
                   <Link
@@ -585,26 +595,32 @@ export default function CandidateDashboardPage() {
               </div>
 
               <div className="grid gap-4 p-5 md:grid-cols-3">
-                <TrainingCard
-                  title="Advanced Data Analytics"
-                  provider="Industry Skill Training Centre"
-                  duration="10 Weeks"
-                  skill="Data Analytics"
-                />
-
-                <TrainingCard
-                  title="Cloud Computing Fundamentals"
-                  provider="Technology Training Partner"
-                  duration="8 Weeks"
-                  skill="Cloud Computing"
-                />
-
-                <TrainingCard
-                  title="Full Stack Web Development"
-                  provider="Digital Technology Training Hub"
-                  duration="12 Weeks"
-                  skill="Full Stack Development"
-                />
+                {trainingRecommendations.length === 0 ? (
+                  <div className="col-span-full px-6 py-8 text-center">
+                    <p className="text-sm text-slate-500">
+                      {hasSkills ? 'No training recommendations available yet' : 'Add skills to get training recommendations'}
+                    </p>
+                    {!hasSkills && (
+                      <Link
+                        href="/candidate/skills"
+                        className="mt-2 inline-block text-xs font-semibold text-[#123b68] hover:underline"
+                      >
+                        Add your skills
+                      </Link>
+                    )}
+                  </div>
+                ) : (
+                  trainingRecommendations.slice(0, 3).map((course, index) => (
+                    <TrainingCard
+                      key={course.course_id || index}
+                      title={course.course_title || course.title || 'Course'}
+                      provider={course.provider_name || course.provider || 'Training Provider'}
+                      duration={course.duration_hours ? `${Math.ceil(course.duration_hours / 40)} Weeks` : course.duration || 'Duration TBD'}
+                      skill={course.addresses_gaps?.[0] || course.skill || course.skills?.[0] || 'Skill Development'}
+                      courseId={course.course_id}
+                    />
+                  ))
+                )}
               </div>
             </div>
 
@@ -767,11 +783,13 @@ function TrainingCard({
   provider,
   duration,
   skill,
+  courseId,
 }: {
   title: string;
   provider: string;
   duration: string;
   skill: string;
+  courseId?: string;
 }) {
   return (
     <div className="rounded-lg border border-slate-200 p-5">
@@ -798,7 +816,7 @@ function TrainingCard({
       </div>
 
       <Link
-        href="/candidate/training"
+        href={courseId ? `/candidate/training/${courseId}` : "/candidate/training"}
         className="mt-4 block text-center text-xs font-semibold text-[#123b68] hover:underline"
       >
         View Course →

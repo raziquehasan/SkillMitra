@@ -38,8 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(currentUser);
         }
       } catch (error) {
-        // Token invalid or expired - try to refresh
-        console.error("Auth check failed, attempting refresh:", error);
+        // Token invalid or expired - try to refresh silently
         try {
           const result = await api.refresh();
           if (!cancelled) {
@@ -47,8 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(result.user);
           }
         } catch (refreshError) {
-          // Refresh also failed, clear auth state
-          console.error("Token refresh failed:", refreshError);
+          // Refresh also failed, clear auth state silently
           if (!cancelled) {
             sessionStorage.removeItem("skillmitra_access_token");
             setUser(null);
