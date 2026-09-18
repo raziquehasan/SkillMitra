@@ -1,6 +1,6 @@
 
 import uuid
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.auth import require_roles
@@ -26,7 +26,13 @@ def get_my_profile(
     db: Session = Depends(get_db),
 ):
     profile = CandidateService(db).get_or_create_profile(current_user.id)
-    return CandidateProfileResponse.from_profile_with_user(profile)
+    response = CandidateProfileResponse.from_profile_with_user(profile)
+    
+    # Calculate profile completion percentage
+    completion = CandidateService(db).calculate_profile_completion(profile)
+    response.profile_completion = completion
+    
+    return response
 
 
 @router.patch("/me", response_model=CandidateProfileResponse,
@@ -289,4 +295,189 @@ def enroll_in_course(
         "status": enrollment.status,
         "enrollment_date": enrollment.enrollment_date.isoformat() if enrollment.enrollment_date else None,
         "message": "Successfully enrolled in course"
+    }
+
+
+@router.get("/me/training-recommendations", response_model=dict,
+            summary="Get training recommendations based on skill gaps")
+def get_training_recommendations(
+    current_user: User = Depends(require_roles("candidate")),
+    db: Session = Depends(get_db),
+):
+    """
+    Returns training recommendations based on candidate's skill gaps.
+    Uses skill gap analysis to find courses that address missing skills.
+    """
+    from app.models.career import Course, CourseSkill
+    from app.models.phase4 import CandidateSkill, CandidateProfile
+    from app.models.skills import Skill
+    from sqlalchemy import select, func
+    from sqlalchemy.orm import selectinload
+
+    # Get candidate profile
+    profile = db.scalar(
+        select(CandidateProfile).where(CandidateProfile.user_id == current_user.id)
+    )
+
+    if not profile:
+        return {
+            "recommended_courses": [],
+            "missing_skills": []
+        }
+
+    # Get candidate skills
+    candidate_skills = db.scalars(
+        select(CandidateSkill).where(CandidateSkill.candidate_id == profile.id)
+    ).all()
+    candidate_skill_ids = {cs.skill_id for cs in candidate_skills}
+
+    # Get skill gaps from candidate's career interests
+    from app.models.career import JobRole, JobRoleSkill
+    from app.models.identity import CandidateCareerInterest
+    
+    interests = db.scalars(
+        select(CandidateCareerInterest)
+        .where(CandidateCareerInterest.candidate_id == profile.id)
+    ).all()
+
+    missing_skills = set()
+    if interests:
+        for interest in interests:
+            role_skills = db.scalars(
+                select(JobRoleSkill)
+                .where(JobRoleSkill.job_role_id == interest.target_job_role_id)
+            ).all()
+            for rs in role_skills:
+                if rs.skill_id not in candidate_skill_ids:
+                    skill = db.scalar(select(Skill).where(Skill.id == rs.skill_id))
+                    if skill:
+                        missing_skills.add(skill.name)
+
+    # If no missing skills from interests, return empty
+    if not missing_skills:
+        return {
+            "recommended_courses": [],
+            "missing_skills": []
+        }
+
+    # Find courses that cover missing skills
+    missing_skill_ids = list(missing_skills)
+    recommended_courses = []
+
+    # Get courses with their skills
+    courses = db.scalars(
+        select(Course)
+        .where(Course.status == "active")
+        .options(selectinload(Course.course_skills).selectinload(CourseSkill.skill))
+    ).all()
+
+    for course in courses:
+        course_skill_names = {cs.skill.name for cs in course.course_skills if cs.skill}
+        # Calculate overlap with missing skills
+        addressed_gaps = course_skill_names.intersection(missing_skills)
+        
+        if addressed_gaps:
+            # Calculate relevance score based on number of gaps addressed
+            relevance_score = min(100, len(addressed_gaps) * 25)
+            
+            recommended_courses.append({
+                "course_id": str(course.id),
+                "course_title": course.title,
+                "description": course.description,
+                "gap_relevance_score": relevance_score,
+                "addresses_gaps": list(addressed_gaps),
+                "reason": f"Addresses {len(addressed_gaps)} of your missing skills"
+            })
+
+    # Sort by relevance score
+    recommended_courses.sort(key=lambda x: x["gap_relevance_score"], reverse=True)
+
+    return {
+        "recommended_courses": recommended_courses[:5],  # Return top 5 recommendations
+        "missing_skills": list(missing_skills)
+    }
+
+
+@router.get("/me/job-recommendations", response_model=dict,
+            summary="Get job recommendations based on candidate skills")
+def get_job_recommendations(
+    current_user: User = Depends(require_roles("candidate")),
+    db: Session = Depends(get_db),
+):
+    """
+    Returns job recommendations based on candidate's skills.
+    Matches candidate skills with job posting requirements.
+    """
+    from app.models.market import JobPosting, JobPostingSkill
+    from app.models.phase4 import CandidateSkill, CandidateProfile
+    from app.models.skills import Skill
+    from sqlalchemy import select, func
+    from sqlalchemy.orm import selectinload
+
+    # Get candidate profile
+    profile = db.scalar(
+        select(CandidateProfile).where(CandidateProfile.user_id == current_user.id)
+    )
+
+    if not profile:
+        return {
+            "recommended_jobs": [],
+            "reason": "Candidate profile not found"
+        }
+
+    # Get candidate skills
+    candidate_skills = db.scalars(
+        select(CandidateSkill).where(CandidateSkill.candidate_id == profile.id)
+    ).all()
+    candidate_skill_ids = {cs.skill_id for cs in candidate_skills}
+
+    if not candidate_skill_ids:
+        return {
+            "recommended_jobs": [],
+            "reason": "No skills in candidate profile. Add skills to get job recommendations."
+        }
+
+    # Get job postings with their skills
+    job_postings = db.scalars(
+        select(JobPosting)
+        .where(JobPosting.status == "open")
+        .options(selectinload(JobPosting.job_posting_skills).selectinload(JobPostingSkill.skill))
+    ).all()
+
+    recommended_jobs = []
+    for job in job_postings:
+        # Get skill IDs required for this job
+        job_skill_ids = {jps.skill_id for jps in job.job_posting_skills if jps.skill}
+        
+        if not job_skill_ids:
+            continue
+        
+        # Calculate skill match
+        matched_skills = candidate_skill_ids.intersection(job_skill_ids)
+        match_score = len(matched_skills) / len(job_skill_ids) * 100 if job_skill_ids else 0
+        
+        # Only include jobs with at least 50% skill match
+        if match_score >= 50:
+            # Get skill names for required skills
+            required_skill_names = []
+            for jps in job.job_posting_skills:
+                if jps.skill:
+                    required_skill_names.append(jps.skill.name)
+            
+            recommended_jobs.append({
+                "id": str(job.id),
+                "title": job.title,
+                "company_name": job.company_name or job.employer_name,
+                "district_name": job.district_name,
+                "skill_match_score": round(match_score),
+                "required_skills": required_skill_names[:5],  # Show top 5 skills
+                "job_url": job.job_url
+            })
+
+    # Sort by match score
+    recommended_jobs.sort(key=lambda x: x["skill_match_score"], reverse=True)
+
+    return {
+        "recommended_jobs": recommended_jobs[:10],  # Return top 10 recommendations
+        "reason": f"Found {len(recommended_jobs)} job opportunities matching your skills"
     }

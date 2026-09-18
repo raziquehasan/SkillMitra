@@ -52,6 +52,7 @@ function PriorityBadge({ priority }: { priority: string }) {
 export default function SkillGapPage() {
   const [skillGaps, setSkillGaps] = useState<any[]>([]);
   const [roleAnalysis, setRoleAnalysis] = useState<any[]>([]);
+  const [candidateSkills, setCandidateSkills] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedJobRole, setSelectedJobRole] = useState<string>("");
   const [jobRoles, setJobRoles] = useState<any[]>([]);
@@ -62,6 +63,10 @@ export default function SkillGapPage() {
         // Load job roles for dropdown
         const rolesRes = await api.allJobRoles();
         setJobRoles(rolesRes);
+
+        // Load candidate skills
+        const skills = await api.candidateSkills();
+        setCandidateSkills(skills);
 
         // Load skill gaps
         const gaps = await api.candidateSkillGaps();
@@ -289,7 +294,9 @@ export default function SkillGapPage() {
 
               <SummaryCard
                 label="Current Readiness"
-                value={`${Math.round(roleAnalysis.reduce((acc, role) => acc + role.match, 0) / Math.max(roleAnalysis.length, 1))}%`}
+                value={roleAnalysis.length > 0 
+                  ? `${Math.round(roleAnalysis.reduce((acc, role) => acc + role.match, 0) / Math.max(roleAnalysis.length, 1))}%`
+                  : '0%'}
                 description="Overall skill readiness"
               />
             </div>
@@ -303,9 +310,9 @@ export default function SkillGapPage() {
                   </p>
 
                   <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
-                    Your strongest areas are JavaScript, React, SQL and
-                    frontend development. Adding the identified skills can
-                    improve your match with more job opportunities.
+                    {candidateSkills.length > 0 
+                      ? `Your strongest areas include ${candidateSkills.slice(0, 3).map((s: any) => s.skill_name).join(', ')}. Adding the identified skills can improve your match with more job opportunities.`
+                      : 'Add skills to your profile to see your skill gap analysis and receive personalized recommendations.'}
                   </p>
                 </div>
 
@@ -354,7 +361,7 @@ export default function SkillGapPage() {
                             <td className="px-5 py-4">
                               <div>
                                 <p className="font-semibold text-slate-800">
-                                  {pg.skill_id}
+                                  {pg.skill_name || pg.skill_id}
                                 </p>
                               </div>
                             </td>
@@ -405,7 +412,7 @@ export default function SkillGapPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <h3 className="font-semibold text-slate-800">
-                            {pg.skill_id}
+                            {pg.skill_name || pg.skill_id}
                           </h3>
 
                           <p className="mt-1 text-xs text-slate-500">

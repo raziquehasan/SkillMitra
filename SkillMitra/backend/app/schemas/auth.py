@@ -63,6 +63,8 @@ class CandidateRegistrationRequest(BaseModel):
     district_id: uuid.UUID | None = None
     education_level: str | None = None
     stream_specialization: str | None = None
+    # optional resume upload
+    skip_resume_upload: bool = False  # Allow skipping resume upload
 
     @field_validator("password")
     @classmethod

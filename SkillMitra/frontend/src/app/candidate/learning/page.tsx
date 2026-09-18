@@ -115,7 +115,7 @@ function LearningCard({
         <div className="h-2 overflow-hidden rounded-full bg-slate-100">
           <div
             className="h-full rounded-full bg-[#123b68]"
-            style={{ width: completed ? '100%' : '50%' }}
+            style={{ width: completed ? '100%' : '0%' }}
           />
         </div>
       </div>
@@ -398,7 +398,7 @@ export default function MyLearningPage() {
                           <div
                             className="h-full rounded-full bg-[#123b68]"
                             style={{
-                              width: enrollment.status === 'completed' ? '100%' : '50%',
+                              width: enrollment.status === 'completed' ? '100%' : '0%',
                             }}
                           />
                         </div>

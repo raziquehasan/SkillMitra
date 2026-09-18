@@ -41,6 +41,79 @@ export default function CandidateProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<any>({});
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [resumes, setResumes] = useState<any[]>([]);
+
+  const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'];
+      if (!allowedTypes.includes(file.type)) {
+        setError('Only PDF and DOCX files are allowed');
+        setResumeFile(null);
+        return;
+      }
+      
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File size must be less than 5MB');
+        setResumeFile(null);
+        return;
+      }
+      
+      setResumeFile(file);
+      setError('');
+    }
+  };
+
+  const handleResumeUpload = async () => {
+    if (!resumeFile) return;
+
+    try {
+      setResumeUploading(true);
+      const formData = new FormData();
+      formData.append('file', resumeFile);
+      
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('/api/v1/candidates/resume/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload resume');
+      }
+      
+      const data = await response.json();
+      
+      // Process the resume
+      const processResponse = await fetch(`/api/v1/candidates/resume/${data.id}/process`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (processResponse.ok) {
+        const processData = await processResponse.json();
+        // Redirect to review page
+        localStorage.setItem('pending_resume_id', data.id);
+        window.location.href = '/candidate/resume-review';
+      } else {
+        throw new Error('Failed to process resume');
+      }
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload resume');
+    } finally {
+      setResumeUploading(false);
+    }
+  };
 
   useEffect(() => {
     // Redirect to login if not authenticated
@@ -68,6 +141,19 @@ export default function CandidateProfilePage() {
           education_level: profileData.education_level || '',
           current_status: profileData.current_status || '',
         });
+        
+        // Load resume history
+        const token = localStorage.getItem('access_token');
+        const resumeResponse = await fetch('/api/v1/candidates/resume/list', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (resumeResponse.ok) {
+          const resumeData = await resumeResponse.json();
+          setResumes(resumeData);
+        }
       } catch (err) {
         console.error("Failed to load profile data:", err);
         setError("Unable to load profile data. Please try again.");
@@ -368,9 +454,85 @@ export default function CandidateProfilePage() {
                         />
 
                         <ProfileInfo
-                          label="Gender"
-                          value={profile.gender || 'Not provided'}
+                          label="District"
+                          value={profile.district_id ? 'Selected' : 'Not provided'}
                         />
+                      </div>
+                    </div>
+
+                    <div className="mt-7 border-t border-slate-100 pt-6">
+                      <h3 className="text-base font-bold text-[#123b68]">
+                        Resume & Skills
+                      </h3>
+
+                      <div className="mt-5 space-y-4">
+                        {/* Resume Upload Section */}
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                          <div className="mb-3 flex items-center justify-between">
+                            <h4 className="text-sm font-medium text-slate-700">Upload Resume</h4>
+                            <span className="text-xs text-slate-500">Optional</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="file"
+                              accept=".pdf,.docx,.doc"
+                              onChange={handleResumeChange}
+                              disabled={resumeUploading}
+                              className="flex-1 rounded border border-slate-300 bg-white px-3 py-2 text-sm file:mr-4 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium disabled:bg-slate-100 disabled:cursor-not-allowed"
+                            />
+                            
+                            {resumeFile && (
+                              <button
+                                onClick={handleResumeUpload}
+                                disabled={resumeUploading}
+                                className="rounded bg-[#123b63] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f3155] disabled:bg-slate-300 disabled:cursor-not-allowed"
+                              >
+                                {resumeUploading ? 'Uploading...' : 'Upload'}
+                              </button>
+                            )}
+                          </div>
+                          
+                          {resumeFile && (
+                            <div className="mt-2 text-xs text-slate-600">
+                              <span className="font-medium">Selected:</span> {resumeFile.name} 
+                              <span className="ml-2 text-slate-500">({(resumeFile.size / 1024).toFixed(1)} KB)</span>
+                            </div>
+                          )}
+                          
+                          {resumes.length > 0 && (
+                            <div className="mt-3">
+                              <p className="text-xs font-medium text-slate-600 mb-2">Previous Resumes:</p>
+                              <div className="space-y-1">
+                                {resumes.map((resume: any) => (
+                                  <div key={resume.id} className="flex items-center justify-between rounded bg-white px-3 py-2 text-xs">
+                                    <div>
+                                      <span className="font-medium text-slate-700">{resume.file_name}</span>
+                                      <span className="ml-2 text-slate-500">({resume.processing_status})</span>
+                                    </div>
+                                    <span className="text-slate-400">{new Date(resume.uploaded_at).toLocaleDateString()}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Skills Summary */}
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium text-slate-700">Skills</h4>
+                            <Link
+                              href="/candidate/skills"
+                              className="text-xs text-[#123b63] hover:underline"
+                            >
+                              Manage Skills
+                            </Link>
+                          </div>
+                          <p className="mt-1 text-sm text-slate-600">
+                            {skills.length} {skills.length === 1 ? 'skill' : 'skills'} in your profile
+                          </p>
+                        </div>
                       </div>
                     </div>
 
@@ -413,7 +575,7 @@ export default function CandidateProfilePage() {
                   <div className="flex h-36 w-36 items-center justify-center rounded-full border-[12px] border-blue-100">
                     <div className="text-center">
                       <p className="text-3xl font-bold text-[#123b68]">
-                        82%
+                        {profile?.profile_completion || 0}%
                       </p>
                       <p className="text-xs text-slate-500">
                         Complete
@@ -427,17 +589,26 @@ export default function CandidateProfilePage() {
                     <span className="text-slate-600">
                       Personal Information
                     </span>
-                    <span className="font-semibold text-green-700">
-                      Complete
+                    <span className={`font-semibold ${profile?.user?.full_name && profile?.user?.email ? 'text-green-700' : 'text-amber-700'}`}>
+                      {profile?.user?.full_name && profile?.user?.email ? 'Complete' : 'Incomplete'}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-600">
-                      Career Preferences
+                      Education
                     </span>
-                    <span className="font-semibold text-green-700">
-                      Complete
+                    <span className={`font-semibold ${profile?.education_level ? 'text-green-700' : 'text-amber-700'}`}>
+                      {profile?.education_level ? 'Complete' : 'Incomplete'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600">
+                      Career Interests
+                    </span>
+                    <span className={`font-semibold ${profile?.career_interests?.length > 0 ? 'text-green-700' : 'text-amber-700'}`}>
+                      {profile?.career_interests?.length > 0 ? 'Complete' : 'Incomplete'}
                     </span>
                   </div>
 
@@ -445,17 +616,8 @@ export default function CandidateProfilePage() {
                     <span className="text-slate-600">
                       Skills
                     </span>
-                    <span className="font-semibold text-green-700">
-                      Complete
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">
-                      Resume
-                    </span>
-                    <span className="font-semibold text-amber-700">
-                      Pending
+                    <span className={`font-semibold ${skills.length > 0 ? 'text-green-700' : 'text-amber-700'}`}>
+                      {skills.length > 0 ? 'Complete' : 'Incomplete'}
                     </span>
                   </div>
                 </div>
@@ -508,7 +670,7 @@ export default function CandidateProfilePage() {
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="text-sm font-semibold text-slate-800">
-                            {skill.skill_id || 'Skill'}
+                            {skill.skill_name || skill.skill_id || 'Skill'}
                           </p>
                           <p className="mt-1 text-xs text-slate-500">
                             {skill.verification_status || 'Unverified'}
@@ -522,7 +684,7 @@ export default function CandidateProfilePage() {
 
                       <div className="mt-4 flex flex-wrap gap-2">
                         <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600">
-                          {skill.proficiency_level_id || 'Proficiency Level'}
+                          {skill.proficiency_level_name || skill.proficiency_level_id || 'Proficiency Level'}
                         </span>
                       </div>
                     </div>
@@ -559,23 +721,25 @@ export default function CandidateProfilePage() {
                     </p>
 
                     <h2 className="mt-1 text-lg font-bold text-[#123b68]">
-                      Your profile is currently aligned with technology
-                      roles.
+                      {skills.length > 0 
+                        ? `Your profile includes ${skills.length} verified skills` 
+                        : 'Add skills to enable career intelligence'}
                     </h2>
 
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                      Based on your current skills, roles such as Software
-                      Developer and Data Analyst can be explored. Improving
-                      TypeScript, Cloud Computing and Advanced Excel can
-                      strengthen your profile further.
+                      {skills.length > 0 && profile?.career_interests?.length > 0
+                        ? `Based on your ${skills.length} skills and ${profile.career_interests.length} career interests, SkillMitra can provide personalized job and training recommendations.`
+                        : skills.length > 0
+                        ? `Based on your ${skills.length} skills, add career interests to get personalized recommendations.`
+                        : 'Add your skills and career interests to receive personalized job and training recommendations.'}
                     </p>
                   </div>
 
                   <Link
-                    href="/candidate/skill-gap"
+                    href={skills.length > 0 ? "/candidate/skill-gap" : "/candidate/skills"}
                     className="shrink-0 rounded-lg bg-[#123b68] px-5 py-2.5 text-center text-sm font-semibold text-white hover:bg-[#0f3155]"
                   >
-                    View Skill Gap
+                    {skills.length > 0 ? 'View Skill Gap' : 'Add Skills'}
                   </Link>
                 </div>
               </div>

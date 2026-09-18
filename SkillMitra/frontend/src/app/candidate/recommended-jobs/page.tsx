@@ -31,11 +31,25 @@ export default function RecommendedJobsPage() {
       }
     };
 
-    // Check if user has skills
-    const checkSkills = async () => {
+    // Check if user has skills and load recommendations if yes
+    const checkSkillsAndLoadRecommendations = async () => {
       try {
         const skills = await api.candidateSkills();
         setHasSkills(skills.length > 0);
+        
+        // Load skill-based job recommendations if user has skills
+        if (skills.length > 0) {
+          const jobRecData = await api.candidateJobRecommendations().catch(() => null);
+          if (jobRecData && jobRecData.recommended_jobs && jobRecData.recommended_jobs.length > 0) {
+            setRecommendation({
+              demand: null,
+              required_skills: [],
+              recommended_courses: [],
+              recommended_jobs: jobRecData.recommended_jobs,
+              reason: jobRecData.reason
+            });
+          }
+        }
       } catch (err) {
         console.error("Failed to check skills:", err);
         setHasSkills(false);
@@ -43,19 +57,35 @@ export default function RecommendedJobsPage() {
     };
 
     loadJobRoles();
-    checkSkills();
+    checkSkillsAndLoadRecommendations();
   }, []);
 
   const loadRecommendations = async (jobRoleId: string) => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Try job recommendations based on skills first
+      const jobRecData = await api.candidateJobRecommendations().catch(() => null);
+      
+      if (jobRecData && jobRecData.recommended_jobs && jobRecData.recommended_jobs.length > 0) {
+        setRecommendation({
+          demand: null,
+          required_skills: [],
+          recommended_courses: [],
+          recommended_jobs: jobRecData.recommended_jobs,
+          reason: jobRecData.reason
+        });
+        setSelectedJobRole(jobRoleId);
+        setLoading(false);
+        return;
+      }
+      
+      // Fallback to career recommendation if no skill-based recommendations
       const response = await api.careerRecommendation({
         job_role_id: jobRoleId,
       });
       
-      // Backend now handles validation - only valid recommendations should reach here
-      // However, we still check for error messages from backend
       if (response.message && !response.demand) {
         setError(response.message);
         setRecommendation(null);
@@ -312,27 +342,27 @@ export default function RecommendedJobsPage() {
               <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
                 <SummaryCard
-                  title="Skill Match"
-                  value={`${recommendation.skill_match_percentage}%`}
-                  text="Match with job requirements"
+                  title="Recommended Jobs"
+                  value={String(recommendation.recommended_jobs?.length || 0)}
+                  text="Jobs matching your skills"
                 />
 
                 <SummaryCard
-                  title="Matched Skills"
-                  value={String(recommendation.matched_skill_count)}
-                  text="Skills you have"
+                  title="High Match"
+                  value={String(recommendation.recommended_jobs?.filter((j: any) => j.skill_match_score >= 80).length || 0)}
+                  text="80%+ skill alignment"
                 />
 
                 <SummaryCard
-                  title="Missing Skills"
-                  value={String(recommendation.missing_skills.length)}
-                  text="Skills to develop"
+                  title="Good Match"
+                  value={String(recommendation.recommended_jobs?.filter((j: any) => j.skill_match_score >= 60).length || 0)}
+                  text="60%+ skill alignment"
                 />
 
                 <SummaryCard
-                  title="Job Readiness"
-                  value={`${recommendation.job_readiness_percentage}%`}
-                  text="Overall readiness score"
+                  title="Average Match"
+                  value={String(recommendation.recommended_jobs?.filter((j: any) => j.skill_match_score >= 50).length || 0)}
+                  text="50%+ skill alignment"
                 />
 
               </div>
@@ -412,7 +442,7 @@ export default function RecommendedJobsPage() {
                     </Link>
                   </div>
                 </div>
-              ) : recommendation && recommendation.demand ? (
+              ) : recommendation && (recommendation.demand || recommendation.recommended_jobs) ? (
                 <div className="space-y-4">
                   {recommendation.message && (
                     <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
@@ -420,46 +450,80 @@ export default function RecommendedJobsPage() {
                     </div>
                   )}
                   
-                  <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-base font-bold text-[#123b68]">
-                          {recommendation.demand.job_role_title || 'Job Role'}
-                        </h3>
-                        <p className="mt-1 text-sm text-slate-500">
-                          {recommendation.demand.district_name || 'Location not specified'}
-                        </p>
-                        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
-                          <span>Demand: {recommendation.demand.demand_trend || 'Not specified'}</span>
-                          <span>Job Postings: {recommendation.demand.relevant_job_postings_count || 0}</span>
+                  {/* Skill-based job recommendations */}
+                  {recommendation.recommended_jobs && recommendation.recommended_jobs.length > 0 ? (
+                    <div className="space-y-4">
+                      {recommendation.recommended_jobs.map((job: any) => (
+                        <div key={job.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                            <div className="min-w-0 flex-1">
+                              <h3 className="text-base font-bold text-[#123b68]">
+                                {job.title}
+                              </h3>
+                              <p className="mt-1 text-sm text-slate-500">
+                                {job.company_name || 'Company not specified'}
+                              </p>
+                              <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
+                                <span>📍 {job.district_name || 'Location not specified'}</span>
+                                <span>Skills: {job.required_skills?.slice(0, 3).join(', ') || 'Not specified'}</span>
+                              </div>
+                            </div>
+                            <div className="rounded-lg bg-green-50 px-4 py-2 text-center">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-green-600">
+                                Match
+                              </p>
+                              <p className="text-lg font-bold text-green-700">
+                                {job.skill_match_score}%
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-4 flex gap-3">
+                            <Link
+                              href={`/candidate/jobs`}
+                              className="rounded-lg bg-[#123b68] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0f3155]"
+                            >
+                              View Details
+                            </Link>
+                            {job.job_url && (
+                              <a
+                                href={job.job_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="rounded-lg border border-[#123b68] px-4 py-2 text-xs font-semibold text-[#123b68] hover:bg-blue-50"
+                              >
+                                Apply
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : recommendation.demand ? (
+                    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-base font-bold text-[#123b68]">
+                            {recommendation.demand.job_role_title || 'Job Role'}
+                          </h3>
+                          <p className="mt-1 text-sm text-slate-500">
+                            {recommendation.demand.district_name || 'Location not specified'}
+                          </p>
+                          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
+                            <span>Demand: {recommendation.demand.demand_trend || 'Not specified'}</span>
+                            <span>Job Postings: {recommendation.demand.relevant_job_postings_count || 0}</span>
+                          </div>
+                        </div>
+                        <div className="rounded-lg bg-green-50 px-4 py-2 text-center">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-green-600">
+                            Match
+                          </p>
+                          <p className="text-lg font-bold text-green-700">
+                            {recommendation.skill_match_percentage}%
+                          </p>
                         </div>
                       </div>
-                      <div className="rounded-lg bg-green-50 px-4 py-2 text-center">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-green-600">
-                          Match
-                        </p>
-                        <p className="text-lg font-bold text-green-700">
-                          {recommendation.skill_match_percentage}%
-                        </p>
-                      </div>
                     </div>
-                  </div>
-
-                  {recommendation.recommended_courses.length > 0 && recommendation.recommended_courses[0].id && (
-                    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                      <h4 className="font-semibold text-[#123b68] mb-3">Recommended Courses</h4>
-                      <div className="space-y-3">
-                        {recommendation.recommended_courses.map((course: any, index: number) => (
-                          course.id && (
-                            <div key={index} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                              <p className="text-sm font-semibold text-slate-800">{course.title}</p>
-                              <p className="mt-1 text-xs text-slate-600">{course.why || course.covers_details}</p>
-                            </div>
-                          )
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  ) : null}
                 </div>
               ) : (
                 <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">

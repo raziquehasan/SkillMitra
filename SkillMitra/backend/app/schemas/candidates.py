@@ -68,6 +68,7 @@ class CandidateProfileResponse(CandidateProfileBase):
     user_id: uuid.UUID
     education_history: list[CandidateEducationResponse] = []
     career_interests: list[CandidateInterestResponse] = []
+    profile_completion: int = 0
     
     # Include user data for display
     @classmethod
@@ -88,6 +89,7 @@ class CandidateProfileResponse(CandidateProfileBase):
             current_status=profile.current_status,
             education_history=profile.education_history,
             career_interests=profile.career_interests,
+            profile_completion=0,  # Will be set by the route
         )
 
 
