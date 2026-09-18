@@ -193,6 +193,11 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     if (path.includes('/government/dashboard') && response.status === 403) {
       throw new Error('DEMO_FALLBACK');
     }
+    // Don't log auth errors to console to avoid noise during normal auth flow
+    if (path.includes('/auth/me') && response.status === 401) {
+      // Silent fail for auth check - expected when no valid token
+      throw new Error(detail);
+    }
     throw new Error(detail);
   }
   
@@ -370,6 +375,7 @@ export const api = {
     district_id?: string;
     education_level?: string;
     stream_specialization?: string;
+    skip_resume_upload?: boolean;
   }) =>
     apiFetch<{ user: AuthUser; message: string }>(
       "/api/v1/auth/register/candidate",
@@ -846,6 +852,29 @@ export const api = {
     job_posted_date: string | null;
   }[]>("/api/v1/applications"),
 
+  courseApplications: () => apiFetch<{
+    id: string;
+    course_id: string;
+    type: string;
+    status: string;
+    applied_date: string | null;
+    course_title: string | null;
+    course_provider: string | null;
+    course_location: string | null;
+  }[]>("/api/v1/applications/courses"),
+
+  applyForCourse: (courseId: string) =>
+    apiFetch<{
+      id: string;
+      course_id: string;
+      status: string;
+      enrollment_date: string | null;
+      message: string;
+    }>("/api/v1/applications/courses", {
+      method: "POST",
+      body: JSON.stringify({ course_id: courseId }),
+    }),
+
   // Candidate profile endpoints
   candidateProfile: () => apiFetch<{
     id: string;
@@ -1000,6 +1029,31 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ course_id: courseId }),
     }),
+
+  candidateTrainingRecommendations: () => apiFetch<{
+    recommended_courses: Array<{
+      course_id: string;
+      course_title: string;
+      description: string | null;
+      gap_relevance_score: number;
+      addresses_gaps: string[];
+      reason: string;
+    }>;
+    missing_skills: string[];
+  }>("/api/v1/candidates/me/training-recommendations"),
+
+  candidateJobRecommendations: () => apiFetch<{
+    recommended_jobs: Array<{
+      id: string;
+      title: string;
+      company_name: string | null;
+      district_name: string | null;
+      skill_match_score: number;
+      required_skills: string[];
+      job_url: string | null;
+    }>;
+    reason: string;
+  }>("/api/v1/candidates/me/job-recommendations"),
 
   // Employer candidates endpoint
   employerCandidates: () => apiFetch<any[]>("/api/v1/employers/me/candidates"),
