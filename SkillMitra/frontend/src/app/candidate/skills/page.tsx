@@ -398,39 +398,16 @@ export default function MySkillsPage() {
     try {
       setResumeUploading(true);
       setResumeError('');
-      const formData = new FormData();
-      formData.append('file', resumeFile);
       
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/v1/candidates/resume/upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
+      // Upload resume using API client
+      const data = await api.resumeUpload(resumeFile);
       
-      if (!response.ok) {
-        throw new Error('Failed to upload resume');
-      }
+      // Process the resume using API client
+      await api.resumeProcess(data.id);
       
-      const data = await response.json();
-      
-      // Process the resume
-      const processResponse = await fetch(`/api/v1/candidates/resume/${data.id}/process`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (processResponse.ok) {
-        // Redirect to review page
-        localStorage.setItem('pending_resume_id', data.id);
-        window.location.href = '/candidate/resume-review';
-      } else {
-        throw new Error('Failed to process resume');
-      }
+      // Redirect to review page
+      localStorage.setItem('pending_resume_id', data.id);
+      window.location.href = '/candidate/resume-review';
       
     } catch (err) {
       setResumeError(err instanceof Error ? err.message : 'Failed to upload resume');
@@ -441,17 +418,8 @@ export default function MySkillsPage() {
 
   const loadResumes = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/v1/candidates/resume/list', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setResumes(data);
-      }
+      const data = await api.resumeList();
+      setResumes(data);
     } catch (err) {
       console.error("Failed to load resumes:", err);
     }
@@ -573,10 +541,10 @@ export default function MySkillsPage() {
                   {resumes.length > 0 && (
                     <div className="mt-3 rounded-md bg-white border border-slate-200 px-3 py-2">
                       <p className="text-xs font-medium text-slate-700">
-                        Current Resume: {resumes[0].file_name}
+                        Current Resume: {resumes[0].filename || resumes[0].file_name}
                       </p>
                       <p className="text-xs text-slate-500">
-                        Status: {resumes[0].processing_status} • Uploaded: {new Date(resumes[0].uploaded_at).toLocaleDateString()}
+                        Status: {resumes[0].status || resumes[0].processing_status} • Uploaded: {new Date(resumes[0].upload_date || resumes[0].uploaded_at).toLocaleDateString()}
                       </p>
                     </div>
                   )}

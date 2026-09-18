@@ -73,40 +73,16 @@ export default function CandidateProfilePage() {
 
     try {
       setResumeUploading(true);
-      const formData = new FormData();
-      formData.append('file', resumeFile);
       
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/v1/candidates/resume/upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
+      // Upload resume using API client
+      const data = await api.resumeUpload(resumeFile);
       
-      if (!response.ok) {
-        throw new Error('Failed to upload resume');
-      }
+      // Process the resume using API client
+      await api.resumeProcess(data.id);
       
-      const data = await response.json();
-      
-      // Process the resume
-      const processResponse = await fetch(`/api/v1/candidates/resume/${data.id}/process`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (processResponse.ok) {
-        const processData = await processResponse.json();
-        // Redirect to review page
-        localStorage.setItem('pending_resume_id', data.id);
-        window.location.href = '/candidate/resume-review';
-      } else {
-        throw new Error('Failed to process resume');
-      }
+      // Redirect to review page
+      localStorage.setItem('pending_resume_id', data.id);
+      window.location.href = '/candidate/resume-review';
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload resume');
@@ -142,18 +118,9 @@ export default function CandidateProfilePage() {
           current_status: profileData.current_status || '',
         });
         
-        // Load resume history
-        const token = localStorage.getItem('access_token');
-        const resumeResponse = await fetch('/api/v1/candidates/resume/list', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        
-        if (resumeResponse.ok) {
-          const resumeData = await resumeResponse.json();
-          setResumes(resumeData);
-        }
+        // Load resume history using API client
+        const resumeData = await api.resumeList();
+        setResumes(resumeData);
       } catch (err) {
         console.error("Failed to load profile data:", err);
         setError("Unable to load profile data. Please try again.");
@@ -507,10 +474,10 @@ export default function CandidateProfilePage() {
                                 {resumes.map((resume: any) => (
                                   <div key={resume.id} className="flex items-center justify-between rounded bg-white px-3 py-2 text-xs">
                                     <div>
-                                      <span className="font-medium text-slate-700">{resume.file_name}</span>
-                                      <span className="ml-2 text-slate-500">({resume.processing_status})</span>
+                                      <span className="font-medium text-slate-700">{resume.filename || resume.file_name}</span>
+                                      <span className="ml-2 text-slate-500">({resume.status || resume.processing_status})</span>
                                     </div>
-                                    <span className="text-slate-400">{new Date(resume.uploaded_at).toLocaleDateString()}</span>
+                                    <span className="text-slate-400">{new Date(resume.upload_date || resume.uploaded_at).toLocaleDateString()}</span>
                                   </div>
                                 ))}
                               </div>
