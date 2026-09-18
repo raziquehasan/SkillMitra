@@ -180,3 +180,4 @@ cp .env.example .env
 
 *Built for Smart India Hackathon 2026 — Problem Statement 26134*
 # Trigger Vercel Redeploy for Resume Endpoints
+# Trigger Render redeploy for CORS fix
