@@ -51,8 +51,16 @@ class SkillConfirmationRequest(BaseModel):
     """Request to confirm/reject extracted skills."""
     resume_id: uuid.UUID
     confirmed_skills: list[uuid.UUID]  # skill_ids to keep
-    rejected_skills: list[uuid.UUID]  # skill_ids to remove
-    additional_skills: list[dict] = []  # manually added skills
+    rejected_skills: list[uuid.UUID]   # skill_ids to remove
+    additional_skills: list[dict] = [] # manually added skills
+
+    @field_validator('confirmed_skills', 'rejected_skills', mode='before')
+    @classmethod
+    def filter_null_uuids(cls, v: list) -> list:
+        """Strip null/None/empty values before UUID validation."""
+        if not isinstance(v, list):
+            return v
+        return [item for item in v if item is not None and item != '' and item != 'null']
 
 
 class SkillConfirmationResponse(BaseModel):
