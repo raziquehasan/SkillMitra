@@ -1,9 +1,11 @@
 """Career Planning API - district and sector-based career intelligence."""
 import uuid
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import text, select
+from sqlalchemy.orm import Session, selectinload
+from sqlalchemy import text, select, or_
 from app.core.database import get_db
+from app.models.market import JobPosting
+from app.models.career import JobRole
 from pydantic import BaseModel, ConfigDict
 
 router = APIRouter(prefix="/api/v1/career-planning", tags=["Career Planning"])
@@ -115,11 +117,12 @@ def find_related_jobs(db: Session, job_roles: list[str], district_id: str | None
     
     role_ids = [role[0] for role in role_matches]
     
-    # Find job postings that have these roles
+    # Find job postings that have these roles (eager-load employer to avoid lazy-load errors)
     jobs_query = (
         select(JobPosting)
         .where(JobPosting.job_role_id.in_(role_ids))
         .where(JobPosting.status == 'active')
+        .options(selectinload(JobPosting.employer))
         .distinct()
         .limit(5)
     )
@@ -137,7 +140,7 @@ def find_related_jobs(db: Session, job_roles: list[str], district_id: str | None
         related_jobs.append({
             "id": str(job.id),
             "title": job.title,
-            "company_name": job.company_name,
+            "company_name": job.employer.company_name if job.employer else "Unknown",
             "district_id": str(job.district_id) if job.district_id else None,
             "status": job.status,
             "posted_date": job.posted_date.isoformat() if job.posted_date else None

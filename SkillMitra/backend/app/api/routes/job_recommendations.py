@@ -87,11 +87,15 @@ def get_job_recommendations(
     ).all()
     candidate_skill_names = {skill.id: skill.name for skill in candidate_skill_objs}
     
-    # Get all active job postings with their required skills
+    # Get all active job postings with their required skills, employer, and district
     job_postings = db.scalars(
         select(JobPosting)
         .where(JobPosting.status == 'open')
-        .options(selectinload(JobPosting.job_posting_skills))
+        .options(
+            selectinload(JobPosting.job_posting_skills),
+            selectinload(JobPosting.employer),
+            selectinload(JobPosting.district),
+        )
     ).all()
     
     if not job_postings:
@@ -157,8 +161,8 @@ def get_job_recommendations(
             recommended_jobs.append(RecommendedJob(
                 job_id=str(job.id),
                 title=job.title,
-                company_name=job.company_name,
-                location=job.location,
+                company_name=job.employer.company_name if job.employer else "Unknown",
+                location=job.district.name if job.district else None,
                 required_skills=required_skill_names,
                 matched_skills=matched_skill_names,
                 missing_skills=missing_skill_names,
