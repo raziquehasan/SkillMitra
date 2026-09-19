@@ -31,11 +31,6 @@ app.add_middleware(
     max_age=600,
 )
 
-# Add OPTIONS handler for preflight requests
-@app.options("/{path:path}")
-async def options_handler(path: str):
-    return {"status": "ok"}
-
 @app.get("/health")
 def health_check():
     return {"status": "ok", "service": "skillmitra-backend"}
