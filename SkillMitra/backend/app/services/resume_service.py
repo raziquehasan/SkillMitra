@@ -232,7 +232,7 @@ class ResumeService:
         
         return unique_skills
     
-    def _find_context(self, text: str, keyword: str, context_length: 100) -> str:
+    def _find_context(self, text: str, keyword: str, context_length: int = 100) -> str:
         """Find the context around a keyword in the text."""
         text_lower = text.lower()
         index = text_lower.find(keyword.lower())
