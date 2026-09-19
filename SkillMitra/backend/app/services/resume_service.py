@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Any
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.models.identity import CandidateResume, CandidateProfile
 from app.models.skills import Skill, SkillProficiencyLevel
@@ -422,9 +422,9 @@ class ResumeService:
         
         self.db.commit()
         
-        # Get total skill count
+        # Get total skill count (SQLAlchemy 2.x: use func.count, not .count() on Select)
         total_skills = self.db.scalar(
-            select(CandidateSkill).where(CandidateSkill.candidate_id == candidate_id).count()
+            select(func.count(CandidateSkill.id)).where(CandidateSkill.candidate_id == candidate_id)
         )
         
         return {
