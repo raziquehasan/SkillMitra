@@ -51,7 +51,7 @@ export default function ResumeReviewPage() {
       
       const data = await api.resumeReview(resumeId);
       setReviewData(data);
-      setProcessingState(data.processing_status || 'pending');
+      setProcessingState((data.processing_status || 'pending') as 'processing' | 'completed' | 'failed' | 'pending');
       
       // Select all skills by default
       const allSkillIds = new Set(data.extracted_skills.map((s: ExtractedSkill) => s.skill_id));
