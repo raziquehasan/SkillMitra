@@ -186,7 +186,7 @@ class CandidateCareerInterest(Base):
     )
 
 
-class CandidateResume(TimestampMixin, Base):
+class CandidateResume(Base):
     """
     One candidate → many resume uploads.
     Supports resume-based skill extraction and profile building.
