@@ -1262,6 +1262,7 @@ export const api = {
   resumeReview: (resumeId: string) => 
     apiFetch<{
       resume_id: string;
+      processing_status: string;
       extracted_skills: Array<{
         skill_id: string;
         skill_name: string;

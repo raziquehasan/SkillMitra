@@ -155,6 +155,10 @@ async def process_resume(
         resume.processed_at = datetime.now(timezone.utc)
         resume.extracted_text = result.get("extracted_text")
         db.commit()
+        db.refresh(resume)  # Ensure we have the latest DB state
+        
+        # Log for debugging
+        print(f"Resume {resume.id} processed successfully. Status: {resume.processing_status}")
         
         return ResumeProcessingResponse(
             resume_id=resume.id,
@@ -167,10 +171,14 @@ async def process_resume(
         )
         
     except Exception as e:
+        # Log the actual error for debugging
+        print(f"Resume processing failed for {resume.id}: {str(e)}")
+        
         # Update status to failed
         resume.processing_status = "failed"
         resume.processing_error = str(e)
         db.commit()
+        db.refresh(resume)  # Ensure we have the latest DB state
         
         return ResumeProcessingResponse(
             resume_id=resume.id,
@@ -178,8 +186,8 @@ async def process_resume(
             extracted_skills=[],
             extracted_education=[],
             extracted_experience=[],
-            processing_error=None,
-            message="We couldn't process this resume. You can continue by adding your skills manually."
+            processing_error=str(e),
+            message=f"Processing failed: {str(e)}. You can continue by adding your skills manually."
         )
 
 
@@ -209,10 +217,28 @@ async def get_resume_review(
     if not resume:
         raise HTTPException(status_code=status.HTTP_404, detail="Resume not found")
     
-    # Allow review even if processing status is not completed (for better UX)
-    # If processing failed or is pending, return empty data instead of error
-    if resume.processing_status != "completed":
-        # Return empty review data to allow manual skill entry
+    # Refresh to ensure we have the latest DB state
+    db.refresh(resume)
+    
+    # Log current status for debugging
+    print(f"Resume {resume.id} review request. Current status: {resume.processing_status}")
+    
+    # Return appropriate response based on processing status
+    if resume.processing_status == "completed":
+        # Parse extracted data (in real implementation, this would come from structured storage)
+        service = ResumeService(db)
+        review_data = service.get_review_data(resume)
+        
+        return ResumeReviewData(
+            resume_id=resume.id,
+            extracted_skills=review_data.get("extracted_skills", []),
+            extracted_education=review_data.get("extracted_education", []),
+            extracted_experience=review_data.get("extracted_experience", []),
+            candidate_id=profile.id
+        )
+    elif resume.processing_status == "failed":
+        # Return empty data for failed processing
+        print(f"Resume {resume.id} processing failed. Error: {resume.processing_error}")
         return ResumeReviewData(
             resume_id=resume.id,
             extracted_skills=[],
@@ -220,18 +246,16 @@ async def get_resume_review(
             extracted_experience=[],
             candidate_id=profile.id
         )
-    
-    # Parse extracted data (in real implementation, this would come from structured storage)
-    service = ResumeService(db)
-    review_data = service.get_review_data(resume)
-    
-    return ResumeReviewData(
-        resume_id=resume.id,
-        extracted_skills=review_data.get("extracted_skills", []),
-        extracted_education=review_data.get("extracted_education", []),
-        extracted_experience=review_data.get("extracted_experience", []),
-        candidate_id=profile.id
-    )
+    else:
+        # Processing or pending - return empty data to allow manual entry
+        print(f"Resume {resume.id} still in status: {resume.processing_status}")
+        return ResumeReviewData(
+            resume_id=resume.id,
+            extracted_skills=[],
+            extracted_education=[],
+            extracted_experience=[],
+            candidate_id=profile.id
+        )
 
 
 @router.post("/{resume_id}/confirm-skills", response_model=SkillConfirmationResponse)
@@ -259,7 +283,7 @@ async def confirm_skills(
         )
     )
     if not resume:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found")
+        raise HTTPException(status_code=status.HTTP_404, detail="Resume not found")
     
     try:
         service = ResumeService(db)

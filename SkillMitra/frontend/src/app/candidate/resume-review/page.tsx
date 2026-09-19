@@ -15,6 +15,7 @@ type ExtractedSkill = {
 
 type ResumeReviewData = {
   resume_id: string;
+  processing_status: string;
   extracted_skills: ExtractedSkill[];
   extracted_education: any[];
   extracted_experience: any[];
@@ -27,6 +28,7 @@ export default function ResumeReviewPage() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [reviewData, setReviewData] = useState<ResumeReviewData | null>(null);
+  const [processingState, setProcessingState] = useState<'completed' | 'failed' | 'pending' | 'processing'>('pending');
   
   // Skill selection state
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
@@ -49,6 +51,7 @@ export default function ResumeReviewPage() {
       
       const data = await api.resumeReview(resumeId);
       setReviewData(data);
+      setProcessingState(data.processing_status || 'pending');
       
       // Select all skills by default
       const allSkillIds = new Set(data.extracted_skills.map((s: ExtractedSkill) => s.skill_id));
@@ -157,6 +160,58 @@ export default function ResumeReviewPage() {
               className="flex-1 rounded bg-[#123b63] px-4 py-2 text-white hover:bg-[#0d2d4d]"
             >
               Go to Skills Page
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="flex-1 rounded border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show processing state message
+  if (processingState === 'processing') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="max-w-md rounded-lg bg-white p-6 shadow-md">
+          <div className="mb-4 flex justify-center">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-[#123b63]"></div>
+          </div>
+          <h2 className="mb-2 text-xl font-semibold text-gray-900">Processing Resume</h2>
+          <p className="mb-4 text-gray-600">Your resume is being analyzed. This may take a moment...</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full rounded border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+          >
+            Refresh Status
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show failed state message
+  if (processingState === 'failed') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="max-w-md rounded-lg bg-white p-6 shadow-md">
+          <div className="mb-4 text-yellow-600">
+            <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="mb-2 text-xl font-semibold text-gray-900">Processing Failed</h2>
+          <p className="mb-4 text-gray-600">We couldn't automatically extract skills from your resume. You can add them manually.</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => router.push('/candidate/skills')}
+              className="flex-1 rounded bg-[#123b63] px-4 py-2 text-white hover:bg-[#0d2d4d]"
+            >
+              Add Skills Manually
             </button>
             <button
               onClick={() => window.location.reload()}
