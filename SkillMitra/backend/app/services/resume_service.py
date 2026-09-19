@@ -32,16 +32,24 @@ class ResumeService:
         """
         try:
             # Step 1: Extract text from resume file
+            print(f"Resume {resume.id}: Starting text extraction...")
             extracted_text = self._extract_text(resume)
+            print(f"Resume {resume.id}: Text extracted. Length: {len(extracted_text)}")
             
             # Step 2: Extract skills from text
+            print(f"Resume {resume.id}: Starting skill extraction...")
             extracted_skills = self._extract_skills(extracted_text)
+            print(f"Resume {resume.id}: Skills extracted. Count: {len(extracted_skills)}")
             
             # Step 3: Extract education information
+            print(f"Resume {resume.id}: Starting education extraction...")
             extracted_education = self._extract_education(extracted_text)
+            print(f"Resume {resume.id}: Education extracted. Count: {len(extracted_education)}")
             
             # Step 4: Extract work experience
+            print(f"Resume {resume.id}: Starting experience extraction...")
             extracted_experience = self._extract_experience(extracted_text)
+            print(f"Resume {resume.id}: Experience extracted. Count: {len(extracted_experience)}")
             
             return {
                 "extracted_text": extracted_text,
@@ -51,6 +59,7 @@ class ResumeService:
             }
             
         except Exception as e:
+            print(f"Resume {resume.id}: Processing failed with error: {str(e)}")
             raise Exception(f"Resume processing failed: {str(e)}")
     
     def _extract_text(self, resume: CandidateResume) -> str:
@@ -287,7 +296,10 @@ class ResumeService:
         
         Returns dict with extracted information formatted for review.
         """
+        print(f"Resume {resume.id}: get_review_data called. extracted_text length: {len(resume.extracted_text) if resume.extracted_text else 0}")
+        
         if not resume.extracted_text:
+            print(f"Resume {resume.id}: No extracted_text available, returning empty data")
             return {
                 "extracted_skills": [],
                 "extracted_education": [],
@@ -296,9 +308,17 @@ class ResumeService:
         
         # Re-process or use stored extracted data
         # In production, this would come from structured storage
+        print(f"Resume {resume.id}: Re-extracting skills from stored text...")
         extracted_skills = self._extract_skills(resume.extracted_text)
+        print(f"Resume {resume.id}: Re-extracted skills. Count: {len(extracted_skills)}")
+        
+        print(f"Resume {resume.id}: Re-extracting education from stored text...")
         extracted_education = self._extract_education(resume.extracted_text)
+        print(f"Resume {resume.id}: Re-extracted education. Count: {len(extracted_education)}")
+        
+        print(f"Resume {resume.id}: Re-extracting experience from stored text...")
         extracted_experience = self._extract_experience(resume.extracted_text)
+        print(f"Resume {resume.id}: Re-extracted experience. Count: {len(extracted_experience)}")
         
         return {
             "extracted_skills": extracted_skills,
