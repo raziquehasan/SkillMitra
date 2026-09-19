@@ -439,11 +439,15 @@ def get_job_recommendations(
             "reason": "No skills in candidate profile. Add skills to get job recommendations."
         }
 
-    # Get job postings with their skills
+    # Get job postings with their skills, employer, and district
     job_postings = db.scalars(
         select(JobPosting)
         .where(JobPosting.status == "open")
-        .options(selectinload(JobPosting.job_posting_skills).selectinload(JobPostingSkill.skill))
+        .options(
+            selectinload(JobPosting.job_posting_skills).selectinload(JobPostingSkill.skill),
+            selectinload(JobPosting.employer),
+            selectinload(JobPosting.district)
+        )
     ).all()
 
     recommended_jobs = []
@@ -469,8 +473,8 @@ def get_job_recommendations(
             recommended_jobs.append({
                 "id": str(job.id),
                 "title": job.title,
-                "company_name": job.company_name or job.employer_name,
-                "district_name": job.district_name,
+                "company_name": job.employer.company_name if job.employer else "Unknown",
+                "district_name": job.district.name if job.district else "Unknown",
                 "skill_match_score": round(match_score),
                 "required_skills": required_skill_names[:5],  # Show top 5 skills
                 "job_url": job.job_url
