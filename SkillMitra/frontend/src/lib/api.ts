@@ -1261,9 +1261,7 @@ export const api = {
 
   resumeReview: (resumeId: string) => 
     apiFetch<{
-      id: string;
-      filename: string;
-      upload_date: string;
+      resume_id: string;
       extracted_skills: Array<{
         skill_id: string;
         skill_name: string;
@@ -1271,6 +1269,7 @@ export const api = {
       }>;
       extracted_education: any[];
       extracted_experience: any[];
+      candidate_id: string;
     }>(`/api/v1/candidates/resume/${resumeId}/review`),
 
   resumeConfirmSkills: (resumeId: string, data: {
