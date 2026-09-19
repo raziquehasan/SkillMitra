@@ -309,7 +309,8 @@ def get_training_recommendations(
     Uses skill gap analysis to find courses that address missing skills.
     """
     from app.models.career import Course, CourseSkill
-    from app.models.phase4 import CandidateSkill, CandidateProfile
+    from app.models.phase4 import CandidateSkill
+    from app.models.identity import CandidateProfile
     from app.models.skills import Skill
     from sqlalchemy import select, func
     from sqlalchemy.orm import selectinload
@@ -409,7 +410,8 @@ def get_job_recommendations(
     Matches candidate skills with job posting requirements.
     """
     from app.models.market import JobPosting, JobPostingSkill
-    from app.models.phase4 import CandidateSkill, CandidateProfile
+    from app.models.phase4 import CandidateSkill
+    from app.models.identity import CandidateProfile
     from app.models.skills import Skill
     from sqlalchemy import select, func
     from sqlalchemy.orm import selectinload

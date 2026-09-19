@@ -68,7 +68,7 @@ class CandidateService:
         - Resume (optional, tracked separately)
         """
         from app.models.phase4 import CandidateSkill
-        from app.models.resume import CandidateResume
+        from app.models.identity import CandidateResume
         
         score = 0
         max_score = 100
