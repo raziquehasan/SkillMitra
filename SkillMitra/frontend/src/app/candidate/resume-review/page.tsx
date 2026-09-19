@@ -14,12 +14,11 @@ type ExtractedSkill = {
 };
 
 type ResumeReviewData = {
-  id: string;
-  filename: string;
-  upload_date: string;
+  resume_id: string;
   extracted_skills: ExtractedSkill[];
   extracted_education: any[];
   extracted_experience: any[];
+  candidate_id: string;
 };
 
 export default function ResumeReviewPage() {
@@ -100,8 +99,8 @@ export default function ResumeReviewPage() {
         category: 'technical'
       }));
 
-      await api.resumeConfirmSkills(reviewData.id, {
-        resume_id: reviewData.id,
+      await api.resumeConfirmSkills(reviewData.resume_id, {
+        resume_id: reviewData.resume_id,
         confirmed_skills: confirmedSkillIds,
         rejected_skills: rejectedSkillIds,
         additional_skills: additionalSkills

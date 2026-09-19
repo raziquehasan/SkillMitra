@@ -209,10 +209,16 @@ async def get_resume_review(
     if not resume:
         raise HTTPException(status_code=status.HTTP_404, detail="Resume not found")
     
+    # Allow review even if processing status is not completed (for better UX)
+    # If processing failed or is pending, return empty data instead of error
     if resume.processing_status != "completed":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Resume processing not completed yet"
+        # Return empty review data to allow manual skill entry
+        return ResumeReviewData(
+            resume_id=resume.id,
+            extracted_skills=[],
+            extracted_education=[],
+            extracted_experience=[],
+            candidate_id=profile.id
         )
     
     # Parse extracted data (in real implementation, this would come from structured storage)
