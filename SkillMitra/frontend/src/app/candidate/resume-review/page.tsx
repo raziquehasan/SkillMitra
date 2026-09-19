@@ -53,8 +53,12 @@ export default function ResumeReviewPage() {
       setReviewData(data);
       setProcessingState((data.processing_status || 'pending') as 'processing' | 'completed' | 'failed' | 'pending');
       
-      // Select all skills by default
-      const allSkillIds = new Set(data.extracted_skills.map((s: ExtractedSkill) => s.skill_id));
+      // Select all skills by default — filter out any with null/missing skill_id
+      const allSkillIds = new Set(
+        data.extracted_skills
+          .filter((s: ExtractedSkill) => s.skill_id != null && s.skill_id !== '')
+          .map((s: ExtractedSkill) => s.skill_id)
+      );
       setSelectedSkills(allSkillIds as Set<string>);
       
     } catch (err) {
@@ -91,9 +95,12 @@ export default function ResumeReviewPage() {
     try {
       setProcessing(true);
       
-      const confirmedSkillIds = Array.from(selectedSkills);
+      // Filter out any null/invalid skill_ids before sending to backend
+      const confirmedSkillIds = Array.from(selectedSkills).filter(
+        (id): id is string => id != null && id !== ''
+      );
       const rejectedSkillIds = reviewData.extracted_skills
-        .filter(s => !selectedSkills.has(s.skill_id))
+        .filter(s => s.skill_id != null && s.skill_id !== '' && !selectedSkills.has(s.skill_id))
         .map(s => s.skill_id);
       
       const additionalSkills = manualSkills.map(skillName => ({
