@@ -32,6 +32,7 @@ class ResumeProcessingResponse(BaseModel):
 
 class SkillExtractionResult(BaseModel):
     """Result of skill extraction from resume."""
+    skill_id: uuid.UUID
     skill_name: str
     confidence: str  # "high", "medium", "low"
     category: str  # "technical", "soft", "certification"
