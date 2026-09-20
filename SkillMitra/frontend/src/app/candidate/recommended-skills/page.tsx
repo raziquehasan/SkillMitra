@@ -14,6 +14,7 @@ export default function RecommendedSkillsPage() {
   const [hasSkills, setHasSkills] = useState<boolean | null>(null);
   const [currentSkillsCount, setCurrentSkillsCount] = useState(0);
   const [recommendationReason, setRecommendationReason] = useState<string | null>(null);
+  const [skillGaps, setSkillGaps] = useState<any[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -33,6 +34,10 @@ export default function RecommendedSkillsPage() {
             setRecommendedSkills(recData.recommended_skills || []);
             setRecommendationReason(recData.reason || null);
           }
+          
+          // Load skill gaps for context
+          const gaps = await api.candidateSkillGaps().catch(() => []);
+          setSkillGaps(gaps);
         }
       } catch (err) {
         console.error("Failed to load skill data:", err);
@@ -304,14 +309,36 @@ export default function RecommendedSkillsPage() {
               ) : (
                 <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-500">
-                    ✓
+                    {recommendationReason?.includes('career interest') ? '🎯' : '✓'}
                   </div>
                   <h3 className="mt-4 font-semibold text-slate-700">
-                    No additional skills recommended
+                    {recommendationReason?.includes('career interest') 
+                      ? 'Add a career interest to receive skill recommendations' 
+                      : 'No additional skills recommended'}
                   </h3>
                   <p className="mt-1 text-xs text-slate-500">
-                    Your current skills align well with your target roles.
+                    {recommendationReason?.includes('career interest')
+                      ? `Set your career interests in your profile to get personalized skill recommendations.${skillGaps.length > 0 ? ` You currently have ${skillGaps.length} identified skill gap(s).` : ''}`
+                      : recommendationReason || 'Your current skills align well with your target roles.'}
                   </p>
+                  {recommendationReason?.includes('career interest') && (
+                    <div className="mt-4 flex justify-center gap-3">
+                      <Link
+                        href="/candidate/profile"
+                        className="rounded-lg bg-[#123b68] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0f3155]"
+                      >
+                        Set Career Interests
+                      </Link>
+                      {skillGaps.length > 0 && (
+                        <Link
+                          href="/candidate/skill-gap"
+                          className="rounded-lg border border-[#123b68] px-4 py-2 text-xs font-semibold text-[#123b68] hover:bg-blue-50"
+                        >
+                          View Skill Gaps
+                        </Link>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

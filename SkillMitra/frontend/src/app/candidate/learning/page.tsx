@@ -303,9 +303,9 @@ export default function MyLearningPage() {
 
                   <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
                     {activeEnrollments.length > 0 
-                      ? `You are actively developing skills through ${activeEnrollments.length} course(s). Continue your learning path to strengthen your job readiness.`
+                      ? `You are enrolled in ${activeEnrollments.length} course${activeEnrollments.length > 1 ? 's' : ''} addressing your current skill-development needs. ${activeEnrollments.length === 1 && activeEnrollments[0]?.course?.title ? `Focus on completing ${activeEnrollments[0].course.title} to strengthen your job readiness.` : 'Continue your learning path to strengthen your job readiness.'}`
                       : recommendedSkills.length > 0
-                      ? `Based on your profile, we recommend focusing on ${recommendedSkills.length} skill(s) to improve your job readiness.`
+                      ? `Based on your profile, we recommend focusing on ${recommendedSkills.length} skill${recommendedSkills.length > 1 ? 's' : ''} to improve your job readiness. ${recommendedSkills[0]?.skill_name ? `Start with ${recommendedSkills[0].skill_name} to address your highest-priority skill gap.` : ''}`
                       : "Add skills and set career interests to get personalized learning recommendations."}
                   </p>
                 </div>

@@ -564,7 +564,7 @@ export default function SkillGapPage() {
 
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
                     {skillGaps.length > 0 
-                      ? `Focus on ${skillGaps[0]?.proficiency_gaps?.[0]?.skill_id || "key skills"} to improve your match with target roles.`
+                      ? `Focus on ${skillGaps[0]?.proficiency_gaps?.[0]?.skill_name || "key skills"} to improve your match with target roles.`
                       : "Choose a target role above to analyze your skill gaps and get personalized recommendations."
                     }
                   </p>
