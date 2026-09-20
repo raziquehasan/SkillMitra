@@ -108,12 +108,17 @@ export default function TrainingCoursesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showRecommended, setShowRecommended] = useState(true);
+  const [hasSkills, setHasSkills] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         setError(null);
+        
+        // Check if user has skills
+        const skills = await api.candidateSkills().catch(() => []);
+        setHasSkills(skills.length > 0);
         
         // Load recommended courses based on skill gaps
         const recData = await api.candidateTrainingRecommendations().catch(() => null);
@@ -237,14 +242,14 @@ export default function TrainingCoursesPage() {
 
               <SummaryCard
                 label="Skill Coverage"
-                value="--"
-                description="Courses covering your skills"
+                value={hasSkills ? "Calculating..." : "--"}
+                description={hasSkills ? "Analyzing skill alignment" : "Add skills to calculate coverage"}
               />
 
               <SummaryCard
                 label="Industry Relevance"
-                value="--"
-                description="Aligned with industry demand"
+                value={hasSkills ? "Analyzing..." : "--"}
+                description={hasSkills ? "Checking demand alignment" : "Add skills to see relevance"}
               />
             </div>
 

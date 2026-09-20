@@ -17,6 +17,7 @@ export default function RecommendedJobsPage() {
   const [selectedJobRole, setSelectedJobRole] = useState<string | null>(null);
   const [jobRoles, setJobRoles] = useState<any[]>([]);
   const [hasSkills, setHasSkills] = useState<boolean | null>(null);
+  const [careerInterests, setCareerInterests] = useState<any[]>([]);
 
   useEffect(() => {
     const loadJobRoles = async () => {
@@ -36,6 +37,18 @@ export default function RecommendedJobsPage() {
       try {
         const skills = await api.candidateSkills();
         setHasSkills(skills.length > 0);
+        
+        // Load career interests for personalization
+        const profile = await api.candidateProfile().catch(() => null);
+        if (profile && profile.career_interests) {
+          setCareerInterests(profile.career_interests);
+          
+          // Auto-load recommendations for first career interest if available
+          if (profile.career_interests.length > 0) {
+            const firstInterest = profile.career_interests[0];
+            await loadRecommendationsForInterest(firstInterest.target_job_role_id);
+          }
+        }
         
         // Load skill-based job recommendations if user has skills
         if (skills.length > 0) {
@@ -59,6 +72,50 @@ export default function RecommendedJobsPage() {
     loadJobRoles();
     checkSkillsAndLoadRecommendations();
   }, []);
+
+  const loadRecommendationsForInterest = async (jobRoleId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Try job recommendations based on skills first
+      const jobRecData = await api.candidateJobRecommendations().catch(() => null);
+      
+      if (jobRecData && jobRecData.recommended_jobs && jobRecData.recommended_jobs.length > 0) {
+        setRecommendation({
+          demand: null,
+          required_skills: [],
+          recommended_courses: [],
+          recommended_jobs: jobRecData.recommended_jobs,
+          reason: jobRecData.reason
+        });
+        setSelectedJobRole(jobRoleId);
+        setLoading(false);
+        return;
+      }
+      
+      // Fallback to career recommendation if no skill-based recommendations
+      const response = await api.careerRecommendation({
+        job_role_id: jobRoleId,
+      });
+      
+      if (response.message && !response.demand) {
+        setError(response.message);
+        setRecommendation(null);
+      } else if (response.demand) {
+        setRecommendation(response);
+        setSelectedJobRole(jobRoleId);
+      } else {
+        setError("No valid recommendations available for this job role.");
+        setRecommendation(null);
+      }
+    } catch (err) {
+      console.error("Failed to load recommendations:", err);
+      setError("Unable to load recommendations. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadRecommendations = async (jobRoleId: string) => {
     try {
@@ -253,6 +310,17 @@ export default function RecommendedJobsPage() {
                   ))}
                 </div>
               )}
+              
+              <div className="mt-4 rounded-lg bg-amber-50 p-3 text-xs text-amber-700">
+                <p className="font-semibold">Tip:</p>
+                <p className="mt-1">Add a career interest in your profile to receive personalized job recommendations based on your profile.</p>
+                <Link
+                  href="/candidate/profile"
+                  className="mt-2 inline-block font-semibold text-amber-800 hover:underline"
+                >
+                  Set Career Interest →
+                </Link>
+              </div>
             </div>
 
             {/* No Skills Empty State */}

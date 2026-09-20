@@ -637,7 +637,7 @@ export default function CandidateProfilePage() {
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="text-sm font-semibold text-slate-800">
-                            {skill.skill_name || skill.skill_id || 'Skill'}
+                            {skill.skill_name || 'Skill'}
                           </p>
                           <p className="mt-1 text-xs text-slate-500">
                             {skill.verification_status || 'Unverified'}
@@ -689,7 +689,7 @@ export default function CandidateProfilePage() {
 
                     <h2 className="mt-1 text-lg font-bold text-[#123b68]">
                       {skills.length > 0 
-                        ? `Your profile includes ${skills.length} verified skills` 
+                        ? `Your profile includes ${skills.length} skill${skills.length > 1 ? 's' : ''}` 
                         : 'Add skills to enable career intelligence'}
                     </h2>
 
