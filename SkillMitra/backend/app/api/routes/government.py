@@ -248,15 +248,22 @@ def get_government_dashboard(
 ):
     """
     Comprehensive government dashboard with KPIs and intelligence data.
-    
+
     Filters:
     - district_id: Filter by specific district (null = all districts)
     - sector_id: Filter by specific sector (null = all sectors)
     - job_role_id: Filter by specific job role (null = all job roles)
     - start_date: Filter demand by start date (null = no date filter)
     - end_date: Filter demand by end date (null = no date filter)
-    
+
     All filters are applied at the Supabase/PostgreSQL level.
+    """
+    try:
+        # Build filters using existing filter library
+        district_filter = build_district_filter(district_id)
+        sector_filter = build_sector_filter(sector_id)
+        job_role_filter = build_job_role_filter(job_role_id)
+        date_filter = build_date_filter(start_date, end_date)
     """
     
     from sqlalchemy import text
