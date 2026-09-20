@@ -132,7 +132,7 @@ export default function IndustryDemandPage() {
                 </p>
 
                 <p className="font-semibold text-[#123b68]">
-                  Industrial Intelligence Dashboard
+                  Industry Dashboard
                 </p>
               </div>
 
@@ -145,7 +145,7 @@ export default function IndustryDemandPage() {
             {/* PAGE HEADER */}
             <div className="mb-7">
               <p className="text-xs font-semibold text-slate-400">
-                SkillMitra / Labour Market Intelligence
+                SkillMitra / Industry Dashboard
               </p>
 
               <h1 className="mt-1 text-2xl font-bold text-slate-900 md:text-3xl">
