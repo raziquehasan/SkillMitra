@@ -125,6 +125,7 @@ class CandidateSkillResponse(CandidateSkillCreate):
 
 class SkillGapItem(BaseModel):
     skill_id: str
+    skill_name: str | None = None
     required_proficiency: str | None = None
     candidate_proficiency: str | None = None
     importance: str | None = None
