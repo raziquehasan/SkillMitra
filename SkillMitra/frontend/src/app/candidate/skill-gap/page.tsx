@@ -361,7 +361,7 @@ export default function SkillGapPage() {
                             <td className="px-5 py-4">
                               <div>
                                 <p className="font-semibold text-slate-800">
-                                  {pg.skill_name || pg.skill_id}
+                                  {pg.skill_name}
                                 </p>
                               </div>
                             </td>
@@ -412,7 +412,7 @@ export default function SkillGapPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <h3 className="font-semibold text-slate-800">
-                            {pg.skill_name || pg.skill_id}
+                            {pg.skill_name}
                           </h3>
 
                           <p className="mt-1 text-xs text-slate-500">

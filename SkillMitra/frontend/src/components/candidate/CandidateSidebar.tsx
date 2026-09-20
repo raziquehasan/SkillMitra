@@ -9,6 +9,11 @@ import { api } from "@/lib/api";
 
 const navigation = [
   {
+    label: "Career Recommendation",
+    href: "/candidate/career-recommendation",
+    icon: "✦",
+  },
+  {
     label: "My Skills",
     href: "/candidate/skills",
     icon: "◆",
@@ -47,11 +52,6 @@ const navigation = [
     label: "My Applications",
     href: "/candidate/applications",
     icon: "▣",
-  },
-  {
-    label: "Career Recommendation",
-    href: "/candidate/career-recommendation",
-    icon: "✦",
   },
   {
     label: "Profile",

@@ -127,6 +127,28 @@ class CandidateService:
         if not roles_to_check:
             return []
 
+        # Load all skills that might be referenced to ensure name resolution
+        skill_ids = set()
+        for rid in roles_to_check:
+            role = self.db.scalar(
+                select(JobRole)
+                .where(JobRole.id == rid)
+                .options(selectinload(JobRole.job_role_skills))
+            )
+            if role:
+                skill_ids.update(jrs.skill_id for jrs in role.job_role_skills)
+        
+        # Also include candidate skill IDs
+        skill_ids.update(cs.skill_id for cs in candidate_skills)
+        
+        # Load skill names for all referenced skills
+        skills_by_id = {}
+        if skill_ids:
+            skill_rows = self.db.scalars(
+                select(Skill).where(Skill.id.in_(skill_ids))
+            ).all()
+            skills_by_id = {s.id: s for s in skill_rows}
+
         results = []
         for rid in roles_to_check:
             role = self.db.scalar(
@@ -148,7 +170,15 @@ class CandidateService:
             proficiency_gaps = []
             for requirement in role.job_role_skills:
                 candidate_skill = candidate_by_skill.get(requirement.skill_id)
-                skill_name = requirement.skill.name if requirement.skill else str(requirement.skill_id)
+                # Try to get skill name from loaded relationship first, then from pre-loaded skills
+                skill_name = None
+                if requirement.skill:
+                    skill_name = requirement.skill.name
+                elif requirement.skill_id in skills_by_id:
+                    skill_name = skills_by_id[requirement.skill_id].name
+                else:
+                    skill_name = str(requirement.skill_id)
+                
                 if candidate_skill is None:
                     missing.append(skill_name)
                     proficiency_gaps.append({

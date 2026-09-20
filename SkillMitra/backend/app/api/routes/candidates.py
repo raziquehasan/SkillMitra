@@ -400,19 +400,20 @@ def get_training_recommendations(
 
 
 @router.get("/me/job-recommendations", response_model=dict,
-            summary="Get job recommendations based on candidate skills")
+            summary="Get job recommendations based on candidate skills and industry demand")
 def get_job_recommendations(
     current_user: User = Depends(require_roles("candidate")),
     db: Session = Depends(get_db),
 ):
     """
-    Returns job recommendations based on candidate's skills.
-    Matches candidate skills with job posting requirements.
+    Returns job recommendations based on candidate's skills and industry demand.
+    Matches candidate skills with job posting requirements and prioritizes based on demand.
     """
     from app.models.market import JobPosting, JobPostingSkill
     from app.models.phase4 import CandidateSkill
     from app.models.identity import CandidateProfile
     from app.models.skills import Skill
+    from app.models.demand import IndustryDemand
     from sqlalchemy import select, func
     from sqlalchemy.orm import selectinload
 
@@ -424,6 +425,7 @@ def get_job_recommendations(
     if not profile:
         return {
             "recommended_jobs": [],
+            "high_demand_jobs": [],
             "reason": "Candidate profile not found"
         }
 
@@ -436,6 +438,7 @@ def get_job_recommendations(
     if not candidate_skill_ids:
         return {
             "recommended_jobs": [],
+            "high_demand_jobs": [],
             "reason": "No skills in candidate profile. Add skills to get job recommendations."
         }
 
@@ -446,11 +449,47 @@ def get_job_recommendations(
         .options(
             selectinload(JobPosting.job_posting_skills).selectinload(JobPostingSkill.skill),
             selectinload(JobPosting.employer),
-            selectinload(JobPosting.district)
+            selectinload(JobPosting.district),
+            selectinload(JobPosting.job_role)
         )
     ).all()
 
+    # Get industry demand data for job roles
+    job_role_ids = {job.job_role_id for job in job_postings if job.job_role_id}
+    demand_by_role = {}
+    if job_role_ids:
+        demand_rows = db.scalars(
+            select(IndustryDemand).where(IndustryDemand.job_role_id.in_(job_role_ids))
+        ).all()
+        for demand in demand_rows:
+            if demand.job_role_id not in demand_by_role:
+                demand_by_role[demand.job_role_id] = {
+                    "demand_score": demand.aggregate_demand_score or 0,
+                    "demand_signals_count": 0,
+                    "demand_trend": "Low"
+                }
+            # Update with highest demand score and count signals
+            demand_by_role[demand.job_role_id]["demand_score"] = max(
+                demand_by_role[demand.job_role_id]["demand_score"],
+                demand.aggregate_demand_score or 0
+            )
+            demand_by_role[demand.job_role_id]["demand_signals_count"] += 1
+
+    # Classify demand trends
+    for role_id in demand_by_role:
+        score = demand_by_role[role_id]["demand_score"]
+        if score >= 7.5:
+            demand_by_role[role_id]["demand_trend"] = "High"
+        elif score >= 5.0:
+            demand_by_role[role_id]["demand_trend"] = "Growing"
+        elif score >= 2.5:
+            demand_by_role[role_id]["demand_trend"] = "Moderate"
+        else:
+            demand_by_role[role_id]["demand_trend"] = "Low"
+
     recommended_jobs = []
+    high_demand_jobs = []
+    
     for job in job_postings:
         # Get skill IDs required for this job
         job_skill_ids = {jps.skill_id for jps in job.job_posting_skills if jps.skill}
@@ -466,24 +505,50 @@ def get_job_recommendations(
         if match_score >= 50:
             # Get skill names for required skills
             required_skill_names = []
+            missing_skill_names = []
             for jps in job.job_posting_skills:
                 if jps.skill:
                     required_skill_names.append(jps.skill.name)
+                    if jps.skill_id not in candidate_skill_ids:
+                        missing_skill_names.append(jps.skill.name)
             
-            recommended_jobs.append({
+            # Get demand information
+            demand_info = demand_by_role.get(job.job_role_id, {
+                "demand_score": 0,
+                "demand_signals_count": 0,
+                "demand_trend": "Low"
+            })
+            
+            # Calculate recommendation score (skill match + demand)
+            recommendation_score = match_score + (demand_info["demand_score"] * 5)
+            
+            job_data = {
                 "id": str(job.id),
                 "title": job.title,
                 "company_name": job.employer.company_name if job.employer else "Unknown",
                 "district_name": job.district.name if job.district else "Unknown",
                 "skill_match_score": round(match_score),
                 "required_skills": required_skill_names[:5],  # Show top 5 skills
-                "job_url": job.job_url
-            })
+                "missing_skills": missing_skill_names[:3],  # Show top 3 missing skills
+                "job_url": job.job_url,
+                "demand_trend": demand_info["demand_trend"],
+                "demand_signals_count": demand_info["demand_signals_count"],
+                "recommendation_score": round(recommendation_score, 1),
+                "job_role_title": job.job_role.title if job.job_role else job.title
+            }
+            
+            recommended_jobs.append(job_data)
+            
+            # Also add to high-demand jobs if demand is high or growing
+            if demand_info["demand_trend"] in ["High", "Growing"]:
+                high_demand_jobs.append(job_data)
 
-    # Sort by match score
-    recommended_jobs.sort(key=lambda x: x["skill_match_score"], reverse=True)
+    # Sort by recommendation score (skill match + demand)
+    recommended_jobs.sort(key=lambda x: x["recommendation_score"], reverse=True)
+    high_demand_jobs.sort(key=lambda x: x["recommendation_score"], reverse=True)
 
     return {
         "recommended_jobs": recommended_jobs[:10],  # Return top 10 recommendations
-        "reason": f"Found {len(recommended_jobs)} job opportunities matching your skills"
+        "high_demand_jobs": high_demand_jobs[:5],  # Return top 5 high-demand jobs
+        "reason": f"Found {len(recommended_jobs)} job opportunities matching your skills, including {len(high_demand_jobs)} high-demand opportunities"
     }
