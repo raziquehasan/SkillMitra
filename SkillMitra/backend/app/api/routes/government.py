@@ -248,14 +248,14 @@ def get_government_dashboard(
 ):
     """
     Comprehensive government dashboard with KPIs and intelligence data.
-
+    
     Filters:
     - district_id: Filter by specific district (null = all districts)
     - sector_id: Filter by specific sector (null = all sectors)
     - job_role_id: Filter by specific job role (null = all job roles)
     - start_date: Filter demand by start date (null = no date filter)
     - end_date: Filter demand by end date (null = no date filter)
-
+    
     All filters are applied at the Supabase/PostgreSQL level.
     """
     
