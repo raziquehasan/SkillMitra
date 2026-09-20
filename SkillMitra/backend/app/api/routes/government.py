@@ -261,6 +261,9 @@ def get_government_dashboard(
     try:
         from sqlalchemy import text
         
+        # Initialize variables that will be used in response
+        placement_outcomes_count = 0
+        
         # Create filter object
         filters = GovernmentFilterParams(
             district_id=district_id,
@@ -514,7 +517,6 @@ def get_government_dashboard(
         
         # Get course alignment data with optimized queries to avoid N+1 problem
         course_alignment = []
-        placement_outcomes_count = 0  # Initialize before course alignment in case of error
         
         from sqlalchemy.orm import selectinload
         
