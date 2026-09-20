@@ -28,10 +28,15 @@ type DemandSkill = {
 };
 
 type SkillGap = {
-  skill: string;
-  required: number;
-  supply: number;
-  gap: number;
+  skill_id: string;
+  skill_name: string;
+  required: boolean;
+  importance: string | null;
+  required_proficiency: string | null;
+  demand_score: number | null;
+  demand_trend: string | null;
+  candidate_supply: number;
+  gap_status: string;
 };
 
 const emptyDashboard: DashboardData = {
@@ -53,25 +58,25 @@ function SkillGapPageContent() {
   const [districts, setDistricts] = useState<District[]>([]);
   const [sectors, setSectors] = useState<IndustrySector[]>([]);
   const [jobs, setJobs] = useState<JobPosting[]>([]);
+  const [jobRoles, setJobRoles] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(true);
 
-  const [selectedDistrict, setSelectedDistrict] = useState("Pune");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedSector, setSelectedSector] =
-    useState("EV / Automotive");
+    useState("");
   const [selectedRole, setSelectedRole] =
-    useState("EV Technician");
+    useState("");
 
   const [dashboard, setDashboard] =
     useState<DashboardData>(emptyDashboard);
 
-  const [demandSkills] = useState<DemandSkill[]>([]);
-  const [skillGaps] = useState<SkillGap[]>([]);
+  const [skillGaps, setSkillGaps] = useState<SkillGap[]>([]);
 
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const [districtRes, sectorRes, jobRes] =
+        const [districtRes, sectorRes, jobRes, jobRolesRes] =
           await Promise.all([
             api.districts().catch(() => []),
             api.sectors().catch(() => []),
@@ -79,11 +84,13 @@ function SkillGapPageContent() {
               items: [],
               total: 0,
             })),
+            api.jobRoles().catch(() => []),
           ]);
 
         setDistricts(districtRes);
         setSectors(sectorRes);
         setJobs(jobRes.items ?? []);
+        setJobRoles(jobRolesRes);
 
         setDashboard({
           activeJobs: jobRes.items?.length ?? 0,
@@ -104,6 +111,52 @@ function SkillGapPageContent() {
 
     loadDashboard();
   }, []);
+
+  useEffect(() => {
+    async function loadSkillGapData() {
+      if (!selectedRole) return;
+      
+      try {
+        setLoading(true);
+        
+        // Build params for skill gaps API
+        const params: any = {};
+        if (selectedDistrict) {
+          const district = districts.find(d => d.name === selectedDistrict);
+          if (district) params.district_id = district.id;
+        }
+        if (selectedSector) {
+          const sector = sectors.find(s => s.name === selectedSector);
+          if (sector) params.sector_id = sector.id;
+        }
+        if (selectedRole) {
+          const role = jobRoles.find(r => r.title === selectedRole);
+          if (role) params.job_role_id = role.id;
+        }
+        
+        // Call the new skill gaps endpoint
+        const skillGapsData = await api.employerSkillGaps(params);
+        
+        setSkillGaps(skillGapsData);
+        
+        // Update dashboard KPIs from real data
+        setDashboard({
+          activeJobs: skillGapsData.length, // Use skill count as proxy for now
+          applications: 0,
+          highDemandSkills: skillGapsData.filter(g => g.demand_score && g.demand_score > 50).length,
+          criticalSkillGaps: skillGapsData.filter(g => g.gap_status === "Critical Gap").length,
+          matchRate: 0,
+        });
+      } catch (error) {
+        console.error("Failed to load skill gap data:", error);
+        setSkillGaps([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadSkillGapData();
+  }, [selectedDistrict, selectedSector, selectedRole, districts, sectors, jobRoles]);
 
   async function handleLogout() {
     await logout();
@@ -144,7 +197,7 @@ function SkillGapPageContent() {
           {/* RIGHT */}
           <div className="flex items-center gap-4">
             <div className="hidden font-semibold md:block">
-              SkillMitra | Employer Intelligence Portal
+              SkillMitra | Industry Portal
             </div>
 
             <button
@@ -305,7 +358,7 @@ function SkillGapPageContent() {
                   value={selectedDistrict}
                   onChange={setSelectedDistrict}
                   options={[
-                    "Pune",
+                    "",
                     ...districts
                       .slice(0, 10)
                       .map(
@@ -323,7 +376,7 @@ function SkillGapPageContent() {
                   value={selectedSector}
                   onChange={setSelectedSector}
                   options={[
-                    "EV / Automotive",
+                    "",
                     ...sectors
                       .slice(0, 10)
                       .map(
@@ -341,10 +394,15 @@ function SkillGapPageContent() {
                   value={selectedRole}
                   onChange={setSelectedRole}
                   options={[
-                    "EV Technician",
-                    "Software Developer",
-                    "Data Analyst",
-                    "UI/UX Designer",
+                    "",
+                    ...jobRoles
+                      .slice(0, 10)
+                      .map(
+                        (r: any) =>
+                          r.title ||
+                          ""
+                      )
+                      .filter(Boolean),
                   ]}
                 />
               </div>
@@ -386,8 +444,8 @@ function SkillGapPageContent() {
                       </p>
 
                       <p className="mt-1 text-xl font-bold text-[#123b68]">
-                        {jobs.length > 0
-                          ? jobs.length
+                        {dashboard.activeJobs > 0
+                          ? dashboard.activeJobs
                           : "—"}
                       </p>
                     </div>
@@ -396,17 +454,17 @@ function SkillGapPageContent() {
                   <div className="mt-5 grid gap-4 sm:grid-cols-3">
                     <GapStat
                       title="Required Skills"
-                      value="—"
+                      value={skillGaps.length > 0 ? String(skillGaps.length) : "—"}
                     />
 
                     <GapStat
                       title="Available Skills"
-                      value="—"
+                      value={skillGaps.length > 0 ? String(skillGaps.filter(g => g.candidate_supply > 0).length) : "—"}
                     />
 
                     <GapStat
-                      title="Overall Gap"
-                      value="—"
+                      title="Critical Gaps"
+                      value={skillGaps.length > 0 ? String(skillGaps.filter(g => g.gap_status === "Critical Gap").length) : "—"}
                     />
                   </div>
                 </div>
@@ -417,9 +475,9 @@ function SkillGapPageContent() {
                   </h3>
 
                   <p className="mt-2 text-sm leading-6 text-slate-500">
-                    Skill gaps are identified by comparing the
-                    skills required by employers with the skills
-                    available across candidate profiles.
+                    {selectedRole 
+                      ? `Skill gaps for ${selectedRole} are identified by comparing required skills with available candidate supply.`
+                      : "Select a job role to see skill gap analysis."}
                   </p>
                 </div>
               </DashboardCard>
@@ -439,10 +497,39 @@ function SkillGapPageContent() {
                 ) : (
                   <div className="space-y-3">
                     {skillGaps.map((gap) => (
-                      <SkillGapRow
-                        key={gap.skill}
-                        gap={gap}
-                      />
+                      <div
+                        key={gap.skill_id}
+                        className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-900">
+                            {gap.skill_name}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {gap.importance && `Importance: ${gap.importance}`}
+                            {gap.required_proficiency && ` • Proficiency: ${gap.required_proficiency}`}
+                          </p>
+                        </div>
+                        <div className="ml-4 text-right">
+                          <p className="text-xs text-slate-500">
+                            Supply
+                          </p>
+                          <p className="text-lg font-bold text-slate-900">
+                            {gap.candidate_supply}
+                          </p>
+                        </div>
+                        <div className="ml-4">
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                            gap.gap_status === "Critical Gap" 
+                              ? "bg-red-50 text-red-600" 
+                              : gap.gap_status === "Limited Supply"
+                              ? "bg-orange-50 text-orange-600"
+                              : "bg-green-50 text-green-600"
+                          }`}>
+                            {gap.gap_status}
+                          </span>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -495,7 +582,15 @@ function SkillGapPageContent() {
                           </th>
 
                           <th className="pb-3">
-                            Required
+                            Importance
+                          </th>
+
+                          <th className="pb-3">
+                            Required Proficiency
+                          </th>
+
+                          <th className="pb-3">
+                            Demand Score
                           </th>
 
                           <th className="pb-3">
@@ -503,7 +598,7 @@ function SkillGapPageContent() {
                           </th>
 
                           <th className="pb-3">
-                            Gap
+                            Gap Status
                           </th>
                         </tr>
                       </thead>
@@ -511,24 +606,38 @@ function SkillGapPageContent() {
                       <tbody>
                         {skillGaps.map((gap) => (
                           <tr
-                            key={gap.skill}
+                            key={gap.skill_id}
                             className="border-b border-slate-100"
                           >
                             <td className="py-3 font-medium text-slate-800">
-                              {gap.skill}
+                              {gap.skill_name}
                             </td>
 
                             <td>
-                              {gap.required}
+                              {gap.importance || "—"}
                             </td>
 
                             <td>
-                              {gap.supply}
+                              {gap.required_proficiency || "—"}
                             </td>
 
                             <td>
-                              <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600">
-                                {gap.gap}
+                              {gap.demand_score !== null ? gap.demand_score.toFixed(1) : "—"}
+                            </td>
+
+                            <td>
+                              {gap.candidate_supply}
+                            </td>
+
+                            <td>
+                              <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                                gap.gap_status === "Critical Gap" 
+                                  ? "bg-red-50 text-red-600" 
+                                  : gap.gap_status === "Limited Supply"
+                                  ? "bg-orange-50 text-orange-600"
+                                  : "bg-green-50 text-green-600"
+                              }`}>
+                                {gap.gap_status}
                               </span>
                             </td>
                           </tr>
@@ -541,117 +650,50 @@ function SkillGapPageContent() {
             </div>
 
             {/* =====================================================
-                TOP REQUIRED SKILLS
-            ====================================================== */}
-
-            <div className="mt-6 grid gap-6 xl:grid-cols-2">
-              <DashboardCard>
-                <CardHeader
-                  title="Top Required Skills"
-                  subtitle="Skills currently required by industry"
-                />
-
-                {demandSkills.length === 0 ? (
-                  <EmptyState
-                    text="Required skill demand will appear here from the labour-market intelligence API."
-                  />
-                ) : (
-                  <div className="space-y-4">
-                    {demandSkills.map((skill) => (
-                      <div
-                        key={skill.skill}
-                        className="flex items-center gap-3"
-                      >
-                        <div className="w-32 text-sm font-medium">
-                          {skill.skill}
-                        </div>
-
-                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                          <div
-                            className="h-full rounded-full bg-[#123b68]"
-                            style={{
-                              width: `${skill.score}%`,
-                            }}
-                          />
-                        </div>
-
-                        <span className="w-20 text-right text-xs text-slate-500">
-                          {skill.proficiency}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <button className="mt-5 w-full rounded-lg border border-blue-200 py-2.5 text-sm font-semibold text-[#123b68] transition hover:bg-blue-50">
-                  View Demand Analysis →
-                </button>
-              </DashboardCard>
-
-              {/* CANDIDATE SUPPLY */}
-
-              <DashboardCard>
-                <CardHeader
-                  title="Candidate Skill Supply"
-                  subtitle={`Available talent in ${selectedDistrict}`}
-                />
-
-                <div className="grid grid-cols-3 gap-3">
-                  <MiniStat
-                    title="Candidates"
-                    value="—"
-                  />
-
-                  <MiniStat
-                    title="Job Ready"
-                    value="—"
-                  />
-
-                  <MiniStat
-                    title="Need Improvement"
-                    value="—"
-                  />
-                </div>
-
-                <div className="mt-6">
-                  <h3 className="font-semibold text-slate-900">
-                    Available Skills
-                  </h3>
-
-                  <EmptyState
-                    text="Candidate skill distribution will come from the candidate intelligence API."
-                  />
-                </div>
-              </DashboardCard>
-            </div>
-
-            {/* =====================================================
-                TRAINING RECOMMENDATIONS
+                CANDIDATE SUPPLY SUMMARY
             ====================================================== */}
 
             <div className="mt-6">
               <DashboardCard>
                 <CardHeader
-                  title="Training Recommendations"
-                  subtitle="Convert identified skill gaps into training requirements"
+                  title="Candidate Skill Supply Summary"
+                  subtitle={`Available talent in ${selectedDistrict || "all districts"}`}
                 />
 
-                <div className="grid gap-4 md:grid-cols-3">
-                  <TrainingCard
-                    title="Recommended Courses"
-                    description="Courses aligned with identified hiring skill gaps."
+                {skillGaps.length === 0 ? (
+                  <EmptyState
+                    text="Candidate supply data will appear here once a job role is selected."
                   />
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-3">
+                      <MiniStat
+                        title="Total Candidates"
+                        value={String(skillGaps.reduce((sum, g) => sum + g.candidate_supply, 0))}
+                      />
 
-                  <TrainingCard
-                    title="Training Providers"
-                    description="Find training providers who can address required skills."
-                  />
+                      <MiniStat
+                        title="Skills with Supply"
+                        value={String(skillGaps.filter(g => g.candidate_supply > 0).length)}
+                      />
 
-                  <TrainingCard
-                    title="Training Requirements"
-                    description="Signal emerging industry skill requirements."
-                  />
-                </div>
+                      <MiniStat
+                        title="Critical Gaps"
+                        value={String(skillGaps.filter(g => g.gap_status === "Critical Gap").length)}
+                      />
+                    </div>
+
+                    <div className="mt-6">
+                      <h3 className="font-semibold text-slate-900">
+                        Available Skills Summary
+                      </h3>
+
+                      <p className="mt-2 text-sm text-slate-500">
+                        {skillGaps.filter(g => g.candidate_supply > 0).length} of {skillGaps.length} required skills have candidate supply available.
+                      </p>
+                    </div>
+                  </>
+                )}
               </DashboardCard>
             </div>
 
@@ -888,75 +930,6 @@ function GapStat({
   );
 }
 
-function SkillGapRow({
-  gap,
-}: {
-  gap: SkillGap;
-}) {
-  return (
-    <div className="rounded-lg border border-slate-200 p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="font-semibold text-slate-900">
-            {gap.skill}
-          </p>
-
-          <p className="mt-1 text-xs text-slate-500">
-            Required: {gap.required} · Supply: {gap.supply}
-          </p>
-        </div>
-
-        <span className="w-fit rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600">
-          Gap: {gap.gap}
-        </span>
-      </div>
-
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-        <div
-          className="h-full rounded-full bg-orange-500"
-          style={{
-            width: `${
-              gap.required > 0
-                ? Math.min(
-                    100,
-                    (gap.gap / gap.required) * 100
-                  )
-                : 0
-            }%`,
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function TrainingCard({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="rounded-lg border border-slate-200 p-4">
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-        ★
-      </div>
-
-      <h3 className="mt-3 font-semibold text-slate-900">
-        {title}
-      </h3>
-
-      <p className="mt-1 text-xs leading-5 text-slate-500">
-        {description}
-      </p>
-
-      <button className="mt-4 text-xs font-semibold text-blue-600">
-        Explore →
-      </button>
-    </div>
-  );
-}
 
 function FeedbackQuestion({
   text,
