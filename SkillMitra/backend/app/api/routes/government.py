@@ -258,13 +258,6 @@ def get_government_dashboard(
 
     All filters are applied at the Supabase/PostgreSQL level.
     """
-    try:
-        # Build filters using existing filter library
-        district_filter = build_district_filter(district_id)
-        sector_filter = build_sector_filter(sector_id)
-        job_role_filter = build_job_role_filter(job_role_id)
-        date_filter = build_date_filter(start_date, end_date)
-    """
     
     from sqlalchemy import text
     
