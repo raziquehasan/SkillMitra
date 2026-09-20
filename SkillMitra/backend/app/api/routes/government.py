@@ -769,6 +769,7 @@ def get_government_dashboard(
             "training_capacity": training_capacity,
             "course_alignment": course_alignment,
             "employer_demand": employer_demand,
+            "placement_outcomes_count": placement_outcomes_count,
             "district_training_plan": None,  # Will be implemented separately
         }
         
