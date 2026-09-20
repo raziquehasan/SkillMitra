@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api, type District, type IndustrySector, type AuthUser } from '@/lib/api';
 
-type UserRole = '' | 'candidate' | 'employer' | 'training_provider' | 'government_official';
+type UserRole = '' | 'candidate' | 'employer' | 'government_official';
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -47,12 +47,6 @@ export default function RegisterPage() {
   const [organizationType, setOrganizationType] = useState('');
   const [website, setWebsite] = useState('');
   const [sizeCategory, setSizeCategory] = useState('');
-
-  // Training Provider-specific fields
-  const [instituteName, setInstituteName] = useState('');
-  const [providerType, setProviderType] = useState('');
-  const [providerDistrictId, setProviderDistrictId] = useState('');
-  const [registrationNumber, setRegistrationNumber] = useState('');
 
   // Government Official-specific fields
   const [department, setDepartment] = useState('');
@@ -185,22 +179,6 @@ export default function RegisterPage() {
             organization_type: organizationType || undefined,
             website: website || undefined,
             size_category: sizeCategory || undefined,
-          });
-          break;
-          
-        case 'training_provider':
-          if (!providerDistrictId) {
-            throw new Error('District is required for training providers');
-          }
-          result = await api.registerTrainingProvider({
-            full_name: fullName,
-            email,
-            password,
-            phone: phone || undefined,
-            institute_name: instituteName,
-            provider_type: providerType || undefined,
-            district_id: providerDistrictId,
-            registration_number: registrationNumber || undefined,
           });
           break;
           
@@ -426,8 +404,8 @@ export default function RegisterPage() {
                   I am registering as
                   <span className="ml-1 text-red-600">*</span>
                 </label>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {(['candidate', 'employer', 'training_provider', 'government_official'] as UserRole[]).map((role) => (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {(['candidate', 'employer', 'government_official'] as UserRole[]).map((role) => (
                     <label
                       key={role}
                       className={`flex cursor-pointer items-center gap-2 rounded border p-3 text-sm transition ${
@@ -835,89 +813,6 @@ export default function RegisterPage() {
                         </option>
                       ))}
                     </select>
-                  </FormField>
-                </>
-              )}
-
-              {selectedRole === 'training_provider' && (
-                <>
-                  <FormField
-                    label="Institute Name"
-                    htmlFor="instituteName"
-                    icon={<UserIcon />}
-                  >
-                    <input
-                      id="instituteName"
-                      name="instituteName"
-                      type="text"
-                      value={instituteName}
-                      onChange={(e) => setInstituteName(e.target.value)}
-                      placeholder="Enter institute name"
-                      required
-                      disabled={loading}
-                      className={`${inputClass} disabled:bg-gray-100 disabled:cursor-not-allowed`}
-                    />
-                  </FormField>
-
-                  <FormField
-                    label="Provider Type"
-                    htmlFor="providerType"
-                    icon={<UserIcon />}
-                  >
-                    <select
-                      id="providerType"
-                      name="providerType"
-                      value={providerType}
-                      onChange={(e) => setProviderType(e.target.value)}
-                      disabled={loading}
-                      className={`${inputClass} disabled:bg-gray-100 disabled:cursor-not-allowed`}
-                    >
-                      <option value="">Select provider type</option>
-                      <option value="government">Government</option>
-                      <option value="private">Private</option>
-                      <option value="ngo">NGO</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </FormField>
-
-                  <FormField
-                    label="District"
-                    htmlFor="providerDistrictId"
-                    icon={<UserIcon />}
-                  >
-                    <select
-                      id="providerDistrictId"
-                      name="providerDistrictId"
-                      value={providerDistrictId}
-                      onChange={(e) => setProviderDistrictId(e.target.value)}
-                      required
-                      disabled={loading || dataLoading}
-                      className={`${inputClass} disabled:bg-gray-100 disabled:cursor-not-allowed`}
-                    >
-                      <option value="">Select district</option>
-                      {districts.map((district) => (
-                        <option key={district.id} value={district.id}>
-                          {district.name}
-                        </option>
-                      ))}
-                    </select>
-                  </FormField>
-
-                  <FormField
-                    label="Registration Number"
-                    htmlFor="registrationNumber"
-                    icon={<UserIcon />}
-                  >
-                    <input
-                      id="registrationNumber"
-                      name="registrationNumber"
-                      type="text"
-                      value={registrationNumber}
-                      onChange={(e) => setRegistrationNumber(e.target.value)}
-                      placeholder="Government registration number"
-                      disabled={loading}
-                      className={`${inputClass} disabled:bg-gray-100 disabled:cursor-not-allowed`}
-                    />
                   </FormField>
                 </>
               )}

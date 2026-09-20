@@ -1138,6 +1138,28 @@ export const api = {
     }>>(`/api/v1/employer/intelligence/skills${qs.toString() ? `?${qs.toString()}` : ""}`);
   },
 
+  employerSkillGaps: (params: {
+    job_role_id: string;
+    district_id?: string;
+    sector_id?: string;
+  }) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
+    });
+    return apiFetch<Array<{
+      skill_id: string;
+      skill_name: string;
+      required: boolean;
+      importance: string | null;
+      required_proficiency: string | null;
+      demand_score: number | null;
+      demand_trend: string | null;
+      candidate_supply: number;
+      gap_status: string;
+    }>>(`/api/v1/employer/intelligence/skill-gaps${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
   employerIntelligenceTrends: (params: {
     district_id?: string;
     sector_id?: string;

@@ -151,7 +151,7 @@ function EmployerDashboardContent() {
           <div className="flex items-center gap-4">
 
             <span className="hidden text-sm lg:block">
-              SkillMitra Employer Portal
+              SkillMitra Industry Portal
             </span>
 
             <button
@@ -212,7 +212,7 @@ function EmployerDashboardContent() {
                   </p>
 
                   <p className="font-semibold text-[#123b68]">
-                    Employer Intelligence Dashboard
+                    Industry Dashboard
                   </p>
                 </div>
 

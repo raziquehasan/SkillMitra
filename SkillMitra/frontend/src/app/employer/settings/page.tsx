@@ -87,7 +87,7 @@ export default function EmployerSettingsPage() {
               </h1>
 
               <p className="mt-1 text-sm text-slate-500">
-                Manage your Employer Portal preferences, notifications,
+                Manage your Industry Portal preferences, notifications,
                 alerts and account settings.
               </p>
             </div>
@@ -121,7 +121,7 @@ export default function EmployerSettingsPage() {
 
                     <SettingToggle
                       title="Email Notifications"
-                      description="Receive important Employer Portal updates by email."
+                      description="Receive important Industry Portal updates by email."
                       enabled={emailNotifications}
                       onChange={() =>
                         setEmailNotifications(!emailNotifications)
@@ -165,7 +165,7 @@ export default function EmployerSettingsPage() {
                   </div>
                 </div>
 
-                {/* Employer Portal Preferences */}
+                {/* Industry Portal Preferences */}
                 <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
                   <div className="border-b border-slate-200 px-6 py-5">
                     <div className="flex items-center gap-3">
@@ -179,7 +179,7 @@ export default function EmployerSettingsPage() {
                         </h2>
 
                         <p className="text-xs text-slate-500">
-                          Configure your Employer Portal experience.
+                          Configure your Industry Portal experience.
                         </p>
                       </div>
                     </div>
@@ -290,7 +290,7 @@ export default function EmployerSettingsPage() {
                         </h2>
 
                         <p className="text-xs text-slate-500">
-                          Manage your Employer Portal security.
+                          Manage your Industry Portal security.
                         </p>
                       </div>
                     </div>
@@ -324,7 +324,7 @@ export default function EmployerSettingsPage() {
                         </p>
 
                         <p className="mt-1 text-xs text-slate-500">
-                          Your Employer Portal account is protected.
+                          Your Industry Portal account is protected.
                         </p>
                       </div>
 
@@ -386,7 +386,7 @@ export default function EmployerSettingsPage() {
 
                     <div>
                       <h2 className="font-semibold text-[#123b68]">
-                        Employer Portal
+                        Industry Portal
                       </h2>
 
                       <p className="text-xs text-slate-500">
@@ -443,7 +443,7 @@ export default function EmployerSettingsPage() {
                       </h3>
 
                       <p className="mt-1 text-xs leading-5 text-orange-800">
-                        These settings control your Employer Portal
+                        These settings control your Industry Portal
                         notifications and preferences. Changes to account
                         information can be managed from your Profile.
                       </p>
@@ -458,7 +458,7 @@ export default function EmployerSettingsPage() {
             <div className="mt-7 rounded-lg border border-slate-200 bg-white px-5 py-4">
               <p className="text-xs leading-5 text-slate-500">
                 <span className="font-semibold text-slate-700">
-                  SkillMitra Employer Portal:
+                  SkillMitra Industry Portal:
                 </span>{" "}
                 Settings allow employers to manage notifications,
                 workforce alerts, skill intelligence updates and portal

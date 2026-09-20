@@ -110,7 +110,7 @@ export default function RecommendedCoursesPage() {
             <div className="mb-7">
 
               <p className="text-xs font-medium text-slate-400">
-                Employer Portal / Training
+                Industry Portal / Training
               </p>
 
               <div className="mt-2">

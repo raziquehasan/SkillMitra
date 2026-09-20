@@ -115,7 +115,7 @@ export default function HiringDifficultyPage() {
             <div className="mb-7">
 
               <p className="text-xs font-medium text-slate-400">
-                Employer Portal / Skill Intelligence
+                Industry Portal / Skill Intelligence
               </p>
 
               <div className="mt-2 flex flex-col justify-between gap-4 md:flex-row md:items-end">

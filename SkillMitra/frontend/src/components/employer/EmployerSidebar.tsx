@@ -112,7 +112,7 @@ export default function EmployerSidebar() {
               </p>
 
               <p className="text-[11px] leading-tight text-slate-500">
-                Employer Portal
+                Industry Portal
               </p>
             </div>
 

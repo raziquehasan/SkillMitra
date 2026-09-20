@@ -74,6 +74,18 @@ class RequirementResponse(BaseModel):
     demand: int
 
 
+class SkillGapResponse(BaseModel):
+    skill_id: str
+    skill_name: str
+    required: bool
+    importance: str | None
+    required_proficiency: str | None
+    demand_score: float | None
+    demand_trend: str | None
+    candidate_supply: int
+    gap_status: str
+
+
 @router.get("/demand", response_model=DemandResponse)
 def get_employer_demand(
     district_id: uuid.UUID | None = Query(None),
@@ -574,6 +586,106 @@ def get_employer_requirements(
             importance=row.importance,
             proficiency=proficiency,
             demand=int(row.demand_sum or 0),
+        ))
+    
+    return result
+
+
+@router.get("/skill-gaps", response_model=list[SkillGapResponse])
+def get_skill_gaps(
+    job_role_id: uuid.UUID = Query(..., description="Required: Job role to analyze"),
+    district_id: uuid.UUID | None = Query(None, description="Optional: Filter by district"),
+    sector_id: uuid.UUID | None = Query(None, description="Optional: Filter by sector"),
+    db: Session = Depends(get_db),
+):
+    """
+    Get skill gap analysis for a specific job role.
+    
+    Returns required skills from JobRoleSkill (source of truth),
+    industry demand from IndustryDemand, and candidate supply from CandidateSkill.
+    
+    Gap status is derived from candidate supply availability, not from subtracting
+    demand score from candidate count (different units).
+    """
+    # Verify job role exists
+    job_role = db.scalar(select(JobRole).where(JobRole.id == job_role_id))
+    if not job_role:
+        raise HTTPException(status_code=404, detail="Job role not found")
+    
+    # Build query for required skills with demand and candidate supply
+    gap_query = (
+        select(
+            Skill.id.label("skill_id"),
+            Skill.name.label("skill_name"),
+            JobRoleSkill.importance,
+            JobRoleSkill.proficiency_level_id,
+            func.sum(IndustryDemand.aggregate_demand_score).label("demand_score"),
+        )
+        .join(JobRoleSkill, JobRoleSkill.skill_id == Skill.id)
+        .join(JobRole, JobRoleSkill.job_role_id == JobRole.id)
+        .outerjoin(IndustryDemand, and_(
+            IndustryDemand.skill_id == Skill.id,
+            IndustryDemand.job_role_id == JobRole.id,
+            IndustryDemand.district_id == district_id if district_id else True,
+        ))
+        .where(JobRole.id == job_role_id)
+        .where(JobRole.is_active == True)
+        .group_by(Skill.id, Skill.name, JobRoleSkill.importance, JobRoleSkill.proficiency_level_id)
+        .order_by(JobRoleSkill.importance.desc(), func.sum(IndustryDemand.aggregate_demand_score).desc())
+    )
+    
+    # Apply sector filter if provided
+    if sector_id:
+        gap_query = gap_query.where(JobRole.industry_sector_id == sector_id)
+    
+    required_skills_data = db.execute(gap_query).all()
+    
+    result = []
+    for row in required_skills_data:
+        # Get proficiency level name
+        proficiency = None
+        if row.proficiency_level_id:
+            from app.models.skills import SkillProficiencyLevel
+            proficiency_level = db.scalar(
+                select(SkillProficiencyLevel.name).where(SkillProficiencyLevel.id == row.proficiency_level_id)
+            )
+            proficiency = proficiency_level
+        
+        # Calculate candidate supply for this skill
+        supply_query = (
+            select(func.count(func.distinct(CandidateSkill.candidate_id)))
+            .select_from(CandidateSkill)
+            .where(CandidateSkill.skill_id == row.skill_id)
+        )
+        
+        # Filter by district if specified
+        if district_id:
+            supply_query = supply_query.where(
+                CandidateSkill.candidate_id.in_(
+                    select(CandidateProfile.id).where(CandidateProfile.district_id == district_id)
+                )
+            )
+        
+        candidate_supply = db.scalar(supply_query) or 0
+        
+        # Determine gap status based on candidate supply (not demand - supply)
+        if candidate_supply == 0:
+            gap_status = "Critical Gap"
+        elif candidate_supply < 10:
+            gap_status = "Limited Supply"
+        else:
+            gap_status = "Supply Available"
+        
+        result.append(SkillGapResponse(
+            skill_id=str(row.skill_id),
+            skill_name=row.skill_name,
+            required=True,
+            importance=row.importance,
+            required_proficiency=proficiency,
+            demand_score=float(row.demand_score) if row.demand_score else None,
+            demand_trend=None,  # Could be enhanced from trend data if needed
+            candidate_supply=candidate_supply,
+            gap_status=gap_status,
         ))
     
     return result

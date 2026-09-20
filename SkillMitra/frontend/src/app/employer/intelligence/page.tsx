@@ -21,6 +21,28 @@ export default function IndustryDemandPage() {
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedSector, setSelectedSector] = useState("");
   const [selectedRole, setSelectedRole] = useState("");
+  const [districts, setDistricts] = useState<any[]>([]);
+  const [sectors, setSectors] = useState<any[]>([]);
+  const [jobRoles, setJobRoles] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadReferenceData() {
+      try {
+        const [districtsData, sectorsData, jobRolesData] = await Promise.all([
+          api.districts().catch(() => []),
+          api.sectors().catch(() => []),
+          api.jobRoles().catch(() => [])
+        ]);
+        setDistricts(districtsData);
+        setSectors(sectorsData);
+        setJobRoles(jobRolesData);
+      } catch (err) {
+        console.error("Failed to load reference data:", err);
+      }
+    }
+
+    loadReferenceData();
+  }, []);
 
   useEffect(() => {
     async function loadDemandData() {
@@ -75,7 +97,7 @@ export default function IndustryDemandPage() {
           </div>
 
           <div className="hidden md:block font-semibold">
-                 SkillMitra | Employer Intelligence Portal
+                 SkillMitra | Industry Portal
           </div>
 
         </div>
@@ -156,11 +178,9 @@ export default function IndustryDemandPage() {
                     onChange={(e) => setSelectedDistrict(e.target.value)}
                   >
                     <option value="">All Districts</option>
-                    <option value="pune-district-id">Pune</option>
-                    <option value="mumbai-district-id">Mumbai</option>
-                    <option value="nashik-district-id">Nashik</option>
-                    <option value="nagpur-district-id">Nagpur</option>
-                    <option value="aurangabad-district-id">Aurangabad</option>
+                    {districts.map((district) => (
+                      <option key={district.id} value={district.id}>{district.name}</option>
+                    ))}
                   </select>
                 </label>
 
@@ -175,10 +195,9 @@ export default function IndustryDemandPage() {
                     onChange={(e) => setSelectedSector(e.target.value)}
                   >
                     <option value="">All Sectors</option>
-                    <option value="ev-sector-id">EV / Automotive</option>
-                    <option value="it-sector-id">IT & Software</option>
-                    <option value="manufacturing-sector-id">Manufacturing</option>
-                    <option value="healthcare-sector-id">Healthcare</option>
+                    {sectors.map((sector) => (
+                      <option key={sector.id} value={sector.id}>{sector.name}</option>
+                    ))}
                   </select>
                 </label>
 
@@ -193,10 +212,9 @@ export default function IndustryDemandPage() {
                     onChange={(e) => setSelectedRole(e.target.value)}
                   >
                     <option value="">All Roles</option>
-                    <option value="ev-technician-id">EV Technician</option>
-                    <option value="software-developer-id">Software Developer</option>
-                    <option value="data-analyst-id">Data Analyst</option>
-                    <option value="ui-ux-designer-id">UI/UX Designer</option>
+                    {jobRoles.map((role) => (
+                      <option key={role.id} value={role.id}>{role.title}</option>
+                    ))}
                   </select>
                 </label>
 

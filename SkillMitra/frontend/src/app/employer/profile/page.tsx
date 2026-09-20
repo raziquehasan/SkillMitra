@@ -122,7 +122,7 @@ export default function EmployerProfilePage() {
                     </p>
 
                     <p className="mt-1 text-xs text-slate-400">
-                      SkillMitra Employer Portal
+                      SkillMitra Industry Portal
                     </p>
                   </div>
 
