@@ -118,6 +118,151 @@ def get_my_skill_gaps(
     return CandidateService(db).get_skill_gaps(current_user.id, job_role_id)
 
 
+@router.get("/me/recommended-skills", response_model=dict,
+            summary="Get recommended skills based on candidate profile and demand")
+def get_my_recommended_skills(
+    current_user: User = Depends(require_roles("candidate")),
+    db: Session = Depends(get_db),
+):
+    """
+    Returns prioritized recommended skills based on:
+    - Candidate's current skills
+    - Skill gaps from career interests
+    - Industry demand
+    - Job role requirements
+    - Skill importance/proficiency
+    """
+    from app.models.phase4 import CandidateSkill
+    from app.models.identity import CandidateProfile, CandidateCareerInterest
+    from app.models.career import JobRole, JobRoleSkill
+    from app.models.skills import Skill, SkillProficiencyLevel
+    from app.models.demand import IndustryDemand
+    from sqlalchemy import select, func
+    from sqlalchemy.orm import selectinload
+
+    # Get candidate profile
+    profile = db.scalar(
+        select(CandidateProfile).where(CandidateProfile.user_id == current_user.id)
+    )
+
+    if not profile:
+        return {
+            "recommended_skills": [],
+            "reason": "Candidate profile not found"
+        }
+
+    # Get candidate skills
+    candidate_skills = db.scalars(
+        select(CandidateSkill)
+        .where(CandidateSkill.candidate_id == profile.id)
+        .options(selectinload(CandidateSkill.skill))
+    ).all()
+    candidate_skill_ids = {cs.skill_id for cs in candidate_skills}
+
+    # Get career interests
+    interests = db.scalars(
+        select(CandidateCareerInterest)
+        .where(CandidateCareerInterest.candidate_id == profile.id)
+    ).all()
+
+    if not interests:
+        return {
+            "recommended_skills": [],
+            "reason": "Set career interests to get personalized skill recommendations"
+        }
+
+    # Collect missing skills from all career interests
+    missing_skills_data = {}
+    for interest in interests:
+        role_skills = db.scalars(
+            select(JobRoleSkill)
+            .where(JobRoleSkill.job_role_id == interest.target_job_role_id)
+            .options(selectinload(JobRoleSkill.skill))
+        ).all()
+
+        for rs in role_skills:
+            if rs.skill_id not in candidate_skill_ids:
+                skill = rs.skill
+                if skill:
+                    if skill.id not in missing_skills_data:
+                        missing_skills_data[skill.id] = {
+                            "skill_id": str(skill.id),
+                            "skill_name": skill.name,
+                            "category": skill.category.name if skill.category else None,
+                            "required_proficiency": rs.proficiency_level.name if rs.proficiency_level else "Intermediate",
+                            "importance": rs.importance or "preferred",
+                            "related_job_roles": [],
+                            "demand_score": 0
+                        }
+                    
+                    missing_skills_data[skill.id]["related_job_roles"].append(interest.target_job_role_title or "Job Role")
+
+    # If no missing skills, return empty
+    if not missing_skills_data:
+        return {
+            "recommended_skills": [],
+            "reason": "Your skills align well with your career interests"
+        }
+
+    # Get industry demand for skills
+    skill_ids = list(missing_skills_data.keys())
+    demand_data = db.scalars(
+        select(IndustryDemand)
+        .where(IndustryDemand.skill_id.in_(skill_ids))
+    ).all()
+
+    demand_scores = {d.skill_id: d.aggregate_demand_score or 0 for d in demand_data}
+
+    # Enrich with demand data and calculate priority
+    recommended_skills = []
+    for skill_id, skill_data in missing_skills_data.items():
+        demand_score = demand_scores.get(skill_id, 0)
+        skill_data["demand_score"] = demand_score
+        
+        # Calculate priority based on importance and demand
+        importance_weight = 3 if skill_data["importance"] == "mandatory" else 1
+        demand_weight = min(demand_score / 100, 2) if demand_score else 0
+        priority_score = importance_weight + demand_weight
+        
+        # Determine priority level
+        if priority_score >= 4:
+            priority = "Critical"
+        elif priority_score >= 2:
+            priority = "High"
+        else:
+            priority = "Medium"
+
+        # Generate reason
+        reason_parts = []
+        if skill_data["importance"] == "mandatory":
+            reason_parts.append("required for your selected career role")
+        else:
+            reason_parts.append("valuable for your career growth")
+        
+        if demand_score > 50:
+            reason_parts.append("has high industry demand")
+        
+        reason = f"Recommended because this skill is {', and '.join(reason_parts)}."
+
+        recommended_skills.append({
+            **skill_data,
+            "current_proficiency": None,
+            "gap_status": "missing",
+            "demand_relevance": "High" if demand_score > 50 else "Medium" if demand_score > 20 else "Low",
+            "priority": priority,
+            "reason": reason
+        })
+
+    # Sort by priority (Critical > High > Medium) and then by demand score
+    priority_order = {"Critical": 0, "High": 1, "Medium": 2}
+    recommended_skills.sort(key=lambda x: (priority_order.get(x["priority"], 3), -x["demand_score"]))
+
+    return {
+        "recommended_skills": recommended_skills[:10],  # Return top 10
+        "reason": f"Based on your {len(interests)} career interest(s) and current skills"
+    }
+
+
 @router.get("/me/skills", response_model=list[CandidateSkillResponse],
             summary="List my skills")
 def get_my_skills(

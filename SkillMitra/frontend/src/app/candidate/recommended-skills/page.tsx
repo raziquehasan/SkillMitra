@@ -8,11 +8,12 @@ import CandidateSidebar from "@/components/candidate/CandidateSidebar";
 import { api } from "@/lib/api";
 
 export default function RecommendedSkillsPage() {
-  const [skillGaps, setSkillGaps] = useState<any[]>([]);
+  const [recommendedSkills, setRecommendedSkills] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasSkills, setHasSkills] = useState<boolean | null>(null);
   const [currentSkillsCount, setCurrentSkillsCount] = useState(0);
+  const [recommendationReason, setRecommendationReason] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -26,9 +27,12 @@ export default function RecommendedSkillsPage() {
         setCurrentSkillsCount(skills.length);
         
         if (skills.length > 0) {
-          // Load skill gaps
-          const gaps = await api.candidateSkillGaps();
-          setSkillGaps(gaps);
+          // Load recommended skills from new dedicated endpoint
+          const recData = await api.candidateRecommendedSkills().catch(() => null);
+          if (recData) {
+            setRecommendedSkills(recData.recommended_skills || []);
+            setRecommendationReason(recData.reason || null);
+          }
         }
       } catch (err) {
         console.error("Failed to load skill data:", err);
@@ -41,21 +45,10 @@ export default function RecommendedSkillsPage() {
     loadData();
   }, []);
 
-  // Extract missing skills from skill gaps
-  const missingSkills = skillGaps.flatMap(gap => 
-    gap.proficiency_gaps?.filter((pg: any) => pg.candidate_proficiency === null).map((pg: any) => ({
-      skill: pg.skill_name || pg.skill_id,
-      role: gap.job_role_title,
-      importance: pg.importance,
-      required_proficiency: pg.required_proficiency,
-      reason: `Required for ${gap.job_role_title} role`
-    })) || []
-  );
-
   // Calculate summary stats
-  const totalRecommended = missingSkills.length;
-  const criticalSkills = missingSkills.filter(s => s.importance === 'mandatory').length;
-  const highDemandSkills = missingSkills.filter(s => s.importance === 'preferred').length;
+  const totalRecommended = recommendedSkills.length;
+  const criticalSkills = recommendedSkills.filter(s => s.priority === 'Critical').length;
+  const highDemandSkills = recommendedSkills.filter(s => s.priority === 'High').length;
   const currentSkills = currentSkillsCount;
 
   return (
@@ -180,17 +173,25 @@ export default function RecommendedSkillsPage() {
                         Add Your Skills First
                       </h2>
                       <p className="mt-1 max-w-2xl text-sm leading-6 text-amber-800">
-                        To get personalized skill recommendations, you need to add your current skills to your profile.
+                        To get personalized skill recommendations, you need to add your current skills to your profile and set your career interests.
                       </p>
                     </div>
                   </div>
 
-                  <Link
-                    href="/candidate/skills"
-                    className="shrink-0 rounded-lg bg-[#123b68] px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-[#0f3155]"
-                  >
-                    Add My Skills
-                  </Link>
+                  <div className="flex gap-3">
+                    <Link
+                      href="/candidate/skills"
+                      className="shrink-0 rounded-lg border border-amber-600 bg-amber-50 px-4 py-2.5 text-center text-sm font-semibold text-amber-700 hover:bg-amber-100"
+                    >
+                      Add My Skills
+                    </Link>
+                    <Link
+                      href="/candidate/profile"
+                      className="shrink-0 rounded-lg bg-[#123b68] px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-[#0f3155]"
+                    >
+                      Set Career Interests
+                    </Link>
+                  </div>
                 </div>
               </div>
             )}
@@ -213,9 +214,7 @@ export default function RecommendedSkillsPage() {
                     </h2>
 
                     <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-600">
-                      SkillMitra identifies skills that can strengthen
-                      your profile by comparing your current skills with
-                      relevant employment requirements.
+                      {recommendationReason || "SkillMitra identifies skills that can strengthen your profile by comparing your current skills with relevant employment requirements."}
                     </p>
 
                   </div>
@@ -291,12 +290,12 @@ export default function RecommendedSkillsPage() {
                 <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-12 text-center shadow-sm">
                   <p className="text-red-600">{error}</p>
                 </div>
-              ) : missingSkills.length > 0 ? (
+              ) : recommendedSkills.length > 0 ? (
                 <div className="space-y-4">
 
-                  {missingSkills.map((item, index) => (
+                  {recommendedSkills.map((item, index) => (
                     <SkillCard
-                      key={`${item.skill}-${index}`}
+                      key={`${item.skill_id}-${index}`}
                       skill={item}
                     />
                   ))}
@@ -526,14 +525,20 @@ function SkillCard({
   skill,
 }: {
   skill: {
-    skill: string;
-    role: string;
-    importance: string;
+    skill_id: string;
+    skill_name: string;
+    category: string | null;
+    current_proficiency: string | null;
     required_proficiency: string;
+    gap_status: string;
+    demand_relevance: string;
+    priority: string;
     reason: string;
+    related_job_roles: string[];
+    demand_score: number;
   };
 }) {
-  const importanceLabel = skill.importance === 'mandatory' ? 'Critical' : skill.importance === 'preferred' ? 'High' : 'Medium';
+  const importanceLabel = skill.priority;
   
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md">
@@ -549,7 +554,7 @@ function SkillCard({
               <div className="flex flex-wrap items-center gap-2">
 
                 <h3 className="text-base font-bold text-[#123b68]">
-                  {skill.skill}
+                  {skill.skill_name}
                 </h3>
 
                 <PriorityBadge
@@ -558,10 +563,18 @@ function SkillCard({
 
               </div>
 
-              <p className="mt-1 text-sm font-medium text-slate-700">
-                Relevant Role: {skill.role}
-              </p>
+              {skill.category && (
+                <p className="mt-1 text-sm font-medium text-slate-700">
+                  Category: {skill.category}
+                </p>
+              )}
 
+              {skill.related_job_roles.length > 0 && (
+                <p className="mt-1 text-xs text-slate-500">
+                  Relevant Roles: {skill.related_job_roles.slice(0, 2).join(', ')}
+                  {skill.related_job_roles.length > 2 && ` +${skill.related_job_roles.length - 2} more`}
+                </p>
+              )}
             </div>
 
             <div className="rounded-lg bg-blue-50 px-4 py-2 text-center">
@@ -588,7 +601,7 @@ function SkillCard({
               </p>
 
               <p className="mt-1 text-sm font-semibold text-slate-700">
-                None
+                {skill.current_proficiency || 'None'}
               </p>
 
             </div>
@@ -605,6 +618,33 @@ function SkillCard({
 
             </div>
 
+          </div>
+
+          {/* Demand and Reason */}
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
+
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                Industry Demand
+              </p>
+
+              <p className="mt-1 text-sm font-semibold text-slate-700">
+                {skill.demand_relevance}
+              </p>
+
+            </div>
+
+            <div className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
+
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                Demand Score
+              </p>
+
+              <p className="mt-1 text-sm font-semibold text-slate-700">
+                {skill.demand_score > 0 ? Math.round(skill.demand_score) : 'N/A'}
+              </p>
+
+            </div>
           </div>
 
           {/* Reason */}
@@ -667,7 +707,7 @@ function PriorityBadge({
         styles[importance] ?? "bg-slate-100 text-slate-600"
       }`}
     >
-      {importance} Priority
+      {importance}
     </span>
   );
 }

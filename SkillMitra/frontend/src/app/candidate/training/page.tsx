@@ -6,30 +6,6 @@ import { useState, useEffect } from "react";
 import CandidateSidebar from "@/components/candidate/CandidateSidebar";
 import { api, type Course } from "@/lib/api";
 
-const learningPaths = [
-  {
-    step: "01",
-    title: "Close Critical Skill Gap",
-    skill: "TypeScript",
-    description:
-      "Build intermediate TypeScript skills to improve software development opportunities.",
-  },
-  {
-    step: "02",
-    title: "Strengthen Technical Skills",
-    skill: "Cloud Computing",
-    description:
-      "Learn cloud fundamentals and deployment concepts for modern technology roles.",
-  },
-  {
-    step: "03",
-    title: "Improve Data Skills",
-    skill: "Advanced Excel",
-    description:
-      "Develop advanced spreadsheet and data analysis capabilities.",
-  },
-];
-
 function SummaryCard({
   label,
   value,
@@ -481,35 +457,88 @@ export default function TrainingCoursesPage() {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  A simple sequence to strengthen your priority skills.
+                  A personalized sequence to strengthen your priority skills based on your profile.
                 </p>
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="grid gap-5 md:grid-cols-3">
-                  {learningPaths.map((item) => (
-                    <div
-                      key={item.step}
-                      className="relative rounded-xl border border-slate-100 bg-slate-50 p-5"
-                    >
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#123b68] text-xs font-bold text-white">
-                        {item.step}
+                {showRecommended && recommendedCourses.length > 0 ? (
+                  <div className="grid gap-5 md:grid-cols-3">
+                    {recommendedCourses.slice(0, 3).map((rec, index) => (
+                      <div
+                        key={rec.course_id}
+                        className="relative rounded-xl border border-green-100 bg-green-50 p-5"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#123b68] text-xs font-bold text-white">
+                          {String(index + 1).padStart(2, '0')}
+                        </div>
+
+                        <h3 className="mt-4 font-semibold text-slate-800">
+                          Address Skill Gap
+                        </h3>
+
+                        <p className="mt-1 text-sm font-semibold text-[#123b68]">
+                          {rec.addresses_gaps[0] || 'Priority Skill'}
+                        </p>
+
+                        <p className="mt-2 text-xs leading-5 text-slate-500">
+                          {rec.reason}
+                        </p>
                       </div>
+                    ))}
+                  </div>
+                ) : missingSkills.length > 0 ? (
+                  <div className="grid gap-5 md:grid-cols-3">
+                    {missingSkills.slice(0, 3).map((skill, index) => (
+                      <div
+                        key={skill}
+                        className="relative rounded-xl border border-slate-100 bg-slate-50 p-5"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#123b68] text-xs font-bold text-white">
+                          {String(index + 1).padStart(2, '0')}
+                        </div>
 
-                      <h3 className="mt-4 font-semibold text-slate-800">
-                        {item.title}
-                      </h3>
+                        <h3 className="mt-4 font-semibold text-slate-800">
+                          Close Skill Gap
+                        </h3>
 
-                      <p className="mt-1 text-sm font-semibold text-[#123b68]">
-                        {item.skill}
-                      </p>
+                        <p className="mt-1 text-sm font-semibold text-[#123b68]">
+                          {skill}
+                        </p>
 
-                      <p className="mt-2 text-xs leading-5 text-slate-500">
-                        {item.description}
-                      </p>
+                        <p className="mt-2 text-xs leading-5 text-slate-500">
+                          Required for your target career role
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-6 py-12 text-center">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-500">
+                      ▤
                     </div>
-                  ))}
-                </div>
+                    <h3 className="mt-4 font-semibold text-slate-700">
+                      Learning Path Not Available
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Complete your skills and career preferences to get a personalized learning path.
+                    </p>
+                    <div className="mt-4 flex justify-center gap-3">
+                      <Link
+                        href="/candidate/skills"
+                        className="rounded-lg border border-[#123b68] px-4 py-2 text-xs font-semibold text-[#123b68] hover:bg-blue-50"
+                      >
+                        Add Skills
+                      </Link>
+                      <Link
+                        href="/candidate/profile"
+                        className="rounded-lg bg-[#123b68] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0f3155]"
+                      >
+                        Update Profile
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
