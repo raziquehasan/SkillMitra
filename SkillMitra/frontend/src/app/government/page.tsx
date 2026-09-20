@@ -38,6 +38,7 @@ interface GovDashboard {
     critical_gap_demand_records: number;
     training_capacity_gaps: number;
     courses_requiring_review: number;
+    placement_outcomes_count: number;
   };
   district_intelligence: {
     district_id: string;
@@ -56,14 +57,14 @@ interface GovDashboard {
     gap_signal: string | null;
     course_count: number;
   }>;
-  training_capacity: { 
-    district_id: string; 
-    district_name: string; 
-    total_demand: number; 
-    verified_providers: number; 
-    course_offerings: number; 
-    total_capacity: number; 
-    capacity_status: string 
+  training_capacity: {
+    district_id: string;
+    district_name: string;
+    total_demand: number;
+    verified_providers: number;
+    course_offerings: number;
+    total_capacity: number;
+    capacity_status: string
   } | null;
   course_alignment: Array<{
     course_id: string;
@@ -154,7 +155,15 @@ function DashboardContent() {
 
       const apiParams = getGovernmentApiParams(filtersWithDate);
       const data = await api.governmentDashboard(apiParams);
-      setDashboard(data);
+      // Add placement_outcomes_count to kpis if it exists at top level
+      const dashboardWithPlacement = {
+        ...data,
+        kpis: {
+          ...data.kpis,
+          placement_outcomes_count: (data as any).placement_outcomes_count || 0
+        }
+      };
+      setDashboard(dashboardWithPlacement);
     } catch (error: any) {
       console.error("API call failed:", error);
       setDashboard(null); // Will show error state
@@ -448,6 +457,14 @@ function DashboardContent() {
                 subtitle="verified seats"
                 icon={<Users2 className="h-4 w-4" />}
                 alert={currentDashboard?.kpis.training_capacity_gaps > 0}
+              />
+              <PipelineStage
+                stage="05"
+                title="Placement Outcomes"
+                value={currentDashboard?.kpis?.placement_outcomes_count || 0}
+                subtitle="placements"
+                icon={<Briefcase className="h-4 w-4" />}
+                alert={false}
               />
             </div>
           </div>
