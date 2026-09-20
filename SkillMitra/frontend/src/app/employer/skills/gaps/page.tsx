@@ -392,7 +392,10 @@ function SkillGapPageContent() {
                 <SelectBox
                   label="Job Role"
                   value={selectedRole}
-                  onChange={setSelectedRole}
+                  onChange={(value) => {
+                    console.log("Job Role selected:", value);
+                    setSelectedRole(value);
+                  }}
                   options={[
                     "",
                     ...jobRoles

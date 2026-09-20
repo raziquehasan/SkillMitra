@@ -36,7 +36,7 @@ export default function EmployerProfilePage() {
           </div>
 
           <div className="hidden font-semibold md:block">
-            SkillMitra | Employer Intelligence Portal
+            SkillMitra | Industry Portal
           </div>
 
         </div>
