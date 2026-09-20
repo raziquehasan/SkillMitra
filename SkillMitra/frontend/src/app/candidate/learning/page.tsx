@@ -147,6 +147,8 @@ function LearningCard({
 export default function MyLearningPage() {
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
+  const [skillGaps, setSkillGaps] = useState<any[]>([]);
+  const [recommendedSkills, setRecommendedSkills] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -155,12 +157,16 @@ export default function MyLearningPage() {
       try {
         setLoading(true);
         setError(null);
-        const [enrollmentsData, coursesData] = await Promise.all([
-          api.candidateEnrollments(),
-          api.courses()
+        const [enrollmentsData, coursesData, skillGapsData, recommendedSkillsData] = await Promise.all([
+          api.candidateEnrollments().catch(() => []),
+          api.courses().catch(() => ({ items: [] })),
+          api.candidateSkillGaps().catch(() => []),
+          api.candidateRecommendedSkills().catch(() => ({ recommended_skills: [] }))
         ]);
         setEnrollments(enrollmentsData);
         setCourses(coursesData.items);
+        setSkillGaps(skillGapsData);
+        setRecommendedSkills(recommendedSkillsData.recommended_skills || []);
       } catch (err) {
         console.error("Failed to load learning data:", err);
         setError("Unable to load learning data. Please try again.");
@@ -296,9 +302,11 @@ export default function MyLearningPage() {
                   </p>
 
                   <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
-                    You are actively developing skills in data analytics,
-                    cloud computing and software development. Continue your
-                    current learning path to strengthen your job readiness.
+                    {activeEnrollments.length > 0 
+                      ? `You are actively developing skills through ${activeEnrollments.length} course(s). Continue your learning path to strengthen your job readiness.`
+                      : recommendedSkills.length > 0
+                      ? `Based on your profile, we recommend focusing on ${recommendedSkills.length} skill(s) to improve your job readiness.`
+                      : "Add skills and set career interests to get personalized learning recommendations."}
                   </p>
                 </div>
 
@@ -511,20 +519,118 @@ export default function MyLearningPage() {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Focus areas based on your current skill gaps.
+                  Focus areas based on your current skill gaps and career interests.
                 </p>
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-sm text-slate-500">
-                  Learning goals will be personalized based on your skill gaps and career interests. Check back after updating your skills and profile.
-                </p>
-                <Link
-                  href="/candidate/skills"
-                  className="mt-4 inline-block rounded-lg bg-[#123b68] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#0e3155]"
-                >
-                  Update Skills
-                </Link>
+                {recommendedSkills.length > 0 ? (
+                  <div className="space-y-4">
+                    {recommendedSkills.slice(0, 3).map((skill, index) => (
+                      <div key={skill.skill_id} className="flex items-start gap-4 rounded-lg border border-slate-100 bg-slate-50 p-4">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#123b68] text-xs font-bold text-white">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-slate-800">
+                            {skill.skill_name}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-600">
+                            {skill.reason}
+                          </p>
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-semibold text-[#123b68]">
+                              {skill.priority}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              Target: {skill.required_proficiency}
+                            </span>
+                          </div>
+                        </div>
+                        <Link
+                          href="/candidate/training"
+                          className="shrink-0 rounded-lg border border-[#123b68] px-3 py-2 text-xs font-semibold text-[#123b68] hover:bg-blue-50"
+                        >
+                          Find Training
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                ) : skillGaps.length > 0 ? (
+                  <div className="space-y-4">
+                    {skillGaps.slice(0, 3).map((gap, index) => (
+                      <div key={gap.job_role_id} className="flex items-start gap-4 rounded-lg border border-slate-100 bg-slate-50 p-4">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#123b68] text-xs font-bold text-white">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-slate-800">
+                            Address Skill Gaps for {gap.job_role_title}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-600">
+                            {gap.proficiency_gaps?.length || 0} skills need improvement
+                          </p>
+                        </div>
+                        <Link
+                          href="/candidate/skill-gap"
+                          className="shrink-0 rounded-lg border border-[#123b68] px-3 py-2 text-xs font-semibold text-[#123b68] hover:bg-blue-50"
+                        >
+                          View Gaps
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                ) : activeEnrollments.length > 0 ? (
+                  <div className="space-y-4">
+                    {activeEnrollments.slice(0, 3).map((enrollment, index) => (
+                      <div key={enrollment.id} className="flex items-start gap-4 rounded-lg border border-slate-100 bg-slate-50 p-4">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#123b68] text-xs font-bold text-white">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-slate-800">
+                            Complete {enrollment.course?.title || 'Course'}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-600">
+                            Continue your learning journey
+                          </p>
+                        </div>
+                        <Link
+                          href={`/candidate/training/${enrollment.course_id}`}
+                          className="shrink-0 rounded-lg border border-[#123b68] px-3 py-2 text-xs font-semibold text-[#123b68] hover:bg-blue-50"
+                        >
+                          Continue
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-6 py-8 text-center">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-500">
+                      ▤
+                    </div>
+                    <h3 className="mt-4 font-semibold text-slate-700">
+                      No Learning Goals Set
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Set your career interests and skills to get personalized learning goals.
+                    </p>
+                    <div className="mt-4 flex justify-center gap-3">
+                      <Link
+                        href="/candidate/skills"
+                        className="rounded-lg border border-[#123b68] px-4 py-2 text-xs font-semibold text-[#123b68] hover:bg-blue-50"
+                      >
+                        Add Skills
+                      </Link>
+                      <Link
+                        href="/candidate/profile"
+                        className="rounded-lg bg-[#123b68] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0f3155]"
+                      >
+                        Update Profile
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

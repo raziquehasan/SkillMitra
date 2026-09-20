@@ -45,10 +45,14 @@ export function JobDetailsModal({ job, onClose, onApplySuccess }: JobDetailsModa
     } catch (error) {
       console.error("Failed to apply:", error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to apply. Please try again.';
-      if (errorMessage.includes('Already applied')) {
+      if (errorMessage.includes('Already applied') || errorMessage.includes('409')) {
         setApplyError('You have already applied to this job.');
+      } else if (errorMessage.includes('Candidate profile required')) {
+        setApplyError('Please complete your profile to apply for jobs.');
+      } else if (errorMessage.includes('Job is not open')) {
+        setApplyError('This job is no longer accepting applications.');
       } else {
-        setApplyError(errorMessage);
+        setApplyError('Unable to submit application. Please try again later.');
       }
     } finally {
       setApplying(false);

@@ -83,18 +83,22 @@ export default function CandidateCourseDetailPage() {
       setError(null);
       setSuccessMessage(null);
 
-      await api.enrollInCourse(course.id);
+      const response = await api.enrollInCourse(course.id);
       setEnrollmentStatus('enrolled');
-      setSuccessMessage('Successfully enrolled in the course!');
+      setSuccessMessage(response.message || 'Successfully enrolled in the course!');
     } catch (err) {
       console.error('Failed to enroll in course:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unable to enroll in course. Please try again.';
       
-      if (errorMessage.includes('Already enrolled') || errorMessage.includes('Already completed')) {
+      if (errorMessage.includes('Already enrolled') || errorMessage.includes('Already completed') || errorMessage.includes('Already applied')) {
         setEnrollmentStatus('enrolled');
         setSuccessMessage('You are already enrolled in this course.');
+      } else if (errorMessage.includes('Candidate profile not found')) {
+        setError('Please complete your profile to enroll in courses.');
+      } else if (errorMessage.includes('Course not found')) {
+        setError('This course is no longer available.');
       } else {
-        setError(errorMessage);
+        setError('Unable to enroll in course. Please try again later.');
       }
     } finally {
       setIsApplying(false);

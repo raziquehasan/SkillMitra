@@ -985,6 +985,23 @@ export const api = {
   candidateSkillGaps: (jobRoleId?: string) => 
     apiFetch<any[]>(`/api/v1/candidates/me/skill-gaps${jobRoleId ? `?job_role_id=${jobRoleId}` : ""}`),
 
+  candidateRecommendedSkills: () => apiFetch<{
+    recommended_skills: Array<{
+      skill_id: string;
+      skill_name: string;
+      category: string | null;
+      current_proficiency: string | null;
+      required_proficiency: string;
+      gap_status: string;
+      demand_relevance: string;
+      priority: string;
+      reason: string;
+      related_job_roles: string[];
+      demand_score: number;
+    }>;
+    reason: string;
+  }>("/api/v1/candidates/me/recommended-skills"),
+
   requestSkillVerification: (skillId: string, data: {
     evidence_reference?: string;
     last_assessed_date?: string;
