@@ -81,7 +81,7 @@ export function GovernmentLayout({ children }: GovernmentLayoutProps) {
             isDesktop ? "ml-64" : "ml-0"
           } pt-4 pb-8`}
         >
-          <div className="mx-auto px-4 lg:px-6 xl:px-8">
+          <div className="mx-auto px-4 lg:px-4 xl:px-6">
             {children}
           </div>
         </main>
