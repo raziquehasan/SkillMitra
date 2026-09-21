@@ -84,7 +84,7 @@ export function GovernmentHeader({
         <div className="flex items-center gap-3">
           <button
             onClick={onToggleSidebar}
-            className="rounded p-1.5 hover:bg-white/10 transition-colors"
+            className="rounded p-1.5 hover:bg-white/10 transition-colors lg:hidden"
             aria-label="Toggle sidebar"
           >
             {sidebarOpen ? (
