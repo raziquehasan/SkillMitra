@@ -149,7 +149,8 @@ export default function CourseAlignmentPage() {
             alignment_status: (item.alignment_status === "ALIGNED" ? "ALIGNED" : 
                            item.alignment_status === "PARTIAL" ? "PARTIAL" : 
                            item.alignment_status === "NOT_ALIGNED" ? "NEEDS_REVIEW" :
-                           item.alignment_status === "NO_DEMAND" ? "ALIGNED" : "PARTIAL") as "ALIGNED" | "PARTIAL" | "NEEDS_REVIEW",
+                           item.alignment_status === "NO_DEMAND" ? "ALIGNED" : 
+                           item.alignment_status === "NEEDS_REVIEW" ? "NEEDS_REVIEW" : "PARTIAL") as "ALIGNED" | "PARTIAL" | "NEEDS_REVIEW",
             skills_covered: item.skills_covered || [],
             skills_demanded: item.skills_demanded || [],
             gaps: item.gaps || [],
@@ -213,6 +214,8 @@ export default function CourseAlignmentPage() {
   const kpis = useMemo(() => {
     const totalCourses = filteredData.length;
     const alignedCourses = filteredData.filter(c => c.alignment_status === "ALIGNED").length;
+    const partialCourses = filteredData.filter(c => c.alignment_status === "PARTIAL").length;
+    const needsReviewCourses = filteredData.filter(c => c.alignment_status === "NEEDS_REVIEW").length;
     
     // Count unique training centres
     const uniqueCentres = new Set(
@@ -234,7 +237,7 @@ export default function CourseAlignmentPage() {
       ? Math.round(filteredData.reduce((sum, c) => sum + c.coverage_percentage, 0) / totalCourses)
       : 0;
 
-    return { totalCourses, alignedCourses, uniqueCentres, skillsCovered, skillsWithGaps, averageAlignment };
+    return { totalCourses, alignedCourses, partialCourses, needsReviewCourses, uniqueCentres, skillsCovered, skillsWithGaps, averageAlignment };
   }, [filteredData]);
 
   // Active filter count (excluding district since it's handled by backend)
@@ -606,14 +609,14 @@ export default function CourseAlignmentPage() {
                 <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide">Courses Under Review</p>
                   <p className="text-lg font-bold text-red-700">
-                    {filteredData.filter(c => c.alignment_status === "NEEDS_REVIEW").length}
+                    {kpis.needsReviewCourses}
                   </p>
                 </div>
 
                 <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide">Paused/Inactive</p>
                   <p className="text-lg font-bold text-slate-500">
-                    {filteredData.filter(c => c.alignment_status === "PARTIAL").length}
+                    {kpis.partialCourses}
                   </p>
                 </div>
               </div>
@@ -800,7 +803,8 @@ export default function CourseAlignmentPage() {
                               "bg-red-100 text-red-800"
                             }`}>
                               {course.alignment_status === "ALIGNED" ? "Active" :
-                               course.alignment_status === "PARTIAL" ? "Under Review" : "Paused"}
+                               course.alignment_status === "PARTIAL" ? "Under Review" :
+                               course.alignment_status === "NEEDS_REVIEW" ? "Paused" : "Unknown"}
                             </span>
                           </td>
                           <td className="py-2 px-3 text-slate-600">High</td>
