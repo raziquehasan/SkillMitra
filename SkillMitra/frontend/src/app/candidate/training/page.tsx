@@ -131,20 +131,47 @@ export default function TrainingCoursesPage() {
           setRecommendationReason(recData.reason || null);
           
           // Calculate skill coverage based on courses available vs gaps
-          if (recData.missing_skills && recData.missing_skills.length > 0 && recData.recommended_courses && recData.recommended_courses.length > 0) {
-            const coverage = Math.round((recData.recommended_courses.length / recData.missing_skills.length) * 100);
-            setSkillCoverage(`${coverage}%`);
-          } else if (recData.missing_skills && recData.missing_skills.length === 0) {
-            setSkillCoverage("100%");
+          // Skill Coverage = percentage of missing skills covered by recommended courses
+          if (recData.reason && recData.reason.includes("career interests")) {
+            // No career interest set - cannot calculate coverage
+            setSkillCoverage("Not Available");
+          } else if (recData.reason && recData.reason.includes("No skill gaps")) {
+            // Candidate already has all required skills
+            setSkillCoverage("100% (Skills Match Role)");
+          } else if (recData.missing_skills && recData.missing_skills.length > 0) {
+            if (recData.recommended_courses && recData.recommended_courses.length > 0) {
+              // Calculate actual coverage: courses covering gaps / total gaps
+              // But this is a rough estimate since one course can cover multiple skills
+              const coverage = Math.min(100, Math.round((recData.recommended_courses.length / recData.missing_skills.length) * 100));
+              setSkillCoverage(`${coverage}%`);
+            } else {
+              // Gaps exist but no courses cover them
+              setSkillCoverage("0% (No Matching Courses)");
+            }
           } else {
-            setSkillCoverage("0%");
+            setSkillCoverage("Not Available");
           }
           
-          // Calculate industry relevance based on courses available
-          if (recData.recommended_courses && recData.recommended_courses.length > 0) {
-            setIndustryRelevance("High");
+          // Calculate industry relevance based on actual data availability
+          if (recData.reason && recData.reason.includes("career interests")) {
+            // No career interest - cannot determine relevance
+            setIndustryRelevance("Not Available");
+          } else if (recData.reason && recData.reason.includes("No skill gaps")) {
+            // Skills match role - high relevance to career
+            setIndustryRelevance("High (Skills Match)");
+          } else if (recData.recommended_courses && recData.recommended_courses.length > 0) {
+            // Recommendations available - base on relevance scores
+            const avgRelevance = recData.recommended_courses.reduce((sum, course) => sum + course.gap_relevance_score, 0) / recData.recommended_courses.length;
+            if (avgRelevance > 50) {
+              setIndustryRelevance("High");
+            } else if (avgRelevance > 25) {
+              setIndustryRelevance("Medium");
+            } else {
+              setIndustryRelevance("Low");
+            }
           } else if (recData.missing_skills && recData.missing_skills.length > 0) {
-            setIndustryRelevance("Low");
+            // Gaps exist but no courses - low relevance
+            setIndustryRelevance("Low (No Courses)");
           } else {
             setIndustryRelevance("Not Available");
           }

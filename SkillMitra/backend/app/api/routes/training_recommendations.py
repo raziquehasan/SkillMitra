@@ -62,11 +62,16 @@ def get_training_recommendations(
         .options(selectinload(CandidateProfile.career_interests))
     )
     if not profile:
+        # Count total active courses
+        total_active_courses = db.scalar(
+            select(func.count()).select_from(Course).where(Course.status == 'active')
+        ) or 0
         return TrainingRecommendationsResponse(
             missing_skills=[],
             recommended_courses=[],
             total_gaps=0,
-            courses_available=0
+            courses_available=total_active_courses,
+            reason="Candidate profile not found"
         )
     
     # Get candidate's current skills
@@ -75,13 +80,18 @@ def get_training_recommendations(
     ).all()
     candidate_skill_ids = set(candidate_skills)
     
+    # Count total active courses for courses_available field
+    total_active_courses = db.scalar(
+        select(func.count()).select_from(Course).where(Course.status == 'active')
+    ) or 0
+    
     # Get candidate's career interests (target job roles)
     if not profile.career_interests:
         return TrainingRecommendationsResponse(
             missing_skills=[],
             recommended_courses=[],
             total_gaps=0,
-            courses_available=0,
+            courses_available=total_active_courses,
             reason="Please set career interests to get personalized training recommendations"
         )
     
@@ -110,7 +120,7 @@ def get_training_recommendations(
             missing_skills=[],
             recommended_courses=[],
             total_gaps=0,
-            courses_available=0,
+            courses_available=total_active_courses,
             reason="No skill gaps found - your skills match your target roles"
         )
     
@@ -204,5 +214,5 @@ def get_training_recommendations(
         missing_skills=list(missing_skill_names.values()),
         recommended_courses=recommended_courses[:10],  # Top 10 recommendations
         total_gaps=len(all_missing_skills),
-        courses_available=len(recommended_courses)
+        courses_available=total_active_courses
     )
