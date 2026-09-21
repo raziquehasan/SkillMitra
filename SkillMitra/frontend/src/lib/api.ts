@@ -722,6 +722,42 @@ export const api = {
     );
   },
 
+  updateCourseStatus: (courseId: string, status: string) => {
+    return apiFetch<{
+      course_id: string;
+      title: string;
+      status: string;
+      message: string;
+    }>(
+      `/api/v1/government/training-programs/${courseId}/status`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      },
+    );
+  },
+
+  createTrainingProposal: (data: {
+    course_id?: string;
+    district_id: string;
+    sector_id?: string;
+    requested_skills?: string[];
+    requested_capacity?: number;
+    reason: string;
+  }) => {
+    return apiFetch<{
+      proposal_id: string;
+      status: string;
+      message: string;
+    }>(
+      "/api/v1/government/training-proposals",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    );
+  },
+
   generateDistrictPlan: (districtId: string, startDate?: string, endDate?: string) => {
     const qs = new URLSearchParams({ district_id: districtId });
     if (startDate) qs.set("start_date", startDate);
@@ -1129,6 +1165,8 @@ export const api = {
       reason: string;
     }>;
     missing_skills: string[];
+    total_gaps: number;
+    courses_available: number;
   }>("/api/v1/candidates/me/training-recommendations"),
 
   candidateJobRecommendations: () => apiFetch<{
