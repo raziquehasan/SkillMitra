@@ -6,7 +6,7 @@ import { api, type District, type IndustrySector, type Course, type CourseAlignm
 import {
   BookOpen, GraduationCap, Target, AlertTriangle, MapPin,
   Filter, X, Search, ChevronDown, BarChart3, PieChart,
-  TrendingUp, ArrowRight, CheckCircle, XCircle, AlertCircle, Plus
+  TrendingUp, ArrowRight, CheckCircle, XCircle, AlertCircle, Plus, Building2
 } from "lucide-react";
 
 // Fallback dataset (deterministic, never inserted into database)
@@ -468,6 +468,11 @@ export default function CourseAlignmentPage() {
     const totalCourses = filteredData.length;
     const alignedCourses = filteredData.filter(c => c.alignment_status === "ALIGNED").length;
     
+    // Count unique training centres
+    const uniqueCentres = new Set(
+      filteredData.map(c => c.provider)
+    ).size;
+    
     // Count unique skills covered
     const skillsCovered = new Set(
       filteredData.flatMap(c => c.skills_covered)
@@ -483,7 +488,7 @@ export default function CourseAlignmentPage() {
       ? Math.round(filteredData.reduce((sum, c) => sum + c.coverage_percentage, 0) / totalCourses)
       : 0;
 
-    return { totalCourses, alignedCourses, skillsCovered, skillsWithGaps, averageAlignment };
+    return { totalCourses, alignedCourses, uniqueCentres, skillsCovered, skillsWithGaps, averageAlignment };
   }, [filteredData]);
 
   // Active filter count (excluding district since it's handled by backend)
@@ -834,7 +839,7 @@ export default function CourseAlignmentPage() {
 
                 <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide">Active Programs</p>
-                  <p className="text-lg font-bold text-green-700">{filteredData.filter(c => c.alignment_status === "ALIGNED").length}</p>
+                  <p className="text-lg font-bold text-green-700">{kpis.alignedCourses}</p>
                 </div>
 
                 <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
@@ -1080,6 +1085,18 @@ export default function CourseAlignmentPage() {
                     <div>
                       <p className="text-[10px] text-slate-500 uppercase tracking-wide">Aligned Courses</p>
                       <p className="text-xl font-bold text-green-700">{kpis.alignedCourses}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-md border border-slate-200 p-4 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded bg-indigo-100 text-indigo-700">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wide">Training Centres</p>
+                      <p className="text-xl font-bold text-indigo-700">{kpis.uniqueCentres}</p>
                     </div>
                   </div>
                 </div>
