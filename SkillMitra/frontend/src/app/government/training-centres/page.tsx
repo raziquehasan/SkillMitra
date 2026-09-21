@@ -6,7 +6,7 @@ import { api, type District } from "@/lib/api";
 import { 
   MapPin, Filter, X, Search, 
   Building2, Users, GraduationCap, TrendingUp, 
-  AlertCircle, RefreshCw, CheckCircle, AlertTriangle
+  AlertCircle, RefreshCw, CheckCircle, AlertTriangle, Plus
 } from "lucide-react";
 
 type TrainingCentre = {
@@ -34,6 +34,20 @@ export default function TrainingCentresPage() {
   const [filterDistrict, setFilterDistrict] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showAddCentreModal, setShowAddCentreModal] = useState(false);
+  const [addCentreLoading, setAddCentreLoading] = useState(false);
+  const [addCentreError, setAddCentreError] = useState<string | null>(null);
+  const [addCentreSuccess, setAddCentreSuccess] = useState<string | null>(null);
+  
+  const [newCentre, setNewCentre] = useState({
+    name: "",
+    district_id: "",
+    provider_type: "",
+    registration_number: "",
+    contact_person: "",
+    phone: "",
+    address: ""
+  });
 
 
   useEffect(() => {
@@ -135,11 +149,20 @@ export default function TrainingCentresPage() {
       <div className="bg-[#F5F7FA] p-4 md:p-6">
         <div className="max-w-[1500px] mx-auto">
           {/* Page Header */}
-          <div className="mb-5">
-            <h1 className="text-2xl font-bold text-[#1e293b] tracking-tight">Training Centres</h1>
-            <p className="text-sm text-slate-600 mt-1">
-              Monitor training centre capacity, trainer availability, equipment readiness and utilisation across districts.
-            </p>
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-[#1e293b] tracking-tight">Training Centres</h1>
+              <p className="text-sm text-slate-600 mt-1">
+                Monitor training centre capacity, trainer availability, equipment readiness and utilisation across districts.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowAddCentreModal(true)}
+              className="inline-flex items-center gap-2 bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#1e3a8a]/90 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Add Training Centre
+            </button>
           </div>
 
           {/* Filter Bar */}
@@ -472,6 +495,169 @@ export default function TrainingCentresPage() {
                 </tbody>
               </table>
           </div>
+            </div>
+          )}
+
+          {/* Add Training Centre Modal */}
+          {showAddCentreModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg max-w-md w-full p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-[#1e293b]">Add Training Centre</h2>
+                  <button
+                    onClick={() => setShowAddCentreModal(false)}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {addCentreSuccess ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="h-12 w-12 mx-auto text-green-600 mb-3" />
+                    <p className="text-sm font-medium text-slate-700">{addCentreSuccess}</p>
+                    <button
+                      onClick={() => {
+                        setShowAddCentreModal(false);
+                        setAddCentreSuccess(null);
+                        loadCentres();
+                      }}
+                      className="mt-4 bg-[#1e3a8a] text-white px-4 py-2 rounded text-sm font-medium"
+                    >
+                      Done
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setAddCentreLoading(true);
+                    setAddCentreError(null);
+
+                    try {
+                      await api.createTrainingCentre({
+                        name: newCentre.name,
+                        district_id: newCentre.district_id,
+                        provider_type: newCentre.provider_type || undefined,
+                        registration_number: newCentre.registration_number || undefined,
+                        contact_person: newCentre.contact_person || undefined,
+                        phone: newCentre.phone || undefined,
+                        address: newCentre.address || undefined,
+                      });
+                      setAddCentreSuccess("Training centre created successfully!");
+                    } catch (error: any) {
+                      setAddCentreError(error.message || "Failed to create training centre");
+                    } finally {
+                      setAddCentreLoading(false);
+                    }
+                  }}>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Centre Name *</label>
+                        <input
+                          type="text"
+                          required
+                          value={newCentre.name}
+                          onChange={(e) => setNewCentre({...newCentre, name: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">District *</label>
+                        <select
+                          required
+                          value={newCentre.district_id}
+                          onChange={(e) => setNewCentre({...newCentre, district_id: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select District</option>
+                          {districts.map((d) => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Provider Type</label>
+                        <select
+                          value={newCentre.provider_type}
+                          onChange={(e) => setNewCentre({...newCentre, provider_type: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select Type</option>
+                          <option value="government">Government</option>
+                          <option value="private">Private</option>
+                          <option value="ngo">NGO</option>
+                          <option value="ppp">PPP</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Registration Number</label>
+                        <input
+                          type="text"
+                          value={newCentre.registration_number}
+                          onChange={(e) => setNewCentre({...newCentre, registration_number: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Contact Person</label>
+                        <input
+                          type="text"
+                          value={newCentre.contact_person}
+                          onChange={(e) => setNewCentre({...newCentre, contact_person: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+                        <input
+                          type="text"
+                          value={newCentre.phone}
+                          onChange={(e) => setNewCentre({...newCentre, phone: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
+                        <textarea
+                          value={newCentre.address}
+                          onChange={(e) => setNewCentre({...newCentre, address: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                          rows={2}
+                        />
+                      </div>
+
+                      {addCentreError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                          {addCentreError}
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowAddCentreModal(false)}
+                          className="flex-1 border border-slate-300 text-slate-700 px-4 py-2 rounded text-sm font-medium hover:bg-slate-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={addCentreLoading}
+                          className="flex-1 bg-[#1e3a8a] text-white px-4 py-2 rounded text-sm font-medium hover:bg-[#1e3a8a]/90 disabled:opacity-50"
+                        >
+                          {addCentreLoading ? "Creating..." : "Create Centre"}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                )}
+              </div>
             </div>
           )}
         </div>

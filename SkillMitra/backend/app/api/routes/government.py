@@ -1348,6 +1348,199 @@ def get_training_centres(
     return centres
 
 
+class CreateTrainingCentreIn(BaseModel):
+    name: str
+    district_id: uuid.UUID
+    provider_type: str | None = None
+    registration_number: str | None = None
+    contact_person: str | None = None
+    phone: str | None = None
+    address: str | None = None
+
+
+class CreateTrainingCentreOut(BaseModel):
+    provider_id: str
+    name: str
+    district_id: str
+    verification_status: str
+    message: str
+
+
+@router.post("/training-centres", response_model=CreateTrainingCentreOut, status_code=201)
+def create_training_centre(
+    data: CreateTrainingCentreIn,
+    current_user: User = Depends(require_government_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Create a new training centre for government users.
+    
+    This creates a TrainingProvider record which appears in the training centres list.
+    Government users can create centres to assign training programs.
+    """
+    from app.models.phase4 import TrainingProvider
+    from app.models.identity import User
+    
+    # Check if user already has a training provider profile
+    existing_provider = db.scalar(
+        select(TrainingProvider).where(TrainingProvider.user_id == current_user.id)
+    )
+    
+    if existing_provider:
+        raise HTTPException(
+            status_code=400, 
+            detail="You already have a training provider profile. Use the Training Provider portal to manage your centre."
+        )
+    
+    # Create the training provider
+    provider = TrainingProvider(
+        user_id=current_user.id,
+        district_id=data.district_id,
+        name=data.name,
+        provider_type=data.provider_type,
+        registration_number=data.registration_number,
+        contact_person=data.contact_person,
+        phone=data.phone,
+        status="active",
+        verification_status="verified",  # Government-created centres are auto-verified
+    )
+    
+    db.add(provider)
+    db.commit()
+    db.refresh(provider)
+    
+    return CreateTrainingCentreOut(
+        provider_id=str(provider.id),
+        name=provider.name,
+        district_id=str(provider.district_id),
+        verification_status=provider.verification_status,
+        message="Training centre created successfully"
+    )
+
+
+class CreateTrainingProgramIn(BaseModel):
+    title: str
+    description: str | None = None
+    district_id: uuid.UUID
+    industry_sector_id: uuid.UUID
+    duration_hours: int | None = None
+    delivery_mode: str | None = None
+    status: str = "active"
+
+
+class CreateTrainingProgramOut(BaseModel):
+    course_id: str
+    title: str
+    message: str
+
+
+@router.post("/training-programs", response_model=CreateTrainingProgramOut, status_code=201)
+def create_training_program(
+    data: CreateTrainingProgramIn,
+    current_user: User = Depends(require_government_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Create a new training program/course for government users.
+    
+    This creates a Course record that can be assigned to training centres.
+    """
+    from app.models.career import Course
+    
+    course = Course(
+        title=data.title,
+        description=data.description,
+        district_id=data.district_id,
+        industry_sector_id=data.industry_sector_id,
+        duration_hours=data.duration_hours,
+        delivery_mode=data.delivery_mode,
+        status=data.status,
+    )
+    
+    db.add(course)
+    db.commit()
+    db.refresh(course)
+    
+    return CreateTrainingProgramOut(
+        course_id=str(course.id),
+        title=course.title,
+        message="Training program created successfully"
+    )
+
+
+class AssignProgramToCentreIn(BaseModel):
+    course_id: uuid.UUID
+    provider_id: uuid.UUID
+    district_id: uuid.UUID
+    sanctioned_seats: int = 100
+    active_seats: int = 100
+    status: str = "active"
+
+
+class AssignProgramToCentreOut(BaseModel):
+    offering_id: str
+    course_id: str
+    provider_id: str
+    message: str
+
+
+@router.post("/training-programs/assign", response_model=AssignProgramToCentreOut, status_code=201)
+def assign_program_to_centre(
+    data: AssignProgramToCentreIn,
+    current_user: User = Depends(require_government_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Assign a training program to a training centre.
+    
+    This creates a CourseOffering record linking a course to a provider in a district.
+    """
+    from app.models.phase4 import CourseOffering
+    from app.models.career import Course
+    
+    # Verify course exists
+    course = db.scalar(select(Course).where(Course.id == data.course_id))
+    if not course:
+        raise HTTPException(status_code=404, detail="Training program not found")
+    
+    # Check if offering already exists
+    existing = db.scalar(
+        select(CourseOffering).where(
+            CourseOffering.provider_id == data.provider_id,
+            CourseOffering.course_id == data.course_id,
+            CourseOffering.district_id == data.district_id
+        )
+    )
+    
+    if existing:
+        raise HTTPException(
+            status_code=400, 
+            detail="This program is already assigned to this centre in the specified district"
+        )
+    
+    # Create the course offering
+    offering = CourseOffering(
+        provider_id=data.provider_id,
+        course_id=data.course_id,
+        district_id=data.district_id,
+        sanctioned_seats=data.sanctioned_seats,
+        active_seats=data.active_seats,
+        utilized_seats=0,
+        status=data.status,
+    )
+    
+    db.add(offering)
+    db.commit()
+    db.refresh(offering)
+    
+    return AssignProgramToCentreOut(
+        offering_id=str(offering.id),
+        course_id=str(offering.course_id),
+        provider_id=str(offering.provider_id),
+        message="Training program assigned to centre successfully"
+    )
+
+
 class GovernmentCandidateOut(BaseModel):
     candidate_id: str
     name: str | None = None

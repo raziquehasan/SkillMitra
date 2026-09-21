@@ -6,7 +6,7 @@ import { api, type District, type IndustrySector, type Course, type CourseAlignm
 import {
   BookOpen, GraduationCap, Target, AlertTriangle, MapPin,
   Filter, X, Search, ChevronDown, BarChart3, PieChart,
-  TrendingUp, ArrowRight, CheckCircle, XCircle, AlertCircle
+  TrendingUp, ArrowRight, CheckCircle, XCircle, AlertCircle, Plus
 } from "lucide-react";
 
 // Fallback dataset (deterministic, never inserted into database)
@@ -306,6 +306,23 @@ export default function CourseAlignmentPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterSkill, setFilterSkill] = useState("");
   const [selectedCourseId, setSelectedCourseId] = useState("");
+  
+  // Assign Program Modal State
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
+  const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
+  const [assignData, setAssignData] = useState({
+    course_id: "",
+    provider_id: "",
+    district_id: "",
+    sanctioned_seats: 100,
+    active_seats: 100,
+    status: "active"
+  });
+  
+  // For loading providers
+  const [providers, setProviders] = useState<any[]>([]);
 
   // Load reference data on mount
   useEffect(() => {
@@ -327,38 +344,53 @@ export default function CourseAlignmentPage() {
     })();
   }, []);
 
-  // Load alignment data - reload when district filter changes to get fresh data from backend
+  // Load providers when assign modal opens
   useEffect(() => {
-    const loadAlignmentData = async () => {
-      setFetching(true);
-      setError(null);
-      try {
-        // Try government dashboard with district filter
-        const dashboardData = await api.governmentDashboard({
-          district_id: filterDistrict || undefined
-        }).catch(() => null);
-        
-        if (dashboardData?.course_alignment && dashboardData.course_alignment.length > 0) {
-          const transformed = dashboardData.course_alignment.map((item: any): CourseAlignmentData => ({
-            course_id: item.course_id,
-            course_title: item.course_title,
-            provider: item.provider || "No Provider Assigned",
-            sector: item.sector || "No Sector Assigned",
-            district_id: item.district_id,
-            district_name: item.district_name,
-            alignment_status: (item.alignment_status === "ALIGNED" ? "ALIGNED" : 
-                           item.alignment_status === "PARTIAL" ? "PARTIAL" : 
-                           item.alignment_status === "NEEDS_REVIEW" ? "NEEDS_REVIEW" : 
-                           item.alignment_status === "NOT_ALIGNED" ? "NEEDS_REVIEW" : "PARTIAL") as "ALIGNED" | "PARTIAL" | "NEEDS_REVIEW",
-            skills_covered: item.skills_covered || [],
-            skills_demanded: item.skills_demanded || [],
-            gaps: item.gaps || [],
-            coverage_percentage: item.coverage_percentage || 0,
-            priority: "Medium"
-          }));
-          setAlignmentData(transformed);
-          setUsingDemoData(false);
-        } else {
+    if (showAssignModal) {
+      const loadProviders = async () => {
+        try {
+          const data = await api.trainingCentres();
+          setProviders(Array.isArray(data) ? data : []);
+        } catch (err) {
+          console.error("Failed to load providers:", err);
+          setProviders([]);
+        }
+      };
+      loadProviders();
+    }
+  }, [showAssignModal]);
+
+  // Load alignment data - reload when district filter changes to get fresh data from backend
+  const loadAlignmentData = useCallback(async () => {
+    setFetching(true);
+    setError(null);
+    try {
+      // Try government dashboard with district filter
+      const dashboardData = await api.governmentDashboard({
+        district_id: filterDistrict || undefined
+      }).catch(() => null);
+      
+      if (dashboardData?.course_alignment && dashboardData.course_alignment.length > 0) {
+        const transformed = dashboardData.course_alignment.map((item: any): CourseAlignmentData => ({
+          course_id: item.course_id,
+          course_title: item.course_title,
+          provider: item.provider || "No Provider Assigned",
+          sector: item.sector || "No Sector Assigned",
+          district_id: item.district_id,
+          district_name: item.district_name,
+          alignment_status: (item.alignment_status === "ALIGNED" ? "ALIGNED" : 
+                         item.alignment_status === "PARTIAL" ? "PARTIAL" : 
+                         item.alignment_status === "NEEDS_REVIEW" ? "NEEDS_REVIEW" : 
+                         item.alignment_status === "NOT_ALIGNED" ? "NEEDS_REVIEW" : "PARTIAL") as "ALIGNED" | "PARTIAL" | "NEEDS_REVIEW",
+          skills_covered: item.skills_covered || [],
+          skills_demanded: item.skills_demanded || [],
+          gaps: item.gaps || [],
+          coverage_percentage: item.coverage_percentage || 0,
+          priority: "Medium"
+        }));
+        setAlignmentData(transformed);
+        setUsingDemoData(false);
+      } else {
           // Fallback to demo data only if no real data available
           setAlignmentData(demoCourseAlignment);
           setUsingDemoData(true);
@@ -370,10 +402,11 @@ export default function CourseAlignmentPage() {
       } finally {
         setFetching(false);
       }
-    };
-
-    loadAlignmentData();
   }, [filterDistrict]); // Reload when district filter changes
+
+  useEffect(() => {
+    loadAlignmentData();
+  }, [loadAlignmentData]);
 
   // Filter data - enhanced with proper dependency tracking
   const filteredData = useMemo(() => {
@@ -1123,7 +1156,10 @@ export default function CourseAlignmentPage() {
               <div className="mb-5 bg-white rounded-md border border-slate-200 p-4 shadow-sm">
                 <h3 className="text-sm font-semibold text-[#1e293b] mb-3">Quick Actions</h3>
                 <div className="flex flex-wrap gap-2">
-                  <button className="px-3 py-1.5 bg-[#1e3a8a] text-white text-xs font-medium rounded hover:bg-[#1e3a8a]/90 transition-colors">
+                  <button 
+                    onClick={() => setShowAssignModal(true)}
+                    className="px-3 py-1.5 bg-[#1e3a8a] text-white text-xs font-medium rounded hover:bg-[#1e3a8a]/90 transition-colors"
+                  >
                     Assign Program to Center
                   </button>
                   <button className="px-3 py-1.5 bg-amber-100 text-amber-800 text-xs font-medium rounded hover:bg-amber-200 transition-colors">
@@ -1601,6 +1637,166 @@ export default function CourseAlignmentPage() {
                 </div>
               </div>
             </>
+          )}
+
+          {/* Assign Program to Centre Modal */}
+          {showAssignModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg max-w-md w-full p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-[#1e293b]">Assign Program to Centre</h2>
+                  <button
+                    onClick={() => setShowAssignModal(false)}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {assignSuccess ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="h-12 w-12 mx-auto text-green-600 mb-3" />
+                    <p className="text-sm font-medium text-slate-700">{assignSuccess}</p>
+                    <button
+                      onClick={() => {
+                        setShowAssignModal(false);
+                        setAssignSuccess(null);
+                        // Trigger reload by changing filter
+                        setFilterDistrict(filterDistrict);
+                      }}
+                      className="mt-4 bg-[#1e3a8a] text-white px-4 py-2 rounded text-sm font-medium"
+                    >
+                      Done
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setAssignLoading(true);
+                    setAssignError(null);
+
+                    try {
+                      await api.assignProgramToCentre({
+                        course_id: assignData.course_id,
+                        provider_id: assignData.provider_id,
+                        district_id: assignData.district_id,
+                        sanctioned_seats: assignData.sanctioned_seats,
+                        active_seats: assignData.active_seats,
+                        status: assignData.status,
+                      });
+                      setAssignSuccess("Program assigned to centre successfully!");
+                    } catch (error: any) {
+                      setAssignError(error.message || "Failed to assign program to centre");
+                    } finally {
+                      setAssignLoading(false);
+                    }
+                  }}>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Training Program *</label>
+                        <select
+                          required
+                          value={assignData.course_id}
+                          onChange={(e) => setAssignData({...assignData, course_id: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select Program</option>
+                          {courses.map((c) => (
+                            <option key={c.id} value={c.id}>{c.title}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Training Centre *</label>
+                        <select
+                          required
+                          value={assignData.provider_id}
+                          onChange={(e) => setAssignData({...assignData, provider_id: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select Centre</option>
+                          {providers.map((p) => (
+                            <option key={p.provider_id} value={p.provider_id}>{p.provider_name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">District *</label>
+                        <select
+                          required
+                          value={assignData.district_id}
+                          onChange={(e) => setAssignData({...assignData, district_id: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select District</option>
+                          {districts.map((d) => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Sanctioned Seats</label>
+                          <input
+                            type="number"
+                            value={assignData.sanctioned_seats}
+                            onChange={(e) => setAssignData({...assignData, sanctioned_seats: parseInt(e.target.value) || 0})}
+                            className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Active Seats</label>
+                          <input
+                            type="number"
+                            value={assignData.active_seats}
+                            onChange={(e) => setAssignData({...assignData, active_seats: parseInt(e.target.value) || 0})}
+                            className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                        <select
+                          value={assignData.status}
+                          onChange={(e) => setAssignData({...assignData, status: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
+                        </select>
+                      </div>
+
+                      {assignError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                          {assignError}
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowAssignModal(false)}
+                          className="flex-1 border border-slate-300 text-slate-700 px-4 py-2 rounded text-sm font-medium hover:bg-slate-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={assignLoading}
+                          className="flex-1 bg-[#1e3a8a] text-white px-4 py-2 rounded text-sm font-medium hover:bg-[#1e3a8a]/90 disabled:opacity-50"
+                        >
+                          {assignLoading ? "Assigning..." : "Assign Program"}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>
