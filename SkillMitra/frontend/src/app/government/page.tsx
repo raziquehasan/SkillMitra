@@ -289,7 +289,7 @@ function DashboardContent() {
       )}
 
       {/* Page Header */}
-      <div className="mb-6">
+      <div className="mb-4">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold text-[#1e293b]">
             Job Intelligence Dashboard
@@ -378,9 +378,9 @@ function DashboardContent() {
 
 
       {currentDashboard && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* KPI Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
             <KpiCard
               label="Districts Covered"
               value={currentDashboard.kpis.districts_covered}
@@ -470,7 +470,7 @@ function DashboardContent() {
           </div>
 
           {/* Main Charts Row */}
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-2">
             {/* Skill Demand Ranking */}
             <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-6 shadow-sm overflow-hidden">
               <div className="flex items-center justify-between mb-4">
