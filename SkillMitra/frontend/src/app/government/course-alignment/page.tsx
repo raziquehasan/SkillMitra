@@ -324,6 +324,32 @@ export default function CourseAlignmentPage() {
   // For loading providers
   const [providers, setProviders] = useState<any[]>([]);
 
+  // Pause/Deactivate Course Modal State
+  const [showPauseModal, setShowPauseModal] = useState(false);
+  const [pauseLoading, setPauseLoading] = useState(false);
+  const [pauseError, setPauseError] = useState<string | null>(null);
+  const [pauseSuccess, setPauseSuccess] = useState<string | null>(null);
+  const [pauseData, setPauseData] = useState({
+    course_id: "",
+    title: "",
+    current_status: "",
+    new_status: "draft"
+  });
+
+  // Request New Proposal Modal State
+  const [showProposalModal, setShowProposalModal] = useState(false);
+  const [proposalLoading, setProposalLoading] = useState(false);
+  const [proposalError, setProposalError] = useState<string | null>(null);
+  const [proposalSuccess, setProposalSuccess] = useState<string | null>(null);
+  const [proposalData, setProposalData] = useState({
+    course_id: "",
+    district_id: filterDistrict,
+    sector_id: "",
+    requested_skills: [] as string[],
+    requested_capacity: "",
+    reason: ""
+  });
+
   // Load reference data on mount
   useEffect(() => {
     (async () => {
@@ -1162,13 +1188,49 @@ export default function CourseAlignmentPage() {
                   >
                     Assign Program to Center
                   </button>
-                  <button className="px-3 py-1.5 bg-amber-100 text-amber-800 text-xs font-medium rounded hover:bg-amber-200 transition-colors">
+                  <button 
+                    onClick={() => {
+                      if (selectedCourseId) {
+                        const selectedCourse = courses.find(c => c.id === selectedCourseId);
+                        if (selectedCourse) {
+                          setPauseData({
+                            course_id: selectedCourse.id,
+                            title: selectedCourse.title,
+                            current_status: selectedCourse.status || 'unknown',
+                            new_status: selectedCourse.status === 'active' ? 'draft' : 'active'
+                          });
+                          setShowPauseModal(true);
+                        }
+                      } else {
+                        alert("Please select a course first to pause or deactivate.");
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-amber-100 text-amber-800 text-xs font-medium rounded hover:bg-amber-200 transition-colors"
+                  >
                     Pause / Deactivate Course
                   </button>
-                  <button className="px-3 py-1.5 bg-blue-100 text-blue-800 text-xs font-medium rounded hover:bg-blue-200 transition-colors">
+                  <button 
+                    onClick={() => {
+                      setShowProposalModal(true);
+                      setProposalData({
+                        ...proposalData,
+                        district_id: filterDistrict || ""
+                      });
+                    }}
+                    className="px-3 py-1.5 bg-blue-100 text-blue-800 text-xs font-medium rounded hover:bg-blue-200 transition-colors"
+                  >
                     Request New Proposal
                   </button>
-                  <button className="px-3 py-1.5 bg-slate-100 text-slate-800 text-xs font-medium rounded hover:bg-slate-200 transition-colors">
+                  <button 
+                    onClick={() => {
+                      if (filterDistrict) {
+                        window.location.href = `/government/districts?district=${filterDistrict}`;
+                      } else {
+                        alert("Please select a district first to view district report.");
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-slate-100 text-slate-800 text-xs font-medium rounded hover:bg-slate-200 transition-colors"
+                  >
                     View District Report
                   </button>
                 </div>
@@ -1790,6 +1852,273 @@ export default function CourseAlignmentPage() {
                           className="flex-1 bg-[#1e3a8a] text-white px-4 py-2 rounded text-sm font-medium hover:bg-[#1e3a8a]/90 disabled:opacity-50"
                         >
                           {assignLoading ? "Assigning..." : "Assign Program"}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Pause/Deactivate Course Modal */}
+          {showPauseModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg max-w-md w-full p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-[#1e293b]">Pause / Deactivate Course</h2>
+                  <button
+                    onClick={() => setShowPauseModal(false)}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {pauseSuccess ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="h-12 w-12 mx-auto text-green-600 mb-3" />
+                    <p className="text-sm font-medium text-slate-700">{pauseSuccess}</p>
+                    <button
+                      onClick={() => {
+                        setShowPauseModal(false);
+                        setPauseSuccess(null);
+                        // Reload data to show updated status
+                        loadAlignmentData();
+                      }}
+                      className="mt-4 bg-[#1e3a8a] text-white px-4 py-2 rounded text-sm font-medium"
+                    >
+                      Done
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setPauseLoading(true);
+                    setPauseError(null);
+
+                    try {
+                      await api.updateCourseStatus(pauseData.course_id, pauseData.new_status);
+                      setPauseSuccess(`Course status updated to ${pauseData.new_status}`);
+                      // Reload courses to reflect the status change
+                      const coursesData = await api.courses();
+                      setCourses(coursesData.items || []);
+                      // Reload alignment data to update the table
+                      await loadAlignmentData();
+                    } catch (error: any) {
+                      setPauseError(error.message || "Failed to update course status");
+                    } finally {
+                      setPauseLoading(false);
+                    }
+                  }}>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Course</label>
+                        <input
+                          type="text"
+                          value={pauseData.title}
+                          disabled
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-slate-50"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Current Status</label>
+                        <input
+                          type="text"
+                          value={pauseData.current_status}
+                          disabled
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-slate-50"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">New Status *</label>
+                        <select
+                          required
+                          value={pauseData.new_status}
+                          onChange={(e) => setPauseData({...pauseData, new_status: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="draft">Draft (Paused)</option>
+                          <option value="active">Active</option>
+                          <option value="archived">Archived</option>
+                        </select>
+                      </div>
+
+                      {pauseError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                          {pauseError}
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowPauseModal(false)}
+                          className="flex-1 border border-slate-300 text-slate-700 px-4 py-2 rounded text-sm font-medium hover:bg-slate-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={pauseLoading}
+                          className="flex-1 bg-amber-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
+                        >
+                          {pauseLoading ? "Updating..." : "Update Status"}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Request New Proposal Modal */}
+          {showProposalModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg max-w-md w-full p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-[#1e293b]">Request New Training Proposal</h2>
+                  <button
+                    onClick={() => setShowProposalModal(false)}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {proposalSuccess ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="h-12 w-12 mx-auto text-green-600 mb-3" />
+                    <p className="text-sm font-medium text-slate-700">{proposalSuccess}</p>
+                    <button
+                      onClick={() => {
+                        setShowProposalModal(false);
+                        setProposalSuccess(null);
+                      }}
+                      className="mt-4 bg-[#1e3a8a] text-white px-4 py-2 rounded text-sm font-medium"
+                    >
+                      Done
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setProposalLoading(true);
+                    setProposalError(null);
+
+                    try {
+                      await api.createTrainingProposal({
+                        course_id: proposalData.course_id || undefined,
+                        district_id: proposalData.district_id,
+                        sector_id: proposalData.sector_id || undefined,
+                        requested_skills: proposalData.requested_skills,
+                        requested_capacity: proposalData.requested_capacity ? parseInt(proposalData.requested_capacity) : undefined,
+                        reason: proposalData.reason,
+                      });
+                      setProposalSuccess("Training proposal submitted successfully!");
+                      // Reset form
+                      setProposalData({
+                        course_id: "",
+                        district_id: filterDistrict,
+                        sector_id: "",
+                        requested_skills: [],
+                        requested_capacity: "",
+                        reason: ""
+                      });
+                    } catch (error: any) {
+                      setProposalError(error.message || "Failed to submit proposal");
+                    } finally {
+                      setProposalLoading(false);
+                    }
+                  }}>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Course (Optional)</label>
+                        <select
+                          value={proposalData.course_id}
+                          onChange={(e) => setProposalData({...proposalData, course_id: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select Course (Optional)</option>
+                          {courses.map((c) => (
+                            <option key={c.id} value={c.id}>{c.title}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">District *</label>
+                        <select
+                          required
+                          value={proposalData.district_id}
+                          onChange={(e) => setProposalData({...proposalData, district_id: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select District</option>
+                          {districts.map((d) => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Sector (Optional)</label>
+                        <select
+                          value={proposalData.sector_id}
+                          onChange={(e) => setProposalData({...proposalData, sector_id: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select Sector</option>
+                          {sectors.map((s) => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Requested Capacity</label>
+                        <input
+                          type="number"
+                          value={proposalData.requested_capacity}
+                          onChange={(e) => setProposalData({...proposalData, requested_capacity: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Reason *</label>
+                        <textarea
+                          required
+                          value={proposalData.reason}
+                          onChange={(e) => setProposalData({...proposalData, reason: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                          rows={3}
+                        />
+                      </div>
+
+                      {proposalError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                          {proposalError}
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowProposalModal(false)}
+                          className="flex-1 border border-slate-300 text-slate-700 px-4 py-2 rounded text-sm font-medium hover:bg-slate-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={proposalLoading}
+                          className="flex-1 bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          {proposalLoading ? "Submitting..." : "Submit Proposal"}
                         </button>
                       </div>
                     </div>

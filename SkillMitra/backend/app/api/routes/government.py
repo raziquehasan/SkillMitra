@@ -14,6 +14,7 @@ from app.models.phase4 import (
     CourseEquipmentRequirement, Equipment, Trainer, TrainerSkill, CandidateSkill,
 )
 from app.models.phase8 import GovernmentOfficial
+from app.models.phase9 import CurriculumProposal, AuditLog
 from app.models.geography import District
 from app.models.demand import DataSource, IndustryDemand, IndustrySector
 from app.models.skills import Skill
@@ -1539,6 +1540,140 @@ def assign_program_to_centre(
         provider_id=str(offering.provider_id),
         message="Training program assigned to centre successfully"
     )
+
+
+class UpdateCourseStatusIn(BaseModel):
+    status: str
+
+
+class UpdateCourseStatusOut(BaseModel):
+    course_id: str
+    title: str
+    status: str
+    message: str
+
+
+@router.patch("/training-programs/{course_id}/status", response_model=UpdateCourseStatusOut)
+def update_course_status(
+    course_id: uuid.UUID,
+    data: UpdateCourseStatusIn,
+    current_user: User = Depends(require_government_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Update training program/course status (pause/deactivate).
+    
+    Valid statuses: active, draft, archived
+    """
+    from app.models.career import Course
+    
+    # Verify course exists
+    course = db.scalar(select(Course).where(Course.id == course_id))
+    if not course:
+        raise HTTPException(status_code=404, detail="Training program not found")
+    
+    # Validate status
+    valid_statuses = ['active', 'draft', 'archived']
+    if data.status not in valid_statuses:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
+        )
+    
+    # Update status
+    course.status = data.status
+    db.commit()
+    db.refresh(course)
+    
+    return UpdateCourseStatusOut(
+        course_id=str(course.id),
+        title=course.title,
+        status=course.status,
+        message=f"Course status updated to {data.status}"
+    )
+
+
+class CreateTrainingProposalIn(BaseModel):
+    course_id: uuid.UUID | None = None
+    district_id: uuid.UUID
+    sector_id: uuid.UUID | None = None
+    requested_skills: list[str] = []
+    requested_capacity: int | None = None
+    reason: str
+
+
+class CreateTrainingProposalOut(BaseModel):
+    proposal_id: str
+    status: str
+    message: str
+
+
+@router.post("/training-proposals", response_model=CreateTrainingProposalOut, status_code=201)
+def create_training_proposal(
+    data: CreateTrainingProposalIn,
+    current_user: User = Depends(require_government_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Create a training program proposal for government officers.
+    
+    This creates a proposal record that can be tracked and approved.
+    """
+    from app.models.phase9 import CurriculumProposal, AuditLog
+    
+    # For simplicity, create a proposal linked to a course if provided
+    # If no course, create a general proposal stored in audit log
+    if data.course_id:
+        course = db.scalar(select(Course).where(Course.id == data.course_id))
+        if not course:
+            raise HTTPException(status_code=404, detail="Course not found")
+        
+        # Create curriculum proposal
+        proposal = CurriculumProposal(
+            course_id=data.course_id,
+            curriculum_version_id=None,  # Will be linked when curriculum exists
+            proposed_by_user_id=current_user.id,
+            proposed_changes={
+                "district_id": str(data.district_id),
+                "sector_id": str(data.sector_id) if data.sector_id else None,
+                "requested_skills": data.requested_skills,
+                "requested_capacity": data.requested_capacity,
+            },
+            reason=data.reason,
+            status="proposed"
+        )
+        db.add(proposal)
+        db.commit()
+        db.refresh(proposal)
+        
+        return CreateTrainingProposalOut(
+            proposal_id=str(proposal.id),
+            status=proposal.status,
+            message="Training proposal created successfully"
+        )
+    else:
+        # Create audit log entry for general proposal
+        audit_log = AuditLog(
+            actor_user_id=current_user.id,
+            action="training_proposal",
+            target_type="district",
+            target_id=data.district_id,
+            reason=data.reason,
+            log_metadata={
+                "sector_id": str(data.sector_id) if data.sector_id else None,
+                "requested_skills": data.requested_skills,
+                "requested_capacity": data.requested_capacity,
+            }
+        )
+        db.add(audit_log)
+        db.commit()
+        db.refresh(audit_log)
+        
+        return CreateTrainingProposalOut(
+            proposal_id=str(audit_log.id),
+            status="proposed",
+            message="Training proposal submitted successfully"
+        )
 
 
 class GovernmentCandidateOut(BaseModel):

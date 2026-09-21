@@ -109,6 +109,8 @@ export default function TrainingCoursesPage() {
   const [error, setError] = useState<string | null>(null);
   const [showRecommended, setShowRecommended] = useState(true);
   const [hasSkills, setHasSkills] = useState(false);
+  const [skillCoverage, setSkillCoverage] = useState<string>("--");
+  const [industryRelevance, setIndustryRelevance] = useState<string>("--");
 
   useEffect(() => {
     const loadData = async () => {
@@ -125,6 +127,28 @@ export default function TrainingCoursesPage() {
         if (recData) {
           setRecommendedCourses(recData.recommended_courses || []);
           setMissingSkills(recData.missing_skills || []);
+          
+          // Calculate skill coverage based on courses available vs gaps
+          if (recData.missing_skills && recData.missing_skills.length > 0 && recData.recommended_courses && recData.recommended_courses.length > 0) {
+            const coverage = Math.round((recData.recommended_courses.length / recData.missing_skills.length) * 100);
+            setSkillCoverage(`${coverage}%`);
+          } else if (recData.missing_skills && recData.missing_skills.length === 0) {
+            setSkillCoverage("100%");
+          } else {
+            setSkillCoverage("0%");
+          }
+          
+          // Calculate industry relevance based on courses available
+          if (recData.recommended_courses && recData.recommended_courses.length > 0) {
+            setIndustryRelevance("High");
+          } else if (recData.missing_skills && recData.missing_skills.length > 0) {
+            setIndustryRelevance("Low");
+          } else {
+            setIndustryRelevance("--");
+          }
+        } else {
+          setSkillCoverage("--");
+          setIndustryRelevance("--");
         }
         
         // Load all courses as fallback
@@ -133,6 +157,8 @@ export default function TrainingCoursesPage() {
       } catch (err) {
         console.error("Failed to load courses:", err);
         setError("Unable to load courses. Please try again.");
+        setSkillCoverage("--");
+        setIndustryRelevance("--");
       } finally {
         setLoading(false);
       }
@@ -242,14 +268,14 @@ export default function TrainingCoursesPage() {
 
               <SummaryCard
                 label="Skill Coverage"
-                value={hasSkills ? "Calculating..." : "--"}
-                description={hasSkills ? "Analyzing skill alignment" : "Add skills to calculate coverage"}
+                value={skillCoverage}
+                description={hasSkills ? "Skill alignment with courses" : "Add skills to calculate coverage"}
               />
 
               <SummaryCard
                 label="Industry Relevance"
-                value={hasSkills ? "Analyzing..." : "--"}
-                description={hasSkills ? "Checking demand alignment" : "Add skills to see relevance"}
+                value={industryRelevance}
+                description={hasSkills ? "Demand alignment with courses" : "Add skills to see relevance"}
               />
             </div>
 
