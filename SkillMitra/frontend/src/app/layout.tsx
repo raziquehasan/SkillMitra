@@ -6,6 +6,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import ChatbotWidget from "@/components/ChatbotWidget";
+import { Analytics } from "@vercel/analytics/next";
 
 const sourceSans = Source_Sans_3({
   variable: "--font-gov-sans",
@@ -49,6 +50,7 @@ export default function RootLayout({
           </AuthProvider>
           <ChatbotWidget />
         </LanguageProvider>
+        <Analytics />
       </body>
     </html>
   );
