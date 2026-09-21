@@ -1167,6 +1167,7 @@ export const api = {
     missing_skills: string[];
     total_gaps: number;
     courses_available: number;
+    reason: string | null;
   }>("/api/v1/candidates/me/training-recommendations"),
 
   candidateJobRecommendations: () => apiFetch<{
