@@ -111,6 +111,7 @@ export default function TrainingCoursesPage() {
   const [hasSkills, setHasSkills] = useState(false);
   const [skillCoverage, setSkillCoverage] = useState<string>("--");
   const [industryRelevance, setIndustryRelevance] = useState<string>("--");
+  const [recommendationReason, setRecommendationReason] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -127,6 +128,7 @@ export default function TrainingCoursesPage() {
         if (recData) {
           setRecommendedCourses(recData.recommended_courses || []);
           setMissingSkills(recData.missing_skills || []);
+          setRecommendationReason(recData.reason || null);
           
           // Calculate skill coverage based on courses available vs gaps
           if (recData.missing_skills && recData.missing_skills.length > 0 && recData.recommended_courses && recData.recommended_courses.length > 0) {
@@ -144,11 +146,11 @@ export default function TrainingCoursesPage() {
           } else if (recData.missing_skills && recData.missing_skills.length > 0) {
             setIndustryRelevance("Low");
           } else {
-            setIndustryRelevance("--");
+            setIndustryRelevance("Not Available");
           }
         } else {
           setSkillCoverage("--");
-          setIndustryRelevance("--");
+          setIndustryRelevance("Not Available");
         }
         
         // Load all courses as fallback
@@ -442,15 +444,33 @@ export default function TrainingCoursesPage() {
                 </div>
               ) : recommendedCourses.length === 0 ? (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 px-6 py-12 text-center shadow-sm">
-                  <p className="text-amber-800">
-                    No specific recommendations available. View all courses below or set career interests for personalized recommendations.
+                  <p className="text-amber-800 font-medium mb-2">
+                    No personalized course recommendations available
                   </p>
-                  <button
-                    onClick={() => setShowRecommended(false)}
-                    className="mt-4 rounded-lg bg-[#123b68] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f3155]"
-                  >
-                    View All Courses
-                  </button>
+                  {recommendationReason && (
+                    <p className="text-amber-700 text-sm mb-4">
+                      {recommendationReason}
+                    </p>
+                  )}
+                  {!recommendationReason && (
+                    <p className="text-amber-700 text-sm mb-4">
+                      Update your skills and career interests to get personalized recommendations.
+                    </p>
+                  )}
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      onClick={() => setShowRecommended(false)}
+                      className="rounded-lg bg-[#123b68] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f3155]"
+                    >
+                      View All Courses
+                    </button>
+                    <Link
+                      href="/candidate/skills"
+                      className="rounded-lg border border-[#123b68] text-[#123b68] px-4 py-2 text-sm font-semibold hover:bg-[#123b68] hover:text-white"
+                    >
+                      Update Skills
+                    </Link>
+                  </div>
                 </div>
               ) : error ? (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-12 text-center shadow-sm">
