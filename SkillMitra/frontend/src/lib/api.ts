@@ -137,6 +137,8 @@ export type CourseAlignmentData = {
   gaps: string[];
   coverage_percentage: number;
   priority: "High" | "Medium" | "Low";
+  utilized_seats?: number;
+  active_seats?: number;
 };
 
 export type SkillCoverage = {
