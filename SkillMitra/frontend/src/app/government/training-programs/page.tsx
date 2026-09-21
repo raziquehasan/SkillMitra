@@ -18,6 +18,8 @@ import {
   Briefcase,
   Target,
   BarChart3,
+  Plus,
+  CheckCircle,
 } from "lucide-react";
 
 type FilterState = {
@@ -102,6 +104,20 @@ export default function TrainingProgramsPage() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterState>(emptyFilters);
   const [errorInfo, setErrorInfo] = useState<string | null>(null);
+  const [showAddProgramModal, setShowAddProgramModal] = useState(false);
+  const [addProgramLoading, setAddProgramLoading] = useState(false);
+  const [addProgramError, setAddProgramError] = useState<string | null>(null);
+  const [addProgramSuccess, setAddProgramSuccess] = useState<string | null>(null);
+  
+  const [newProgram, setNewProgram] = useState({
+    title: "",
+    description: "",
+    district_id: "",
+    industry_sector_id: "",
+    duration_hours: "",
+    delivery_mode: "",
+    status: "active"
+  });
 
   useEffect(() => {
     const loadLookups = async () => {
@@ -249,11 +265,20 @@ export default function TrainingProgramsPage() {
     <GovernmentShell>
       <div className="bg-[#F5F7FA] p-4 md:p-6">
         <div className="mx-auto max-w-[1600px]">
-          <div className="mb-5">
-            <h1 className="text-4xl font-bold tracking-tight text-[#1e293b]">Training Programs</h1>
-            <p className="mt-1 text-base text-slate-600">
-              Monitor training program offerings, enrollment, capacity and utilization across districts.
-            </p>
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight text-[#1e293b]">Training Programs</h1>
+              <p className="mt-1 text-base text-slate-600">
+                Monitor training program offerings, enrollment, capacity and utilization across districts.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowAddProgramModal(true)}
+              className="inline-flex items-center gap-2 bg-[#1e3a8a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#1e3a8a]/90 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Add Training Program
+            </button>
           </div>
 
           <div className="mb-5 rounded-md border border-slate-200 bg-white p-4 shadow-sm">
@@ -568,6 +593,176 @@ export default function TrainingProgramsPage() {
                 </div>
               </div>
             </>
+          )}
+
+          {/* Add Training Program Modal */}
+          {showAddProgramModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg max-w-md w-full p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-[#1e293b]">Add Training Program</h2>
+                  <button
+                    onClick={() => setShowAddProgramModal(false)}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {addProgramSuccess ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="h-12 w-12 mx-auto text-green-600 mb-3" />
+                    <p className="text-sm font-medium text-slate-700">{addProgramSuccess}</p>
+                    <button
+                      onClick={() => {
+                        setShowAddProgramModal(false);
+                        setAddProgramSuccess(null);
+                        loadPrograms();
+                      }}
+                      className="mt-4 bg-[#1e3a8a] text-white px-4 py-2 rounded text-sm font-medium"
+                    >
+                      Done
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setAddProgramLoading(true);
+                    setAddProgramError(null);
+
+                    try {
+                      await api.createTrainingProgram({
+                        title: newProgram.title,
+                        description: newProgram.description || undefined,
+                        district_id: newProgram.district_id,
+                        industry_sector_id: newProgram.industry_sector_id,
+                        duration_hours: newProgram.duration_hours ? parseInt(newProgram.duration_hours) : undefined,
+                        delivery_mode: newProgram.delivery_mode || undefined,
+                        status: newProgram.status,
+                      });
+                      setAddProgramSuccess("Training program created successfully!");
+                    } catch (error: any) {
+                      setAddProgramError(error.message || "Failed to create training program");
+                    } finally {
+                      setAddProgramLoading(false);
+                    }
+                  }}>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Program Title *</label>
+                        <input
+                          type="text"
+                          required
+                          value={newProgram.title}
+                          onChange={(e) => setNewProgram({...newProgram, title: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                        <textarea
+                          value={newProgram.description}
+                          onChange={(e) => setNewProgram({...newProgram, description: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                          rows={3}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">District *</label>
+                        <select
+                          required
+                          value={newProgram.district_id}
+                          onChange={(e) => setNewProgram({...newProgram, district_id: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select District</option>
+                          {districts.map((d) => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Industry Sector *</label>
+                        <select
+                          required
+                          value={newProgram.industry_sector_id}
+                          onChange={(e) => setNewProgram({...newProgram, industry_sector_id: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select Sector</option>
+                          {sectors.map((s) => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Duration (Hours)</label>
+                        <input
+                          type="number"
+                          value={newProgram.duration_hours}
+                          onChange={(e) => setNewProgram({...newProgram, duration_hours: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Delivery Mode</label>
+                        <select
+                          value={newProgram.delivery_mode}
+                          onChange={(e) => setNewProgram({...newProgram, delivery_mode: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select Mode</option>
+                          <option value="offline">Offline</option>
+                          <option value="online">Online</option>
+                          <option value="hybrid">Hybrid</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                        <select
+                          value={newProgram.status}
+                          onChange={(e) => setNewProgram({...newProgram, status: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="active">Active</option>
+                          <option value="draft">Draft</option>
+                          <option value="inactive">Inactive</option>
+                        </select>
+                      </div>
+
+                      {addProgramError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                          {addProgramError}
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowAddProgramModal(false)}
+                          className="flex-1 border border-slate-300 text-slate-700 px-4 py-2 rounded text-sm font-medium hover:bg-slate-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={addProgramLoading}
+                          className="flex-1 bg-[#1e3a8a] text-white px-4 py-2 rounded text-sm font-medium hover:bg-[#1e3a8a]/90 disabled:opacity-50"
+                        >
+                          {addProgramLoading ? "Creating..." : "Create Program"}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>

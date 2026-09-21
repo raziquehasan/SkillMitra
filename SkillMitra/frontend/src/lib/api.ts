@@ -653,6 +653,75 @@ export const api = {
     return apiFetch<any>(`/api/v1/government/training-supply${qs.toString() ? `?${qs.toString()}` : ""}`);
   },
 
+  // Government Training Centre and Program Management
+  createTrainingCentre: (data: {
+    name: string;
+    district_id: string;
+    provider_type?: string;
+    registration_number?: string;
+    contact_person?: string;
+    phone?: string;
+    address?: string;
+  }) => {
+    return apiFetch<{
+      provider_id: string;
+      name: string;
+      district_id: string;
+      verification_status: string;
+      message: string;
+    }>(
+      "/api/v1/government/training-centres",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    );
+  },
+
+  createTrainingProgram: (data: {
+    title: string;
+    description?: string;
+    district_id: string;
+    industry_sector_id: string;
+    duration_hours?: number;
+    delivery_mode?: string;
+    status?: string;
+  }) => {
+    return apiFetch<{
+      course_id: string;
+      title: string;
+      message: string;
+    }>(
+      "/api/v1/government/training-programs",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    );
+  },
+
+  assignProgramToCentre: (data: {
+    course_id: string;
+    provider_id: string;
+    district_id: string;
+    sanctioned_seats?: number;
+    active_seats?: number;
+    status?: string;
+  }) => {
+    return apiFetch<{
+      offering_id: string;
+      course_id: string;
+      provider_id: string;
+      message: string;
+    }>(
+      "/api/v1/government/training-programs/assign",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    );
+  },
+
   generateDistrictPlan: (districtId: string, startDate?: string, endDate?: string) => {
     const qs = new URLSearchParams({ district_id: districtId });
     if (startDate) qs.set("start_date", startDate);
