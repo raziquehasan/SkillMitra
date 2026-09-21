@@ -427,7 +427,7 @@ export default function CourseAlignmentPage() {
         setUsingDemoData(true);
       } finally {
         setFetching(false);
-      }
+    }
   }, [filterDistrict]); // Reload when district filter changes
 
   useEffect(() => {
@@ -828,13 +828,13 @@ export default function CourseAlignmentPage() {
                 </div>
 
                 <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Training Centers</p>
-                  <p className="text-lg font-bold text-[#1e3a8a]">{filteredData.length}</p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Training Centres</p>
+                  <p className="text-lg font-bold text-[#1e3a8a]">{kpis.uniqueCentres}</p>
                 </div>
 
                 <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide">Active Programs</p>
-                  <p className="text-lg font-bold text-green-700">{kpis.alignedCourses}</p>
+                  <p className="text-lg font-bold text-green-700">{filteredData.filter(c => c.alignment_status === "ALIGNED").length}</p>
                 </div>
 
                 <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
@@ -1148,7 +1148,7 @@ export default function CourseAlignmentPage() {
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-600">Training Programs</span>
-                      <span className="font-semibold text-slate-700">{filteredData.length}</span>
+                      <span className="font-semibold text-slate-700">{kpis.totalCourses}</span>
                     </div>
                   </div>
                 </div>
