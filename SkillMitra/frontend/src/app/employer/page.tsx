@@ -113,14 +113,18 @@ function EmployerDashboardContent() {
         setEmployerProfile(employerProfileRes);
 
         // Set default district from employer profile if available
-        if (employerProfileRes?.district_id || employerProfileRes?.district_name) {
+        if (employerProfileRes?.district_id) {
           const employerDistrict = districtRes.find(d => 
-            d.id === employerProfileRes.district_id || 
-            d.name === employerProfileRes.district_name
+            d.id === employerProfileRes.district_id
           );
           if (employerDistrict) {
             setSelectedDistrict(employerDistrict.name);
+            console.log("Auto-selected employer district:", employerDistrict.name);
+          } else {
+            console.log("Employer district_id not found in districts list:", employerProfileRes.district_id);
           }
+        } else {
+          console.log("No district_id in employer profile:", employerProfileRes);
         }
 
         setDashboard({
