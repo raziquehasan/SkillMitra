@@ -32,6 +32,7 @@ interface GovernmentSidebarProps {
   onClose: () => void;
   activeSection: string;
   onLogout: () => void;
+  isDesktop: boolean;
 }
 
 interface NavSection {
@@ -112,14 +113,21 @@ const navSections: NavSection[] = [
   },
 ];
 
-export function GovernmentSidebar({ open, onClose, activeSection, onLogout }: GovernmentSidebarProps) {
+export function GovernmentSidebar({ open, onClose, activeSection, onLogout, isDesktop }: GovernmentSidebarProps) {
   const pathname = usePathname();
   const [expandedSections, setExpandedSections] = useState<string[]>([
     activeSection,
     "overview",
   ]);
 
+  // On desktop, always keep all sections expanded
+  const isSectionExpanded = (sectionKey: string) => {
+    if (isDesktop) return true;
+    return expandedSections.includes(sectionKey);
+  };
+
   const toggleSection = (sectionKey: string) => {
+    if (isDesktop) return; // Disable section collapse on desktop
     setExpandedSections((prev) =>
       prev.includes(sectionKey)
         ? prev.filter((key) => key !== sectionKey)
@@ -147,7 +155,7 @@ export function GovernmentSidebar({ open, onClose, activeSection, onLogout }: Go
 
       <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-1">
         {navSections.map((section) => {
-          const isExpanded = expandedSections.includes(section.sectionKey);
+          const isExpanded = isSectionExpanded(section.sectionKey);
           const hasActiveItem = section.items.some((item) => isActive(item.href));
 
           return (
@@ -161,11 +169,11 @@ export function GovernmentSidebar({ open, onClose, activeSection, onLogout }: Go
                 }`}
               >
                 <span>{section.title}</span>
-                {isExpanded ? (
+                {!isDesktop && (isExpanded ? (
                   <ChevronDown className="h-4 w-4 text-slate-400" />
                 ) : (
                   <ChevronRight className="h-4 w-4 text-slate-400" />
-                )}
+                ))}
               </button>
 
               {isExpanded && (
@@ -232,106 +240,60 @@ export function GovernmentSidebar({ open, onClose, activeSection, onLogout }: Go
 
       <aside
         className={`fixed inset-y-0 left-0 z-50 transform border-r border-slate-200 transition-all duration-300 lg:translate-x-0 lg:static lg:block ${
-          open ? "w-64 translate-x-0" : "w-16 -translate-x-full"
-        } ${!open ? "lg:w-16 lg:translate-x-0" : ""}`}
+          open ? "w-64 translate-x-0" : "w-64 -translate-x-full"
+        }`}
       >
         <div className="flex h-full flex-col bg-white">
-          {!open && (
-            <div className="flex items-center justify-center border-b border-slate-200 px-4 py-3">
-              <span className="text-xs font-bold text-[#0a1628]">SM</span>
-            </div>
-          )}
-          {open && (
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-              <span className="text-sm font-bold text-[#0a1628]">SkillMitra</span>
-              <button
-                onClick={onClose}
-                className="rounded p-1 hover:bg-slate-100 lg:hidden"
-                aria-label="Close sidebar"
-              >
-                <X className="h-5 w-5 text-slate-500" />
-              </button>
-            </div>
-          )}
+          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+            <span className="text-sm font-bold text-[#0a1628]">SkillMitra</span>
+            <button
+              onClick={onClose}
+              className="rounded p-1 hover:bg-slate-100 lg:hidden"
+              aria-label="Close sidebar"
+            >
+              <X className="h-5 w-5 text-slate-500" />
+            </button>
+          </div>
 
           <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
             {navSections.map((section) => {
-              const isExpanded = expandedSections.includes(section.sectionKey);
+              const isExpanded = isSectionExpanded(section.sectionKey);
               const hasActiveItem = section.items.some((item) => isActive(item.href));
 
               return (
                 <div key={section.sectionKey} className="mb-1">
-                  {open ? (
-                    <>
-                      <button
-                        onClick={() => toggleSection(section.sectionKey)}
-                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          hasActiveItem
-                            ? "text-[#0a1628] bg-slate-50"
-                            : "text-slate-600 hover:bg-slate-50"
-                        }`}
-                      >
-                        <span>{section.title}</span>
-                        {isExpanded ? (
-                          <ChevronDown className="h-4 w-4 text-slate-400" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 text-slate-400" />
-                        )}
-                      </button>
+                  <button
+                    onClick={() => toggleSection(section.sectionKey)}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      hasActiveItem
+                        ? "text-[#0a1628] bg-slate-50"
+                        : "text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <span>{section.title}</span>
+                    {!isDesktop && (isExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-slate-400" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-slate-400" />
+                    ))}
+                  </button>
 
-                      {isExpanded && (
-                        <div className="ml-2 mt-1 space-y-1">
-                          {section.items.map((item) => {
-                            const active = isActive(item.href);
-                            if (item.action === "logout") {
-                              return (
-                                <button
-                                  key={item.href}
-                                  onClick={() => {
-                                    onLogout();
-                                    if (window.innerWidth < 1024) onClose();
-                                  }}
-                                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                                >
-                                  {item.icon}
-                                  <span>{item.label}</span>
-                                </button>
-                              );
-                            }
-                            return (
-                              <Link
-                                key={item.href}
-                                href={item.href}
-                                onClick={() => {
-                                  if (window.innerWidth < 1024) onClose();
-                                }}
-                                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                                  active
-                                    ? "bg-[#1e3a8a] text-white"
-                                    : "text-slate-600 hover:bg-slate-50"
-                                }`}
-                              >
-                                {item.icon}
-                                <span>{item.label}</span>
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="space-y-1">
+                  {isExpanded && (
+                    <div className="ml-2 mt-1 space-y-1">
                       {section.items.map((item) => {
                         const active = isActive(item.href);
                         if (item.action === "logout") {
                           return (
                             <button
                               key={item.href}
-                              onClick={() => onLogout()}
-                              title={item.label}
-                              className="flex items-center justify-center rounded-lg px-2 py-2 text-red-600 hover:bg-red-50 transition-colors"
+                              onClick={() => {
+                                onLogout();
+                                if (window.innerWidth < 1024) onClose();
+                              }}
+                              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                             >
                               {item.icon}
+                              <span>{item.label}</span>
                             </button>
                           );
                         }
@@ -339,14 +301,17 @@ export function GovernmentSidebar({ open, onClose, activeSection, onLogout }: Go
                           <Link
                             key={item.href}
                             href={item.href}
-                            title={item.label}
-                            className={`flex items-center justify-center rounded-lg px-2 py-2 transition-colors ${
+                            onClick={() => {
+                              if (window.innerWidth < 1024) onClose();
+                            }}
+                            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                               active
                                 ? "bg-[#1e3a8a] text-white"
                                 : "text-slate-600 hover:bg-slate-50"
                             }`}
                           >
                             {item.icon}
+                            <span>{item.label}</span>
                           </Link>
                         );
                       })}
@@ -358,16 +323,10 @@ export function GovernmentSidebar({ open, onClose, activeSection, onLogout }: Go
           </nav>
 
           <div className="border-t border-slate-200 p-3">
-            {open ? (
-              <div className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2">
-                <div className="h-2 w-2 rounded-full bg-green-500" />
-                <span className="text-xs text-slate-600">Maharashtra Government</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center">
-                <div className="h-2 w-2 rounded-full bg-green-500" title="Maharashtra Government" />
-              </div>
-            )}
+            <div className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2">
+              <div className="h-2 w-2 rounded-full bg-green-500" />
+              <span className="text-xs text-slate-600">Maharashtra Government</span>
+            </div>
           </div>
         </div>
       </aside>
