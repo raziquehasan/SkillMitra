@@ -219,8 +219,7 @@ const DEMO_DISTRICT_DATA: Record<string, { industries: string[]; roles: string[]
 
 const NAV = [
   { href: "#home", label: "nav.home" },
-  { href: "#demand", label: "nav.jobMarketIntelligence" },
-  { href: "#future-demand", label: "nav.futureDemand" },
+  { href: "/demand", label: "nav.jobMarketIntelligence" },
   { href: "#gaps", label: "nav.skillGaps" },
   { href: "#curriculum", label: "nav.courses" },
   { href: "#capacity", label: "nav.trainingCapacity" },
@@ -827,13 +826,13 @@ export default function Home() {
                 {t("home.flow")}
               </p>
               <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                <a
-                  href="#demand"
+                <Link
+                  href="/demand"
                   className="w-full sm:w-auto text-center bg-[#123b68] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0c2d51] sm:px-6 sm:py-3"
                   style={{ minHeight: '44px' }}
                 >
                   {t("home.exploreIntelligence")}
-                </a>
+                </Link>
                 <a
                   href="#planning"
                   className="w-full sm:w-auto text-center border border-[#123b68] bg-white px-4 py-2.5 text-sm font-semibold text-[#123b68] hover:bg-slate-50 sm:px-6 sm:py-3"
@@ -1560,106 +1559,36 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ================= FUTURE DEMAND FORECAST ================= */}
-        <section id="future-demand" className="border-b border-slate-200 bg-[#f0f4f8]" aria-labelledby="future-demand-heading">
+        {/* ================= DEMAND INTELLIGENCE CTA ================= */}
+        <section className="border-b border-slate-200 bg-[#f0f4f8]">
           <div className="mx-auto max-w-7xl px-5 py-8 lg:py-10">
             <div className="border-t-2 border-[#c2410c] pt-6">
-              <p className="text-xs font-semibold tracking-wide text-[#c2410c]">02.5 FUTURE DEMAND FORECAST</p>
-              <h2 id="future-demand-heading" className="mt-2 font-serif text-3xl font-semibold text-[#123b68]">
-                {t("demand.futureForecast")}
+              <p className="text-xs font-semibold tracking-wide text-[#c2410c]">02.5 DEMAND INTELLIGENCE</p>
+              <h2 className="mt-2 font-serif text-3xl font-semibold text-[#123b68]">
+                Explore Labour-Market Demand
               </h2>
             </div>
             <p className="mt-3 max-w-3xl leading-7 text-slate-600">
-              {t("demand.futureForecastSubtitle")}
+              Analyse demand across skills, districts, sectors, job roles, emerging technologies and proficiency levels.
             </p>
             
             <div className="mt-8 rounded-lg border border-slate-200 bg-white p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-[#123b68]">
-                  {t("demand.currentHighDemand")}
-                </h3>
-                <span className="text-xs text-slate-500">
-                  {t("demand.forecastHorizon")}
-                </span>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-[#123b68]">
+                    Demand Intelligence
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Explore current labour-market demand, skill requirements, and emerging technology trends across Maharashtra.
+                  </p>
+                </div>
+                <Link 
+                  href="/demand"
+                  className="inline-flex items-center gap-2 bg-[#123b68] px-6 py-3 text-sm font-semibold text-white hover:bg-[#0c2d51] rounded-lg transition-colors"
+                >
+                  Explore Demand Intelligence →
+                </Link>
               </div>
-              
-              {/* Future Demand Forecast Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50">
-                      <th className="px-4 py-3 text-left font-semibold text-[#123b68]">{t("demand.skill")}</th>
-                      <th className="px-4 py-3 text-left font-semibold text-[#123b68]">{t("demand.forecast")}</th>
-                      <th className="px-4 py-3 text-left font-semibold text-[#123b68]">{t("demand.confidence")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {/* Sample data - will be replaced with actual API data */}
-                    <tr className="border-b border-slate-100">
-                      <td className="px-4 py-3 text-slate-700">Data Analytics</td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
-                          {t("demand.growing")}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
-                          High
-                        </span>
-                      </td>
-                    </tr>
-                    <tr className="border-b border-slate-100">
-                      <td className="px-4 py-3 text-slate-700">EV Technology</td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
-                          {t("demand.highDemand")}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex rounded-full bg-yellow-100 px-2 py-1 text-xs font-semibold text-yellow-800">
-                          Medium
-                        </span>
-                      </td>
-                    </tr>
-                    <tr className="border-b border-slate-100">
-                      <td className="px-4 py-3 text-slate-700">Cloud Computing</td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
-                          {t("demand.growing")}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
-                          High
-                        </span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-3 text-slate-700">Solar Installation</td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex rounded-full bg-purple-100 px-2 py-1 text-xs font-semibold text-purple-800">
-                          {t("demand.stable")}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex rounded-full bg-yellow-100 px-2 py-1 text-xs font-semibold text-yellow-800">
-                          Medium
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              
-              <p className="mt-4 text-xs text-slate-500">
-                {t("demand.noForecasts")}
-              </p>
-            </div>
-            
-            <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-              <p className="text-sm text-blue-900">
-                <strong>Note:</strong> Future demand forecasts are generated using historical demand analysis, job posting signals, and trend data from the SkillMitra platform. Confidence levels indicate the amount of evidence available for each forecast.
-              </p>
             </div>
           </div>
         </section>

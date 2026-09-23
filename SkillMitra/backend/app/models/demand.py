@@ -12,6 +12,7 @@ Phase 2C scope.
 
 import uuid
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean, CheckConstraint, Date, DateTime, Float,
@@ -21,6 +22,9 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.phase8 import EmergingTechnology
 
 
 class IndustrySector(Base):
@@ -157,6 +161,9 @@ class IndustryDemand(TimestampMixin, Base):
     data_source_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("data_sources.id", ondelete="SET NULL"), nullable=True
     )
+    emerging_technology_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("emerging_technologies.id", ondelete="SET NULL"), nullable=True
+    )
     aggregate_demand_score: Mapped[float] = mapped_column(Float, nullable=False)
     period_start: Mapped[date] = mapped_column(Date, nullable=False)
     period_end: Mapped[date] = mapped_column(Date, nullable=False)
@@ -169,6 +176,7 @@ class IndustryDemand(TimestampMixin, Base):
     district: Mapped["District"] = relationship("District")
     proficiency_level: Mapped["SkillProficiencyLevel"] = relationship("SkillProficiencyLevel")
     data_source: Mapped["DataSource | None"] = relationship("DataSource")
+    emerging_technology: Mapped["EmergingTechnology | None"] = relationship("EmergingTechnology")
 
     __table_args__ = (
         Index("ix_industry_demand_skill_id", "skill_id"),
@@ -176,6 +184,7 @@ class IndustryDemand(TimestampMixin, Base):
         Index("ix_industry_demand_sector_id", "industry_sector_id"),
         Index("ix_industry_demand_district_id", "district_id"),
         Index("ix_industry_demand_data_source_id", "data_source_id"),
+        Index("ix_industry_demand_emerging_technology_id", "emerging_technology_id"),
     )
 
 

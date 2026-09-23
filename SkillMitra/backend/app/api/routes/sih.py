@@ -79,6 +79,24 @@ def list_emerging_technologies(
     return db.scalars(stmt).all()
 
 
+@router.get("/public/emerging-technologies", response_model=list[EmergingTechOut])
+def list_emerging_technologies_public(
+    industry_sector_id: uuid.UUID | None = None,
+    district_id: uuid.UUID | None = None,
+    trend_direction: str | None = Query(None, description="emerging|rising|stable|declining|obsolete"),
+    db: Session = Depends(get_db),
+):
+    """Public endpoint for emerging technologies - no authentication required."""
+    stmt = select(EmergingTechnology).order_by(EmergingTechnology.growth_indicator.desc().nulls_last())
+    if industry_sector_id:
+        stmt = stmt.where(EmergingTechnology.industry_sector_id == industry_sector_id)
+    if district_id:
+        stmt = stmt.where(EmergingTechnology.district_id == district_id)
+    if trend_direction:
+        stmt = stmt.where(EmergingTechnology.trend_direction == trend_direction)
+    return db.scalars(stmt).all()
+
+
 @router.get("/emerging-technologies/{technology_id}/skills", response_model=list[TechSkillOut])
 def get_technology_skills(
     technology_id: uuid.UUID,
