@@ -1234,8 +1234,7 @@ export default function Home() {
                 <p className="font-bold text-green-600">SKILL GAP ANALYSIS</p>
                 <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Learn what the industry actually needs</h2>
                 <p className="mt-4 leading-7 text-slate-600">Do not choose a course just because it is popular. SkillMitra compares your target job with your current skills and shows exactly what you need to learn.</p>
-                <button onClick={checkSkillGap} disabled={skillGapLoading} className="mt-6 rounded bg-[#123b68] px-6 py-3 font-semibold text-white disabled:opacity-60">Check My Skill Gap →</button>
-                {skillGapLoading && <p className="mt-2 text-sm text-slate-600">Loading skill gap analysis...</p>}
+                <Link href="/login" className="mt-6 inline-block rounded bg-[#123b68] px-6 py-3 font-semibold text-white hover:bg-[#0d2d52]">Check My Skill Gap →</Link>
               </div>
               <div className="rounded-xl border bg-white p-6 shadow-sm">
                 {skillGapResult ? (
