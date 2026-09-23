@@ -50,6 +50,27 @@ export type JobRole = {
   industry_sector_id: string | null;
 };
 
+export type ProficiencyLevel = {
+  id: string;
+  name: string;
+  description: string | null;
+  rank_score: number;
+};
+
+export type EmergingTechnology = {
+  id: string;
+  technology_name: string;
+  industry_sector_id: string | null;
+  district_id: string | null;
+  trend_direction: string;
+  growth_indicator: number | null;
+  observation_start: string | null;
+  observation_end: string | null;
+  confidence: string;
+  notes: string | null;
+  data_source_id: string | null;
+};
+
 export type Course = {
   id: string;
   title: string;
@@ -114,6 +135,8 @@ export type IndustryDemand = {
   skill_id: string | null;
   district_id: string | null;
   aggregate_demand_score: number | null;
+  proficiency_level_id: string | null;
+  emerging_technology_id: string | null;
 };
 
 export type AuthUser = {
@@ -216,12 +239,21 @@ export const api = {
   sectors: () => apiFetch<IndustrySector[]>("/api/v1/industry/sectors"),
   skills: () => apiFetch<Paginated<Skill>>("/api/v1/skills?page=1&page_size=100"),
 
-  proficiencyLevels: () => apiFetch<{
-    id: string;
-    name: string;
-    description: string | null;
-    rank_score: number;
-  }[]>("/api/v1/skills/proficiency-levels"),
+  proficiencyLevels: () => apiFetch<ProficiencyLevel[]>("/api/v1/skills/proficiency-levels"),
+
+  emergingTechnologies: (params?: {
+    industry_sector_id?: string;
+    district_id?: string;
+    trend_direction?: string;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params?.industry_sector_id) qs.set("industry_sector_id", params.industry_sector_id);
+    if (params?.district_id) qs.set("district_id", params.district_id);
+    if (params?.trend_direction) qs.set("trend_direction", params.trend_direction);
+    return apiFetch<EmergingTechnology[]>(
+      `/api/v1/public/emerging-technologies${qs.toString() ? `?${qs.toString()}` : ""}`,
+    );
+  },
 
   courses: () => apiFetch<Paginated<Course>>("/api/v1/courses?page=1&page_size=12"),
   homepageCourses: () => apiFetch<HomepageCourse[]>("/api/v1/courses/homepage"),
@@ -270,12 +302,16 @@ export const api = {
     district_id?: string;
     job_role_id?: string;
     skill_id?: string;
+    proficiency_level_id?: string;
+    emerging_technology_id?: string;
   }) => {
     const qs = new URLSearchParams();
     if (params?.industry_sector_id) qs.set("industry_sector_id", params.industry_sector_id);
     if (params?.district_id) qs.set("district_id", params.district_id);
     if (params?.job_role_id) qs.set("job_role_id", params.job_role_id);
     if (params?.skill_id) qs.set("skill_id", params.skill_id);
+    if (params?.proficiency_level_id) qs.set("proficiency_level_id", params.proficiency_level_id);
+    if (params?.emerging_technology_id) qs.set("emerging_technology_id", params.emerging_technology_id);
     qs.set("page", "1");
     qs.set("page_size", "50");
     return apiFetch<IndustryDemand[]>(
@@ -566,13 +602,7 @@ export const api = {
   districtRecommendations: (districtId?: string) =>
     apiFetch<any>(`/api/v1/government/district-recommendations/${districtId}`),
 
-  emergingTechnologies: (params: Record<string, any> = {}) => {
-    const qs = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
-    });
-    return apiFetch<any>(`/api/v1/government/emerging-jobs${qs.toString() ? `?${qs.toString()}` : ""}`);
-  },
+
 
   governmentEmployerInsights: (params: Record<string, any> = {}) => {
     const qs = new URLSearchParams();

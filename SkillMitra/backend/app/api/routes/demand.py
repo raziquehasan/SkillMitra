@@ -33,6 +33,7 @@ class IndustryDemandOut(BaseModel):
     district_id: uuid.UUID | None = None
     aggregate_demand_score: float | None = None
     proficiency_level_id: uuid.UUID | None = None
+    emerging_technology_id: uuid.UUID | None = None
     period_start: date | None = None
     period_end: date | None = None
     model_config = ConfigDict(from_attributes=True)
@@ -92,6 +93,7 @@ def get_demand_by_industry(
     job_role_id: uuid.UUID | None = None,
     skill_id: uuid.UUID | None = None,
     proficiency_level_id: uuid.UUID | None = None,
+    emerging_technology_id: uuid.UUID | None = None,
     source_type: str | None = None,
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
@@ -111,6 +113,8 @@ def get_demand_by_industry(
         stmt = stmt.where(IndustryDemand.skill_id == skill_id)
     if proficiency_level_id:
         stmt = stmt.where(IndustryDemand.proficiency_level_id == proficiency_level_id)
+    if emerging_technology_id:
+        stmt = stmt.where(IndustryDemand.emerging_technology_id == emerging_technology_id)
     if source_type:
         stmt = stmt.join(DataSource, IndustryDemand.data_source_id == DataSource.id).where(DataSource.source_category == source_type)
     if date_from:
@@ -124,6 +128,7 @@ def get_demand_by_industry(
             skill_id=r.skill_id, district_id=r.district_id,
             aggregate_demand_score=r.aggregate_demand_score,
             proficiency_level_id=r.proficiency_level_id,
+            emerging_technology_id=r.emerging_technology_id,
             period_start=r.period_start,
             period_end=r.period_end,
         )
