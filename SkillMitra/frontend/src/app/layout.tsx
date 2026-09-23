@@ -21,7 +21,7 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "SkillMitra | Maharashtra Job Intelligence",
+  title: "SkillMitra | Maharashtra Skill Development",
   description:
     "SkillMitra connects job-market intelligence, employer requirements, skill gaps, courses, training capacity and placement outcomes to support evidence-based skill development planning across Maharashtra.",
   viewport: {
