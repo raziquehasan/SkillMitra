@@ -322,7 +322,7 @@ export default function DemandIntelligencePage() {
                           {sectors.find(s => s.id === item.industry_sector_id)?.name || "Unknown Sector"}
                         </td>
                         <td className="px-4 py-4 font-semibold text-slate-700">
-                          {item.job_role_title || "Unknown Role"}
+                          {jobRoles.find(r => r.id === item.job_role_id)?.title || "Unknown Role"}
                         </td>
                         <td className="px-4 py-4 text-sm text-slate-500">
                           {districts.find(d => d.id === item.district_id)?.name || "Unknown District"}
