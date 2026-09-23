@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, type District, type IndustrySector, type Skill, type JobRole, type ProficiencyLevel, type EmergingTechnology } from "@/lib/api";
 
+export const dynamic = 'force-dynamic';
+
 export default function DemandIntelligencePage() {
   const router = useRouter();
   
@@ -15,6 +17,17 @@ export default function DemandIntelligencePage() {
   const [selectedJobRole, setSelectedJobRole] = useState("");
   const [selectedProficiency, setSelectedProficiency] = useState("");
   const [selectedEmergingTech, setSelectedEmergingTech] = useState("");
+  
+  // Initialize filters from URL parameters
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sectorParam = urlParams.get('industry_sector_id');
+      if (sectorParam) {
+        setSelectedSector(sectorParam);
+      }
+    }
+  }, []);
   
   // Data states
   const [districts, setDistricts] = useState<District[]>([]);
