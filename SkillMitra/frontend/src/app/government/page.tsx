@@ -292,7 +292,7 @@ function DashboardContent() {
       <div className="mb-4">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold text-[#1e293b]">
-            Job Intelligence Dashboard
+            Government Portal
           </h1>
           {fetching && (
             <span className="flex items-center gap-1.5 text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
@@ -302,7 +302,7 @@ function DashboardContent() {
           )}
         </div>
         <p className="mt-1 text-sm text-slate-600">
-          Monitor job-market demand, skill gaps, training capacity and employment outcomes across Maharashtra.
+          Labour-market intelligence, skill gaps, training capacity and employment outcomes across Maharashtra.
         </p>
       </div>
 
