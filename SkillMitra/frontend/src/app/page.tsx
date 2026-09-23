@@ -619,9 +619,16 @@ export default function Home() {
           ]
         : ["Capacity-gap figures are shown in authorised district intelligence views."]
     : [];
-  const statewideDemandSectors = uniqueNames(
-    industryDemand.map((row) => sectorById[row.industry_sector_id]).filter(Boolean),
-  );
+  const statewideDemandSectors = useMemo(() => {
+    const sectorMap: Record<string, string> = {};
+    industryDemand.forEach((row) => {
+      const sectorName = sectorById[row.industry_sector_id];
+      if (sectorName && row.industry_sector_id) {
+        sectorMap[sectorName] = row.industry_sector_id;
+      }
+    });
+    return Object.entries(sectorMap).map(([name, id]) => ({ name, id }));
+  }, [industryDemand, sectorById]);
 
   const diverseJobs = useMemo(() => {
     if (!jobs.length) return [];
@@ -1511,7 +1518,7 @@ export default function Home() {
             </ul>
             <h3 className="mt-8 text-lg font-semibold text-[#123b68]">Demand can be analysed by</h3>
             <ul className="mt-4 flex flex-wrap gap-2">
-              {["Job Role", "Skill", "District", "Industry Sector", "Proficiency Level", "Emerging Technology"].map(
+              {["Skill", "District", "Emerging Technology", "Industry Sector", "Job Role", "Proficiency Level"].map(
                 (item) => (
                   <li key={item} className="border border-[#123b68] bg-white px-3 py-1.5 text-sm font-medium text-[#123b68]">
                     {item}
@@ -1529,9 +1536,14 @@ export default function Home() {
                   public page.
                 </p>
                 <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {statewideDemandSectors.slice(0, 9).map((name) => (
-                    <li key={name} className="text-sm text-slate-700">
-                      {name}
+                  {statewideDemandSectors.slice(0, 9).map(({ name, id }) => (
+                    <li key={id} className="text-sm text-slate-700">
+                      <Link 
+                        href={`/demand?industry_sector_id=${id}`}
+                        className="text-[#123b68] hover:underline hover:text-[#0c2d51] font-medium"
+                      >
+                        {name}
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -1543,7 +1555,12 @@ export default function Home() {
                 <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {sectors.slice(0, 9).map((sector) => (
                     <li key={sector.id} className="text-sm text-slate-700">
-                      {sector.name}
+                      <Link 
+                        href={`/demand?industry_sector_id=${sector.id}`}
+                        className="text-[#123b68] hover:underline hover:text-[#0c2d51] font-medium"
+                      >
+                        {sector.name}
+                      </Link>
                     </li>
                   ))}
                 </ul>
