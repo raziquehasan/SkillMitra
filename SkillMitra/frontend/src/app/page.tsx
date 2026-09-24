@@ -896,11 +896,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ================= CAREER EXPLORER ================= */}
+        {/* ================= CAREER PLANNING ================= */}
         <section id="career-explorer" className="mx-auto max-w-7xl px-5 py-14">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
-              <p className="font-bold text-blue-700">CAREER EXPLORER</p>
+              <p className="font-bold text-blue-700">CAREER PLANNING</p>
               <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Which option best describes you?</h2>
               <p className="mt-2 text-slate-600">Explore career options according to your education and goals.</p>
             </div>
@@ -1081,6 +1081,132 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ================= COURSES ALIGNED WITH DEMAND ================= */}
+        <section id="courses-training" className="border-y bg-slate-50">
+          <div className="mx-auto max-w-7xl px-5 py-14">
+            <p className="font-bold text-blue-700">COURSES ALIGNED WITH DEMAND</p>
+            <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Courses & Training aligned with demand</h2>
+            <p className="mt-2 text-slate-600">Courses recommended according to industry demand and skill gaps.</p>
+            
+            {homepageCoursesLoading ? (
+              <div className="mt-8 text-center py-12">
+                <p className="text-slate-600">Loading courses...</p>
+              </div>
+            ) : homepageCourses.length > 0 ? (
+              <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+                {homepageCourses.map((course) => (
+                  <article 
+                    key={course.id} 
+                    className="rounded-xl border bg-white p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => router.push(`/courses/${course.id}`)}
+                  >
+                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${
+                      course.demandLevel === "High Demand" 
+                        ? "bg-green-100 text-green-700" 
+                        : course.demandLevel === "Growing"
+                        ? "bg-blue-100 text-blue-700"
+                        : course.demandLevel === "Moderate"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-slate-100 text-slate-700"
+                    }`}>
+                      {course.demandLevel}
+                    </span>
+                    <h3 className="mt-5 text-xl font-bold text-[#123b68]">{course.title}</h3>
+                    {course.district && (
+                      <p className="mt-2 text-sm text-slate-500">📍 {course.district}</p>
+                    )}
+                    {course.skills.length > 0 && (
+                      <p className="mt-3 text-sm text-slate-600">
+                        {course.skills.slice(0, 3).join(' • ')}
+                        {course.skills.length > 3 && ' • ...'}
+                      </p>
+                    )}
+                    {course.durationHours && (
+                      <p className="mt-2 text-sm text-slate-500">
+                        Duration: {course.durationHours} hours
+                      </p>
+                    )}
+                    {course.isRelatedProgramme && course.relatedProgrammeName ? (
+                      <p className="mt-2 text-sm text-slate-600">
+                        Related Programme: {course.relatedProgrammeName}
+                      </p>
+                    ) : course.providerName && (
+                      <p className="mt-2 text-sm text-slate-600">
+                        Provider: {course.providerName}
+                      </p>
+                    )}
+                    <div className="mt-5 flex flex-col gap-2">
+                      <button className="inline-flex items-center justify-center gap-2 rounded border border-[#123b68] px-4 py-2 text-sm font-semibold text-[#123b68] hover:bg-[#123b68] hover:text-white transition-colors">
+                        View Course →
+                      </button>
+                      {(course.courseUrl || course.providerUrl) && (
+                        <a
+                          href={course.courseUrl || course.providerUrl || '#'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Original Source
+                        </a>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-8 text-center py-12">
+                <p className="text-slate-600">No courses currently available with official URLs.</p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ================= JOBS ALIGNED WITH DEMAND ================= */}
+        <section id="jobs-opportunities" className="border-y bg-white">
+          <div className="mx-auto max-w-7xl px-5 py-14">
+            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+              <div>
+                <p className="font-bold text-blue-600">JOBS ALIGNED WITH DEMAND</p>
+                <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Jobs matching industry demand</h2>
+                <p className="mt-2 text-slate-600">Connect training and skills with real employment opportunities.</p>
+              </div>
+              <Link href="/candidate" className="font-semibold text-[#123b68]">View All Jobs →</Link>
+            </div>
+            <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+              {diverseJobs.length > 0 ? (
+                diverseJobs.map((job) => (
+                  <article key={job.id} className="rounded-xl border bg-white p-6 shadow-sm">
+                    <p className="text-sm text-slate-500">{job.employer_name || job.company_name || 'Company'}</p>
+                    <h3 className="mt-2 text-xl font-bold text-[#123b68]">{job.title}</h3>
+                    <p className="mt-2 text-sm">📍 {job.district_name || 'Location'}</p>
+                    <p className="mt-3 text-sm text-slate-600">
+                      Skills: {job.job_posting_skills && job.job_posting_skills.length > 0 
+                        ? job.job_posting_skills.map((js: any) => js.skill?.name).filter(Boolean).slice(0, 3).join(' • ') 
+                        : job.skills && job.skills.length > 0 
+                        ? job.skills.slice(0, 3).join(' • ')
+                        : 'Not specified'}
+                    </p>
+                    <a
+                      href={job.job_url || job.employer_careers_url || job.employer_website || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-5 inline-block rounded border border-[#123b68] px-4 py-2 text-sm font-semibold text-[#123b68] hover:bg-[#123b68] hover:text-white transition-colors"
+                    >
+                      View Job
+                    </a>
+                  </article>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-slate-600">No current employment opportunities available.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
         {/* ================= QUICK SERVICES ================= */}
         <section className="mx-auto max-w-7xl px-5 pb-14">
           <div className="grid gap-5 md:grid-cols-4">
@@ -1112,10 +1238,10 @@ export default function Home() {
           <div className="mx-auto max-w-7xl px-5 py-8 lg:py-10">
             <div className="border-t-2 border-[#c2410c] pt-6">
               <h2 className="mt-2 font-serif text-3xl font-semibold text-[#123b68]">
-                {t("home.recommendationTitle")}
+                DEMAND-TO-CAREER RECOMMENDATION ENGINE
               </h2>
               <p className="mt-3 max-w-3xl leading-7 text-slate-600">
-                {t("home.recommendationDescription")}
+                Get personalized career recommendations based on industry demand, your skills, and job market intelligence.
               </p>
             </div>
 
@@ -1298,132 +1424,6 @@ export default function Home() {
             {!recLoading && !recResult && recRole && (
               <div className="mt-6 text-sm text-slate-600">No validated demand data available for this combination.</div>
             )}
-          </div>
-        </section>
-
-        {/* ================= COURSES ALIGNED WITH DEMAND ================= */}
-        <section id="courses-training" className="border-y bg-slate-50">
-          <div className="mx-auto max-w-7xl px-5 py-14">
-            <p className="font-bold text-blue-700">COURSES ALIGNED WITH DEMAND</p>
-            <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Courses & Training aligned with demand</h2>
-            <p className="mt-2 text-slate-600">Courses recommended according to industry demand and skill gaps.</p>
-            
-            {homepageCoursesLoading ? (
-              <div className="mt-8 text-center py-12">
-                <p className="text-slate-600">Loading courses...</p>
-              </div>
-            ) : homepageCourses.length > 0 ? (
-              <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-                {homepageCourses.map((course) => (
-                  <article 
-                    key={course.id} 
-                    className="rounded-xl border bg-white p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => router.push(`/courses/${course.id}`)}
-                  >
-                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${
-                      course.demandLevel === "High Demand" 
-                        ? "bg-green-100 text-green-700" 
-                        : course.demandLevel === "Growing"
-                        ? "bg-blue-100 text-blue-700"
-                        : course.demandLevel === "Moderate"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-slate-100 text-slate-700"
-                    }`}>
-                      {course.demandLevel}
-                    </span>
-                    <h3 className="mt-5 text-xl font-bold text-[#123b68]">{course.title}</h3>
-                    {course.district && (
-                      <p className="mt-2 text-sm text-slate-500">📍 {course.district}</p>
-                    )}
-                    {course.skills.length > 0 && (
-                      <p className="mt-3 text-sm text-slate-600">
-                        {course.skills.slice(0, 3).join(' • ')}
-                        {course.skills.length > 3 && ' • ...'}
-                      </p>
-                    )}
-                    {course.durationHours && (
-                      <p className="mt-2 text-sm text-slate-500">
-                        Duration: {course.durationHours} hours
-                      </p>
-                    )}
-                    {course.isRelatedProgramme && course.relatedProgrammeName ? (
-                      <p className="mt-2 text-sm text-slate-600">
-                        Related Programme: {course.relatedProgrammeName}
-                      </p>
-                    ) : course.providerName && (
-                      <p className="mt-2 text-sm text-slate-600">
-                        Provider: {course.providerName}
-                      </p>
-                    )}
-                    <div className="mt-5 flex flex-col gap-2">
-                      <button className="inline-flex items-center justify-center gap-2 rounded border border-[#123b68] px-4 py-2 text-sm font-semibold text-[#123b68] hover:bg-[#123b68] hover:text-white transition-colors">
-                        View Course →
-                      </button>
-                      {(course.courseUrl || course.providerUrl) && (
-                        <a
-                          href={course.courseUrl || course.providerUrl || '#'}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                          Original Source
-                        </a>
-                      )}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-8 text-center py-12">
-                <p className="text-slate-600">No courses currently available with official URLs.</p>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* ================= JOBS ALIGNED WITH DEMAND ================= */}
-        <section id="jobs-opportunities" className="border-y bg-white">
-          <div className="mx-auto max-w-7xl px-5 py-14">
-            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-              <div>
-                <p className="font-bold text-blue-600">JOBS ALIGNED WITH DEMAND</p>
-                <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Jobs matching industry demand</h2>
-                <p className="mt-2 text-slate-600">Connect training and skills with real employment opportunities.</p>
-              </div>
-              <Link href="/candidate" className="font-semibold text-[#123b68]">View All Jobs →</Link>
-            </div>
-            <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-              {diverseJobs.length > 0 ? (
-                diverseJobs.map((job) => (
-                  <article key={job.id} className="rounded-xl border bg-white p-6 shadow-sm">
-                    <p className="text-sm text-slate-500">{job.employer_name || job.company_name || 'Company'}</p>
-                    <h3 className="mt-2 text-xl font-bold text-[#123b68]">{job.title}</h3>
-                    <p className="mt-2 text-sm">📍 {job.district_name || 'Location'}</p>
-                    <p className="mt-3 text-sm text-slate-600">
-                      Skills: {job.job_posting_skills && job.job_posting_skills.length > 0 
-                        ? job.job_posting_skills.map((js: any) => js.skill?.name).filter(Boolean).slice(0, 3).join(' • ') 
-                        : job.skills && job.skills.length > 0 
-                        ? job.skills.slice(0, 3).join(' • ')
-                        : 'Not specified'}
-                    </p>
-                    <a
-                      href={job.job_url || job.employer_careers_url || job.employer_website || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-5 inline-block rounded border border-[#123b68] px-4 py-2 text-sm font-semibold text-[#123b68] hover:bg-[#123b68] hover:text-white transition-colors"
-                    >
-                      View Job
-                    </a>
-                  </article>
-                ))
-              ) : (
-                <div className="col-span-full text-center py-12">
-                  <p className="text-slate-600">No current employment opportunities available.</p>
-                </div>
-              )}
-            </div>
           </div>
         </section>
 
