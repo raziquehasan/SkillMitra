@@ -946,6 +946,200 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ================= DEMAND-TO-CAREER RECOMMENDATION ENGINE ================= */}
+        <section id="recommendation" className="border-b border-slate-200 bg-[#eef3f8]">
+          <div className="mx-auto max-w-7xl px-5 py-8 lg:py-10">
+            <div className="border-t-2 border-[#c2410c] pt-6">
+              <h2 className="mt-2 font-serif text-3xl font-semibold text-[#123b68]">
+                DEMAND-TO-CAREER RECOMMENDATION ENGINE
+              </h2>
+              <p className="mt-3 max-w-3xl leading-7 text-slate-600">
+                Get personalized career recommendations based on industry demand, your skills, and job market intelligence.
+              </p>
+            </div>
+
+            {/* Cascading selectors */}
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              <div>
+                <label htmlFor="rec-district" className="block text-sm font-semibold text-slate-700">{t("home.district")}</label>
+                <select
+                  id="rec-district"
+                  value={recDistrict}
+                  onChange={(e) => { setRecDistrict(e.target.value); setRecSector(""); setRecRole(""); setRecResult(null); }}
+                  className="mt-2 w-full border border-slate-300 bg-white px-3 py-3"
+                >
+                  <option value="">{t("home.selectDistrict")}</option>
+                  {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="rec-sector" className="block text-sm font-semibold text-slate-700">{t("home.sector")}</label>
+                <select
+                  id="rec-sector"
+                  value={recSector}
+                  onChange={(e) => { setRecSector(e.target.value); setRecRole(""); setRecResult(null); }}
+                  className="mt-2 w-full border border-slate-300 bg-white px-3 py-3"
+                >
+                  <option value="">{t("home.selectSector")}</option>
+                  {sectors.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="rec-role" className="block text-sm font-semibold text-slate-700">{t("home.role")}</label>
+                <select
+                  id="rec-role"
+                  value={recRole}
+                  onChange={(e) => setRecRole(e.target.value)}
+                  className="mt-2 w-full border border-slate-300 bg-white px-3 py-3"
+                >
+                  <option value="">{t("home.selectRole")}</option>
+                  {recRoles.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {recLoading && (
+              <div className="mt-6 text-sm text-slate-600">Loading recommendation...</div>
+            )}
+
+            {!recLoading && recResult && (
+              <div className="mt-8 space-y-6">
+                {/* Demand Card */}
+                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#c2410c]">Current Industry Demand</p>
+                  <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <div>
+                      <p className="text-xs text-slate-500">District</p>
+                      <p className="font-semibold text-[#123b68]">{recResult.demand?.district_name || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Industry</p>
+                      <p className="font-semibold text-[#123b68]">{recResult.demand?.industry_sector_name || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Job Role</p>
+                      <p className="font-semibold text-[#123b68]">{recResult.demand?.job_role_title || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Demand Trend</p>
+                      <p className="font-semibold text-[#123b68]">{recResult.demand?.demand_trend || "No validated demand data available."}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-600">
+                    <span>Demand signals: {recResult.demand?.demand_signals_count ?? 0}</span>
+                    <span>Relevant job postings: {recResult.demand?.relevant_job_postings_count ?? 0}</span>
+                    {recResult.demand?.demand_score != null && <span>Score: {recResult.demand.demand_score.toFixed(1)}</span>}
+                  </div>
+                </div>
+
+                {/* Required Skills */}
+                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Required Skills</p>
+                  {recResult.required_skills.length > 0 ? (
+                    <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {recResult.required_skills.map((s) => (
+                        <li key={s.id} className="flex items-center gap-2 text-sm text-slate-700">
+                          <span className="text-green-600">✓</span> {s.name}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-3 text-sm text-slate-600">No required skills recorded for this role.</p>
+                  )}
+                </div>
+
+                {/* Candidate Skills + Skill Match */}
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Your Current Skills</p>
+                    {recResult.candidate_skills.length > 0 ? (
+                      <ul className="mt-4 space-y-2">
+                        {recResult.candidate_skills.map((s) => (
+                          <li key={s.id} className="flex items-center gap-2 text-sm text-slate-700">
+                            <span className="text-green-600">✓</span> {s.name}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-3 text-sm text-slate-600">
+                        {recResult.candidate_authenticated ? "No candidate skills available yet." : "Login to compare your skills with this role."}
+                      </p>
+                    )}
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#123b68]">Skill Match</p>
+                    <div className="mt-4">
+                      <p className="text-4xl font-bold text-[#123b68]">{recResult.skill_match_percentage.toFixed(0)}%</p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        {recResult.matched_skill_count} of {recResult.total_required_skills} required skills matched
+                      </p>
+                    </div>
+                    <div className="mt-4 h-2 rounded-full bg-slate-200">
+                      <div
+                        className="h-2 rounded-full bg-[#123b68]"
+                        style={{ width: `${Math.min(recResult.skill_match_percentage, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Missing Skills */}
+                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">Your Skill Gaps</p>
+                  {recResult.missing_skills.length > 0 ? (
+                    <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {recResult.missing_skills.map((s) => (
+                        <li key={s.id} className="flex items-center gap-2 text-sm text-slate-700">
+                          <span className="text-orange-600">⚠</span> {s.name}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-3 text-sm text-slate-600">Your current skills cover all listed requirements.</p>
+                  )}
+                </div>
+
+                {/* Recommended Courses */}
+                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Recommended Learning</p>
+                  {recResult.recommended_courses.length > 0 ? (
+                    <ul className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {recResult.recommended_courses.map((c) => (
+                        <li key={c.id || c.title} className="border border-slate-200 rounded-lg p-4">
+                          <p className="font-semibold text-[#123b68]">{c.title}</p>
+                          {c.addresses_missing && (
+                            <p className="mt-1 text-xs text-slate-500">{c.addresses_missing}</p>
+                          )}
+                          {c.covers_details && (
+                            <p className="mt-2 text-xs text-slate-600">{c.covers_details}</p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-3 text-sm text-slate-600">No matching course currently available.</p>
+                  )}
+                </div>
+
+                {/* Job Readiness */}
+                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-purple-700">Job Readiness</p>
+                  <div className="mt-4">
+                    <p className="text-4xl font-bold text-[#123b68]">{recResult.job_readiness_percentage.toFixed(0)}%</p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {recResult.matched_skill_count} / {recResult.total_required_skills} required skills matched
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!recLoading && !recResult && recRole && (
+              <div className="mt-6 text-sm text-slate-600">No validated demand data available for this combination.</div>
+            )}
+          </div>
+        </section>
+
         {/* ================= FROM SKILL TO CAREER OPPORTUNITIES ================= */}
         <section id="skill-gap-analysis" className="border-y bg-white">
           <div className="mx-auto max-w-7xl px-5 py-14">
@@ -1230,200 +1424,6 @@ export default function Home() {
               <h3 className="mt-4 text-lg font-bold text-[#123b68]">{t("sections.jobMarketIntelligence")}</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">Discover in-demand skills and future job trends.</p>
             </article>
-          </div>
-        </section>
-
-        {/* ================= DEMAND-TO-CAREER RECOMMENDATION ENGINE ================= */}
-        <section id="recommendation" className="border-b border-slate-200 bg-[#eef3f8]">
-          <div className="mx-auto max-w-7xl px-5 py-8 lg:py-10">
-            <div className="border-t-2 border-[#c2410c] pt-6">
-              <h2 className="mt-2 font-serif text-3xl font-semibold text-[#123b68]">
-                DEMAND-TO-CAREER RECOMMENDATION ENGINE
-              </h2>
-              <p className="mt-3 max-w-3xl leading-7 text-slate-600">
-                Get personalized career recommendations based on industry demand, your skills, and job market intelligence.
-              </p>
-            </div>
-
-            {/* Cascading selectors */}
-            <div className="mt-8 grid gap-4 md:grid-cols-3">
-              <div>
-                <label htmlFor="rec-district" className="block text-sm font-semibold text-slate-700">{t("home.district")}</label>
-                <select
-                  id="rec-district"
-                  value={recDistrict}
-                  onChange={(e) => { setRecDistrict(e.target.value); setRecSector(""); setRecRole(""); setRecResult(null); }}
-                  className="mt-2 w-full border border-slate-300 bg-white px-3 py-3"
-                >
-                  <option value="">{t("home.selectDistrict")}</option>
-                  {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="rec-sector" className="block text-sm font-semibold text-slate-700">{t("home.sector")}</label>
-                <select
-                  id="rec-sector"
-                  value={recSector}
-                  onChange={(e) => { setRecSector(e.target.value); setRecRole(""); setRecResult(null); }}
-                  className="mt-2 w-full border border-slate-300 bg-white px-3 py-3"
-                >
-                  <option value="">{t("home.selectSector")}</option>
-                  {sectors.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="rec-role" className="block text-sm font-semibold text-slate-700">{t("home.role")}</label>
-                <select
-                  id="rec-role"
-                  value={recRole}
-                  onChange={(e) => setRecRole(e.target.value)}
-                  className="mt-2 w-full border border-slate-300 bg-white px-3 py-3"
-                >
-                  <option value="">{t("home.selectRole")}</option>
-                  {recRoles.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
-                </select>
-              </div>
-            </div>
-
-            {recLoading && (
-              <div className="mt-6 text-sm text-slate-600">Loading recommendation...</div>
-            )}
-
-            {!recLoading && recResult && (
-              <div className="mt-8 space-y-6">
-                {/* Demand Card */}
-                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#c2410c]">Current Industry Demand</p>
-                  <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <div>
-                      <p className="text-xs text-slate-500">District</p>
-                      <p className="font-semibold text-[#123b68]">{recResult.demand?.district_name || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Industry</p>
-                      <p className="font-semibold text-[#123b68]">{recResult.demand?.industry_sector_name || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Job Role</p>
-                      <p className="font-semibold text-[#123b68]">{recResult.demand?.job_role_title || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Demand Trend</p>
-                      <p className="font-semibold text-[#123b68]">{recResult.demand?.demand_trend || "No validated demand data available."}</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-600">
-                    <span>Demand signals: {recResult.demand?.demand_signals_count ?? 0}</span>
-                    <span>Relevant job postings: {recResult.demand?.relevant_job_postings_count ?? 0}</span>
-                    {recResult.demand?.demand_score != null && <span>Score: {recResult.demand.demand_score.toFixed(1)}</span>}
-                  </div>
-                </div>
-
-                {/* Required Skills */}
-                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Required Skills</p>
-                  {recResult.required_skills.length > 0 ? (
-                    <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                      {recResult.required_skills.map((s) => (
-                        <li key={s.id} className="flex items-center gap-2 text-sm text-slate-700">
-                          <span className="text-green-600">✓</span> {s.name}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-3 text-sm text-slate-600">No required skills recorded for this role.</p>
-                  )}
-                </div>
-
-                {/* Candidate Skills + Skill Match */}
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Your Current Skills</p>
-                    {recResult.candidate_skills.length > 0 ? (
-                      <ul className="mt-4 space-y-2">
-                        {recResult.candidate_skills.map((s) => (
-                          <li key={s.id} className="flex items-center gap-2 text-sm text-slate-700">
-                            <span className="text-green-600">✓</span> {s.name}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="mt-3 text-sm text-slate-600">
-                        {recResult.candidate_authenticated ? "No candidate skills available yet." : "Login to compare your skills with this role."}
-                      </p>
-                    )}
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[#123b68]">Skill Match</p>
-                    <div className="mt-4">
-                      <p className="text-4xl font-bold text-[#123b68]">{recResult.skill_match_percentage.toFixed(0)}%</p>
-                      <p className="mt-1 text-sm text-slate-600">
-                        {recResult.matched_skill_count} of {recResult.total_required_skills} required skills matched
-                      </p>
-                    </div>
-                    <div className="mt-4 h-2 rounded-full bg-slate-200">
-                      <div
-                        className="h-2 rounded-full bg-[#123b68]"
-                        style={{ width: `${Math.min(recResult.skill_match_percentage, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Missing Skills */}
-                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">Your Skill Gaps</p>
-                  {recResult.missing_skills.length > 0 ? (
-                    <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                      {recResult.missing_skills.map((s) => (
-                        <li key={s.id} className="flex items-center gap-2 text-sm text-slate-700">
-                          <span className="text-orange-600">⚠</span> {s.name}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-3 text-sm text-slate-600">Your current skills cover all listed requirements.</p>
-                  )}
-                </div>
-
-                {/* Recommended Courses */}
-                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Recommended Learning</p>
-                  {recResult.recommended_courses.length > 0 ? (
-                    <ul className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {recResult.recommended_courses.map((c) => (
-                        <li key={c.id || c.title} className="border border-slate-200 rounded-lg p-4">
-                          <p className="font-semibold text-[#123b68]">{c.title}</p>
-                          {c.addresses_missing && (
-                            <p className="mt-1 text-xs text-slate-500">{c.addresses_missing}</p>
-                          )}
-                          {c.covers_details && (
-                            <p className="mt-2 text-xs text-slate-600">{c.covers_details}</p>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-3 text-sm text-slate-600">No matching course currently available.</p>
-                  )}
-                </div>
-
-                {/* Job Readiness */}
-                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-purple-700">Job Readiness</p>
-                  <div className="mt-4">
-                    <p className="text-4xl font-bold text-[#123b68]">{recResult.job_readiness_percentage.toFixed(0)}%</p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      {recResult.matched_skill_count} / {recResult.total_required_skills} required skills matched
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {!recLoading && !recResult && recRole && (
-              <div className="mt-6 text-sm text-slate-600">No validated demand data available for this combination.</div>
-            )}
           </div>
         </section>
 
