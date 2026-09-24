@@ -950,11 +950,12 @@ export default function Home() {
         <section id="recommendation" className="border-b border-slate-200 bg-[#eef3f8]">
           <div className="mx-auto max-w-7xl px-5 py-8 lg:py-10">
             <div className="border-t-2 border-[#c2410c] pt-6">
+              <p className="text-xs font-semibold tracking-wide text-[#c2410c]">{t("home.recommendationEyebrow")}</p>
               <h2 className="mt-2 font-serif text-3xl font-semibold text-[#123b68]">
-                DEMAND-TO-CAREER RECOMMENDATION ENGINE
+                {t("home.recommendationTitle")}
               </h2>
               <p className="mt-3 max-w-3xl leading-7 text-slate-600">
-                Get personalized career recommendations based on industry demand, your skills, and job market intelligence.
+                {t("home.recommendationDescription")}
               </p>
             </div>
 
