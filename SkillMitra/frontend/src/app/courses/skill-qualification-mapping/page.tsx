@@ -1,16 +1,66 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   GraduationCap,
   Link2,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+
+interface SkillQualificationMapping {
+  skill_id: string;
+  skill_name: string;
+  qualification_id: string | null;
+  qualification_name: string | null;
+  coverage_percentage: number;
+  mapped_courses: string[];
+}
 
 export default function SkillQualificationMappingPage() {
   const router = useRouter();
+  const [mapping, setMapping] = useState<SkillQualificationMapping[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await api.skillQualificationMapping();
+        if (!cancelled) {
+          setMapping(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load skill qualification mapping:", err);
+          setError("Failed to load skill qualification mapping data");
+          setMapping([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Calculate summary stats
+  const qualificationsMapped = mapping.filter(m => m.qualification_id).length;
+  const skillsMapped = mapping.length;
+  const mappingGaps = mapping.filter(m => m.coverage_percentage < 50).length;
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-[#1b2838]">
@@ -55,7 +105,7 @@ export default function SkillQualificationMappingPage() {
               </p>
 
               <p className="mt-1 text-2xl font-bold text-[#123b68]">
-                —
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : qualificationsMapped}
               </p>
             </div>
 
@@ -67,7 +117,7 @@ export default function SkillQualificationMappingPage() {
               </p>
 
               <p className="mt-1 text-2xl font-bold text-[#123b68]">
-                —
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : skillsMapped}
               </p>
             </div>
 
@@ -79,7 +129,7 @@ export default function SkillQualificationMappingPage() {
               </p>
 
               <p className="mt-1 text-2xl font-bold text-[#123b68]">
-                —
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : mappingGaps}
               </p>
             </div>
 
@@ -109,15 +159,15 @@ export default function SkillQualificationMappingPage() {
                     </th>
 
                     <th className="px-5 py-3 font-semibold text-[#123b68]">
-                      Industry Role
-                    </th>
-
-                    <th className="px-5 py-3 font-semibold text-[#123b68]">
                       Qualification
                     </th>
 
                     <th className="px-5 py-3 font-semibold text-[#123b68]">
-                      Related Course
+                      Coverage %
+                    </th>
+
+                    <th className="px-5 py-3 font-semibold text-[#123b68]">
+                      Related Courses
                     </th>
 
                     <th className="px-5 py-3 font-semibold text-[#123b68]">
@@ -127,15 +177,62 @@ export default function SkillQualificationMappingPage() {
                 </thead>
 
                 <tbody>
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="px-5 py-12 text-center text-slate-500"
-                    >
-                      Skill and qualification mapping data will appear
-                      here when published data is available.
-                    </td>
-                  </tr>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                        Loading skill qualification mapping...
+                      </td>
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
+                        {error}
+                      </td>
+                    </tr>
+                  ) : mapping.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
+                        No skill qualification mapping data available.
+                      </td>
+                    </tr>
+                  ) : (
+                    mapping.map((item, index) => (
+                      <tr key={index} className="border-b border-slate-100">
+                        <td className="px-5 py-3 font-medium text-[#123b68]">
+                          {item.skill_name}
+                        </td>
+                        <td className="px-5 py-3 text-slate-600">
+                          {item.qualification_name || "Not mapped"}
+                        </td>
+                        <td className="px-5 py-3 text-slate-600">
+                          {item.coverage_percentage}%
+                        </td>
+                        <td className="px-5 py-3 text-slate-600">
+                          {item.mapped_courses.length > 0 ? (
+                            <ul className="list-disc list-inside">
+                              {item.mapped_courses.map((course, i) => (
+                                <li key={i} className="text-xs">{course}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <span className="text-red-600">No courses</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
+                            item.coverage_percentage >= 70
+                              ? "bg-green-100 text-green-700"
+                              : item.coverage_percentage >= 30
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-red-100 text-red-700"
+                          }`}>
+                            {item.coverage_percentage >= 70 ? "Well mapped" : item.coverage_percentage >= 30 ? "Partial" : "Gap"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
 
               </table>

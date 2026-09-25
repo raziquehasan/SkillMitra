@@ -594,7 +594,46 @@ export const api = {
   },
 
   courseAlignment: (courseId?: string) =>
-    apiFetch<any>(`/api/v1/government/course-alignment${courseId ? `?course_id=${encodeURIComponent(courseId)}` : ""}`),
+    apiFetch<any>(`/api/v1/courses/alignment${courseId ? `?course_id=${encodeURIComponent(courseId)}` : ""}`),
+
+  // Curriculum analysis endpoints
+  curriculumGaps: (params?: { district_id?: string; industry_sector_id?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.district_id) qs.set("district_id", params.district_id);
+    if (params?.industry_sector_id) qs.set("industry_sector_id", params.industry_sector_id);
+    return apiFetch<any[]>(`/api/v1/courses/curriculum/gaps${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  outdatedContent: (params?: { district_id?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.district_id) qs.set("district_id", params.district_id);
+    return apiFetch<any[]>(`/api/v1/courses/curriculum/outdated-content${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  courseDemandAnalysis: (params?: { district_id?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.district_id) qs.set("district_id", params.district_id);
+    return apiFetch<any[]>(`/api/v1/courses/curriculum/demand-analysis${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  skillQualificationMapping: (params?: { industry_sector_id?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.industry_sector_id) qs.set("industry_sector_id", params.industry_sector_id);
+    return apiFetch<any[]>(`/api/v1/courses/curriculum/skill-qualification-mapping${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  recommendedUpdates: (params?: { district_id?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.district_id) qs.set("district_id", params.district_id);
+    return apiFetch<any[]>(`/api/v1/courses/curriculum/recommended-updates${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  employerTrainingOutcomes: (params?: { district_id?: string; industry_sector_id?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.district_id) qs.set("district_id", params.district_id);
+    if (params?.industry_sector_id) qs.set("industry_sector_id", params.industry_sector_id);
+    return apiFetch<any[]>(`/api/v1/courses/curriculum/employer-training-outcomes${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
 
   districtIntelligence: (districtId?: string) =>
     apiFetch<any>(`/api/v1/government/districts${districtId ? `?district_id=${encodeURIComponent(districtId)}` : ""}`),

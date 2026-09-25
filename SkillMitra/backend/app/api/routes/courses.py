@@ -609,3 +609,444 @@ def get_candidate_course_alignment(
         total_course_skills=total_course_skills
     )
 
+
+# =========================================================
+# Curriculum Analysis Endpoints
+# =========================================================
+
+class CurriculumGapOut(BaseModel):
+    course_id: str
+    course_title: str
+    required_skill_id: str
+    required_skill_name: str
+    curriculum_coverage: str
+    gap: str
+    priority: str
+
+
+@router.get("/curriculum/gaps", response_model=list[CurriculumGapOut])
+def get_curriculum_gaps(
+    district_id: str | None = None,
+    industry_sector_id: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Get curriculum gaps analysis.
+    Shows courses that don't fully cover industry-required skills.
+    """
+    from app.models.career import Course, CourseSkill
+    from app.models.demand import IndustryDemand
+    from app.models.skills import Skill
+    from app.models.geography import District
+    from sqlalchemy import select, func, and_
+    
+    # Get industry demand for skills
+    stmt = select(IndustryDemand)
+    if district_id:
+        stmt = stmt.where(IndustryDemand.district_id == district_id)
+    if industry_sector_id:
+        stmt = stmt.where(IndustryDemand.industry_sector_id == industry_sector_id)
+    
+    demand_records = db.scalars(stmt).all()
+    
+    # Get required skill IDs from demand
+    required_skill_ids = list({d.skill_id for d in demand_records if d.skill_id})
+    
+    if not required_skill_ids:
+        return []
+    
+    # Get courses and their skills
+    courses_stmt = select(Course).where(Course.status == "active")
+    if district_id:
+        courses_stmt = courses_stmt.where(Course.district_id == district_id)
+    
+    courses_stmt = courses_stmt.options(selectinload(Course.course_skills).selectinload(CourseSkill.skill))
+    courses = db.scalars(courses_stmt).all()
+    
+    # Analyze gaps
+    gaps = []
+    for course in courses:
+        course_skill_ids = {cs.skill_id for cs in course.course_skills if cs.skill}
+        
+        # Find required skills not covered by this course
+        missing_skills = required_skill_ids - course_skill_ids
+        
+        for missing_skill_id in missing_skills:
+            skill = db.scalar(select(Skill).where(Skill.id == missing_skill_id))
+            if skill:
+                # Calculate coverage percentage
+                coverage = len(course_skill_ids & required_skill_ids) / len(required_skill_ids) * 100 if required_skill_ids else 0
+                
+                # Determine priority based on demand
+                demand_count = sum(1 for d in demand_records if d.skill_id == missing_skill_id)
+                priority = "High" if demand_count >= 5 else "Medium" if demand_count >= 2 else "Low"
+                
+                gaps.append(CurriculumGapOut(
+                    course_id=str(course.id),
+                    course_title=course.title,
+                    required_skill_id=str(missing_skill_id),
+                    required_skill_name=skill.name,
+                    curriculum_coverage=f"{coverage:.1f}%",
+                    gap=f"Missing {skill.name}",
+                    priority=priority
+                ))
+    
+    return gaps[:50]  # Limit to 50 results
+
+
+class OutdatedContentOut(BaseModel):
+    course_id: str
+    course_title: str
+    current_content: str
+    current_industry_skill: str
+    review_status: str
+    suggested_update: str
+    last_updated: str | None = None
+
+
+@router.get("/curriculum/outdated-content", response_model=list[OutdatedContentOut])
+def get_outdated_content(
+    district_id: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Get courses with potentially outdated content.
+    Based on skill demand trends and technology changes.
+    """
+    from app.models.career import Course, CourseSkill
+    from app.models.demand import IndustryDemand
+    from app.models.skills import Skill
+    from sqlalchemy import select, func, and_
+    
+    # Get high-demand skills
+    high_demand_skills = db.scalars(
+        select(IndustryDemand.skill_id)
+        .group_by(IndustryDemand.skill_id)
+        .having(func.count() >= 3)
+    ).all()
+    
+    if not high_demand_skills:
+        return []
+    
+    # Get courses
+    courses_stmt = select(Course).where(Course.status == "active")
+    if district_id:
+        courses_stmt = courses_stmt.where(Course.district_id == district_id)
+    
+    courses_stmt = courses_stmt.options(selectinload(Course.course_skills).selectinload(CourseSkill.skill))
+    courses = db.scalars(courses_stmt).all()
+    
+    outdated = []
+    for course in courses:
+        course_skill_ids = {cs.skill_id for cs in course.course_skills if cs.skill}
+        
+        # Check if course covers high-demand skills
+        missing_high_demand = set(high_demand_skills) - course_skill_ids
+        
+        if missing_high_demand:
+            # Get names of missing high-demand skills
+            missing_skill_names = []
+            for skill_id in missing_high_demand:
+                skill = db.scalar(select(Skill).where(Skill.id == skill_id))
+                if skill:
+                    missing_skill_names.append(skill.name)
+            
+            if missing_skill_names:
+                current_skills = [cs.skill.name for cs in course.course_skills if cs.skill][:3]
+                outdated.append(OutdatedContentOut(
+                    course_id=str(course.id),
+                    course_title=course.title,
+                    current_content=", ".join(current_skills) if current_skills else "Basic skills",
+                    current_industry_skill=", ".join(missing_skill_names[:2]),
+                    review_status="Needs Review",
+                    suggested_update=f"Add skills: {', '.join(missing_skill_names[:2])}",
+                    last_updated=course.updated_at.isoformat() if course.updated_at else None
+                ))
+    
+    return outdated[:30]  # Limit to 30 results
+
+
+class CourseDemandAnalysisOut(BaseModel):
+    course_id: str
+    course_title: str
+    demand_level: str
+    demand_signals_count: int
+    oversupply_indicators: list[str]
+    recommendation: str
+
+
+@router.get("/curriculum/demand-analysis", response_model=list[CourseDemandAnalysisOut])
+def get_course_demand_analysis(
+    district_id: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Analyze course demand and identify oversupplied courses.
+    """
+    from app.models.career import Course, CourseSkill
+    from app.models.demand import IndustryDemand
+    from app.models.phase4 import CourseOffering
+    from sqlalchemy import select, func, and_
+    
+    # Get courses
+    courses_stmt = select(Course).where(Course.status == "active")
+    if district_id:
+        courses_stmt = courses_stmt.where(Course.district_id == district_id)
+    
+    courses_stmt = courses_stmt.options(selectinload(Course.course_skills))
+    courses = db.scalars(courses_stmt).all()
+    
+    analysis = []
+    for course in courses:
+        course_skill_ids = [cs.skill_id for cs in course.course_skills]
+        
+        # Count demand signals
+        demand_count = 0
+        if course_skill_ids:
+            demand_count = db.scalar(
+                select(func.count())
+                .select_from(IndustryDemand)
+                .where(IndustryDemand.skill_id.in_(course_skill_ids))
+            ) or 0
+        
+        # Check for oversupply indicators
+        oversupply_indicators = []
+        
+        # Check if too many offerings
+        offering_count = db.scalar(
+            select(func.count())
+            .select_from(CourseOffering)
+            .where(CourseOffering.course_id == course.id)
+            .where(CourseOffering.status == "active")
+        ) or 0
+        
+        if offering_count > 10:
+            oversupply_indicators.append(f"High offering count: {offering_count}")
+        
+        # Determine demand level
+        if demand_count >= 10:
+            demand_level = "High Demand"
+            recommendation = "Expand capacity"
+        elif demand_count >= 5:
+            demand_level = "Growing"
+            recommendation = "Maintain current capacity"
+        elif demand_count >= 2:
+            demand_level = "Moderate"
+            recommendation = "Monitor demand"
+        else:
+            demand_level = "Low Demand"
+            recommendation = "Consider reducing offerings"
+            if offering_count > 5:
+                oversupply_indicators.append("Low demand with high capacity")
+        
+        analysis.append(CourseDemandAnalysisOut(
+            course_id=str(course.id),
+            course_title=course.title,
+            demand_level=demand_level,
+            demand_signals_count=demand_count,
+            oversupply_indicators=oversupply_indicators,
+            recommendation=recommendation
+        ))
+    
+    return analysis[:40]  # Limit to 40 results
+
+
+class SkillQualificationMappingOut(BaseModel):
+    skill_id: str
+    skill_name: str
+    qualification_id: str | None = None
+    qualification_name: str | None = None
+    coverage_percentage: float
+    mapped_courses: list[str]
+
+
+@router.get("/curriculum/skill-qualification-mapping", response_model=list[SkillQualificationMappingOut])
+def get_skill_qualification_mapping(
+    industry_sector_id: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Map skills to qualifications and show course coverage.
+    """
+    from app.models.career import Course, CourseSkill
+    from app.models.skills import Skill
+    from sqlalchemy import select, func
+    
+    # Get skills
+    skills_stmt = select(Skill).where(Skill.is_active == True)
+    skills = db.scalars(skills_stmt).all()
+    
+    mapping = []
+    for skill in skills:
+        # Get courses that teach this skill
+        course_ids = db.scalars(
+            select(CourseSkill.course_id)
+            .where(CourseSkill.skill_id == skill.id)
+        ).all()
+        
+        # Get course titles
+        course_titles = []
+        if course_ids:
+            courses = db.scalars(
+                select(Course).where(Course.id.in_(course_ids)).where(Course.status == "active")
+            ).all()
+            course_titles = [c.title for c in courses[:5]]  # Limit to 5 courses
+        
+        # Calculate coverage (percentage of courses that teach this skill)
+        total_courses = db.scalar(select(func.count()).select_from(Course).where(Course.status == "active")) or 1
+        coverage = (len(course_ids) / total_courses * 100) if total_courses > 0 else 0
+        
+        mapping.append(SkillQualificationMappingOut(
+            skill_id=str(skill.id),
+            skill_name=skill.name,
+            qualification_id=None,  # Can be mapped to qualification system later
+            qualification_name=None,
+            coverage_percentage=round(coverage, 1),
+            mapped_courses=course_titles
+        ))
+    
+    return mapping[:50]  # Limit to 50 results
+
+
+class RecommendedUpdateOut(BaseModel):
+    course_id: str
+    course_title: str
+    update_type: str
+    priority: str
+    suggested_changes: list[str]
+    impact: str
+
+
+@router.get("/curriculum/recommended-updates", response_model=list[RecommendedUpdateOut])
+def get_recommended_updates(
+    district_id: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Get recommended course updates based on demand and skill gaps.
+    """
+    from app.models.career import Course, CourseSkill
+    from app.models.demand import IndustryDemand
+    from app.models.skills import Skill
+    from sqlalchemy import select, func
+    
+    # Get high-demand skills not well covered
+    high_demand_skills = db.scalars(
+        select(IndustryDemand.skill_id)
+        .group_by(IndustryDemand.skill_id)
+        .having(func.count() >= 5)
+    ).all()
+    
+    if not high_demand_skills:
+        return []
+    
+    # Get courses
+    courses_stmt = select(Course).where(Course.status == "active")
+    if district_id:
+        courses_stmt = courses_stmt.where(Course.district_id == district_id)
+    
+    courses_stmt = courses_stmt.options(selectinload(Course.course_skills).selectinload(CourseSkill.skill))
+    courses = db.scalars(courses_stmt).all()
+    
+    recommendations = []
+    for course in courses:
+        course_skill_ids = {cs.skill_id for cs in course.course_skills if cs.skill}
+        
+        # Find high-demand skills missing from this course
+        missing_high_demand = set(high_demand_skills) - course_skill_ids
+        
+        if missing_high_demand:
+            # Get skill names
+            missing_skill_names = []
+            for skill_id in missing_high_demand:
+                skill = db.scalar(select(Skill).where(Skill.id == skill_id))
+                if skill:
+                    missing_skill_names.append(skill.name)
+            
+            if missing_skill_names:
+                # Determine priority based on how many high-demand skills are missing
+                priority = "High" if len(missing_high_demand) >= 3 else "Medium" if len(missing_high_demand) >= 2 else "Low"
+                
+                recommendations.append(RecommendedUpdateOut(
+                    course_id=str(course.id),
+                    course_title=course.title,
+                    update_type="Add Skills",
+                    priority=priority,
+                    suggested_changes=[f"Add skill: {name}" for name in missing_skill_names[:3]],
+                    impact=f"Will align course with {len(missing_high_demand)} high-demand skills"
+                ))
+    
+    return recommendations[:30]  # Limit to 30 results
+
+
+class EmployerTrainingOutcomeOut(BaseModel):
+    course_id: str
+    course_title: str
+    employer_requirements: list[str]
+    training_outcomes: list[str]
+    alignment_score: float
+    gaps: list[str]
+
+
+@router.get("/curriculum/employer-training-outcomes", response_model=list[EmployerTrainingOutcomeOut])
+def get_employer_training_outcomes(
+    district_id: str | None = None,
+    industry_sector_id: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Compare employer requirements with training outcomes.
+    """
+    from app.models.career import Course, CourseSkill
+    from app.models.demand import IndustryDemand
+    from app.models.skills import Skill
+    from app.models.market import JobPosting
+    from sqlalchemy import select, func
+    
+    # Get employer requirements from job postings
+    job_postings_stmt = select(JobPosting).where(JobPosting.status == "open")
+    if district_id:
+        job_postings_stmt = job_postings_stmt.where(JobPosting.district_id == district_id)
+    
+    job_postings = db.scalars(job_postings_stmt).all()
+    
+    # Collect required skills from job postings
+    required_skills = set()
+    for posting in job_postings:
+        if posting.job_posting_skills:
+            for jps in posting.job_posting_skills:
+                if jps.skill:
+                    required_skills.add(jps.skill.name)
+    
+    if not required_skills:
+        return []
+    
+    # Get courses
+    courses_stmt = select(Course).where(Course.status == "active")
+    if district_id:
+        courses_stmt = courses_stmt.where(Course.district_id == district_id)
+    
+    courses_stmt = courses_stmt.options(selectinload(Course.course_skills).selectinload(CourseSkill.skill))
+    courses = db.scalars(courses_stmt).all()
+    
+    outcomes = []
+    for course in courses:
+        course_skills = {cs.skill.name for cs in course.course_skills if cs.skill}
+        
+        # Calculate alignment
+        aligned_skills = required_skills & course_skills
+        missing_skills = required_skills - course_skills
+        
+        alignment_score = (len(aligned_skills) / len(required_skills) * 100) if required_skills else 0
+        
+        outcomes.append(EmployerTrainingOutcomeOut(
+            course_id=str(course.id),
+            course_title=course.title,
+            employer_requirements=list(required_skills)[:5],
+            training_outcomes=list(course_skills)[:5],
+            alignment_score=round(alignment_score, 1),
+            gaps=list(missing_skills)[:5]
+        ))
+    
+    return outcomes[:30]  # Limit to 30 results
+
