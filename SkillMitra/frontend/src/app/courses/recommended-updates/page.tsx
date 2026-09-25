@@ -1,16 +1,66 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   RefreshCw,
   BookOpen,
   CheckCircle,
+  Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+
+interface RecommendedUpdate {
+  course_id: string;
+  course_title: string;
+  update_type: string;
+  priority: string;
+  suggested_changes: string[];
+  impact: string;
+}
 
 export default function RecommendedUpdatesPage() {
   const router = useRouter();
+  const [updates, setUpdates] = useState<RecommendedUpdate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await api.recommendedUpdates();
+        if (!cancelled) {
+          setUpdates(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load recommended updates:", err);
+          setError("Failed to load recommended updates data");
+          setUpdates([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Calculate summary stats
+  const coursesReviewed = updates.length;
+  const updatesRecommended = updates.length;
+  const priorityUpdates = updates.filter(u => u.priority === "High").length;
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-[#1b2838]">
@@ -55,7 +105,7 @@ export default function RecommendedUpdatesPage() {
               </p>
 
               <p className="mt-1 text-2xl font-bold text-[#123b68]">
-                —
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : coursesReviewed}
               </p>
             </div>
 
@@ -67,7 +117,7 @@ export default function RecommendedUpdatesPage() {
               </p>
 
               <p className="mt-1 text-2xl font-bold text-[#123b68]">
-                —
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : updatesRecommended}
               </p>
             </div>
 
@@ -79,7 +129,7 @@ export default function RecommendedUpdatesPage() {
               </p>
 
               <p className="mt-1 text-2xl font-bold text-[#123b68]">
-                —
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : priorityUpdates}
               </p>
             </div>
 
@@ -109,33 +159,76 @@ export default function RecommendedUpdatesPage() {
                     </th>
 
                     <th className="px-5 py-3 font-semibold text-[#123b68]">
-                      Current Skill Area
-                    </th>
-
-                    <th className="px-5 py-3 font-semibold text-[#123b68]">
-                      Industry Requirement
-                    </th>
-
-                    <th className="px-5 py-3 font-semibold text-[#123b68]">
-                      Recommended Update
+                      Update Type
                     </th>
 
                     <th className="px-5 py-3 font-semibold text-[#123b68]">
                       Priority
                     </th>
+
+                    <th className="px-5 py-3 font-semibold text-[#123b68]">
+                      Suggested Changes
+                    </th>
+
+                    <th className="px-5 py-3 font-semibold text-[#123b68]">
+                      Impact
+                    </th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="px-5 py-12 text-center text-slate-500"
-                    >
-                      Course update recommendations will appear here
-                      when published data is available.
-                    </td>
-                  </tr>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                        Loading recommended updates...
+                      </td>
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
+                        {error}
+                      </td>
+                    </tr>
+                  ) : updates.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
+                        No course update recommendations needed. Courses are well-aligned.
+                      </td>
+                    </tr>
+                  ) : (
+                    updates.map((item, index) => (
+                      <tr key={index} className="border-b border-slate-100">
+                        <td className="px-5 py-3 font-medium text-[#123b68]">
+                          {item.course_title}
+                        </td>
+                        <td className="px-5 py-3 text-slate-600">
+                          {item.update_type}
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
+                            item.priority === "High"
+                              ? "bg-red-100 text-red-700"
+                              : item.priority === "Medium"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-green-100 text-green-700"
+                          }`}>
+                            {item.priority}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-slate-600">
+                          <ul className="list-disc list-inside">
+                            {item.suggested_changes.map((change, i) => (
+                              <li key={i} className="text-xs">{change}</li>
+                            ))}
+                          </ul>
+                        </td>
+                        <td className="px-5 py-3 text-slate-600">
+                          {item.impact}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
 
               </table>
