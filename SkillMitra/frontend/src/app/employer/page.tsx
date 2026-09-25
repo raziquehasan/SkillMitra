@@ -13,6 +13,19 @@ import {
   type JobPosting,
 } from "@/lib/api";
 
+function getApiBase(): string {
+  if (typeof window === 'undefined') {
+    return process.env.INTERNAL_API_URL || "http://backend:8080";
+  }
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+}
+
+function authHeaders(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  const token = sessionStorage.getItem("skillmitra_access_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 type DashboardData = {
   activeJobs: number;
   applications: number;
@@ -57,22 +70,26 @@ function EmployerDashboardContent() {
 
   const [loading, setLoading] = useState(true);
 
-  const [selectedDistrict, setSelectedDistrict] = useState("Pune");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedSector, setSelectedSector] =
-    useState("EV / Automotive");
+    useState("");
   const [selectedRole, setSelectedRole] =
-    useState("EV Technician");
+    useState("");
+  const [employerProfile, setEmployerProfile] = useState<any>(null);
 
   const [dashboard, setDashboard] =
     useState<DashboardData>(emptyDashboard);
 
-  const [demandSkills] = useState<DemandSkill[]>([]);
-  const [skillGaps] = useState<SkillGap[]>([]);
+  const [demandSkills, setDemandSkills] = useState<DemandSkill[]>([]);
+  const [skillGaps, setSkillGaps] = useState<SkillGap[]>([]);
+  const [jobRoles, setJobRoles] = useState<any[]>([]);
+  const [intelligenceData, setIntelligenceData] = useState<any>(null);
+  const [loadingIntelligence, setLoadingIntelligence] = useState(false);
 
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const [districtRes, sectorRes, jobRes, appRes] =
+        const [districtRes, sectorRes, jobRes, appRes, jobRolesRes, employerProfileRes] =
           await Promise.all([
             api.districts().catch(() => []),
             api.sectors().catch(() => []),
@@ -81,12 +98,34 @@ function EmployerDashboardContent() {
               total: 0,
             })),
             api.employerApplications().catch(() => []),
+            api.allJobRoles().catch(() => []),
+            // Load employer profile to get registered district
+            fetch(`${getApiBase()}/api/v1/employers/me/profile`, {
+              headers: authHeaders(),
+            }).then(res => res.json()).catch(() => null),
           ]);
 
         setDistricts(districtRes);
         setSectors(sectorRes);
         setJobs(jobRes.items ?? []);
         setApplications(appRes);
+        setJobRoles(jobRolesRes);
+        setEmployerProfile(employerProfileRes);
+
+        // Set default district from employer profile if available
+        if (employerProfileRes?.district_id) {
+          const employerDistrict = districtRes.find(d => 
+            d.id === employerProfileRes.district_id
+          );
+          if (employerDistrict) {
+            setSelectedDistrict(employerDistrict.name);
+            console.log("Auto-selected employer district:", employerDistrict.name);
+          } else {
+            console.log("Employer district_id not found in districts list:", employerProfileRes.district_id);
+          }
+        } else {
+          console.log("No district_id in employer profile:", employerProfileRes);
+        }
 
         setDashboard({
           activeJobs: jobRes.items?.length ?? 0,
@@ -107,6 +146,89 @@ function EmployerDashboardContent() {
 
     loadDashboard();
   }, []);
+
+  // Load intelligence data when filters change
+  useEffect(() => {
+    async function loadIntelligence() {
+      if (!selectedDistrict && !selectedSector && !selectedRole) {
+        setIntelligenceData(null);
+        setDemandSkills([]);
+        setSkillGaps([]);
+        return;
+      }
+
+      setLoadingIntelligence(true);
+      try {
+        // Find IDs from names
+        const district = districts.find(d => d.name === selectedDistrict);
+        const sector = sectors.find(s => s.name === selectedSector);
+        const role = jobRoles.find(r => r.title === selectedRole);
+
+        const params: any = {};
+        if (district?.id) params.district_id = district.id;
+        if (sector?.id) params.sector_id = sector.id;
+        if (role?.id) params.job_role_id = role.id;
+
+        // Load demand intelligence
+        const demandData = await api.employerIntelligenceDemand(params).catch(() => null);
+        
+        // Load requirements
+        const requirementsData = await api.employerIntelligenceRequirements(params).catch(() => []);
+        
+        // Load skill gaps if job role is selected
+        let skillGapsData: any[] = [];
+        if (role?.id) {
+          skillGapsData = await api.employerSkillGaps({
+            job_role_id: role.id,
+            district_id: district?.id,
+            sector_id: sector?.id,
+          }).catch(() => []);
+        }
+
+        // Load trends
+        const trendsData = await api.employerIntelligenceTrends(params).catch(() => null);
+
+        setIntelligenceData({
+          demand: demandData,
+          trends: trendsData,
+        });
+
+        // Transform requirements to demand skills format
+        const transformedDemandSkills: DemandSkill[] = requirementsData.slice(0, 5).map(req => ({
+          skill: req.skill,
+          proficiency: req.proficiency || "Intermediate",
+          score: Math.min(100, req.demand / 10), // Normalize to percentage
+        }));
+        setDemandSkills(transformedDemandSkills);
+
+        // Transform skill gaps
+        const transformedSkillGaps: SkillGap[] = skillGapsData.map(gap => ({
+          skill: gap.skill_name,
+          required: gap.required ? 1 : 0,
+          supply: gap.candidate_supply,
+          gap: gap.gap_status === "Critical Gap" ? 1 : 0,
+        }));
+        setSkillGaps(transformedSkillGaps);
+
+        // Update KPIs based on real data
+        setDashboard(prev => ({
+          ...prev,
+          highDemandSkills: demandData?.top_skills?.length || 0,
+          criticalSkillGaps: skillGapsData.filter(g => g.gap_status === "Critical Gap").length,
+          matchRate: (demandData?.open_job_postings || 0) > 0 
+            ? Math.round((demandData!.open_job_postings! / (demandData!.open_job_postings! + 10)) * 100) 
+            : 0,
+        }));
+
+      } catch (error) {
+        console.error("Failed to load intelligence data:", error);
+      } finally {
+        setLoadingIntelligence(false);
+      }
+    }
+
+    loadIntelligence();
+  }, [selectedDistrict, selectedSector, selectedRole, districts, sectors, jobRoles]);
 
   async function handleLogout() {
     await logout();
@@ -293,7 +415,7 @@ function EmployerDashboardContent() {
                 </p>
 
                 <p className="font-semibold text-[#123b68]">
-                  📍 Pune District
+                  📍 {selectedDistrict || "All Districts"}
                 </p>
 
               </div>
@@ -356,7 +478,9 @@ function EmployerDashboardContent() {
                 value={
                   loading
                     ? "..."
-                    : `${dashboard.matchRate}%`
+                    : dashboard.matchRate > 0
+                    ? `${dashboard.matchRate}%`
+                    : "—"
                 }
                 description="Based on skill matching"
               />
@@ -385,7 +509,7 @@ function EmployerDashboardContent() {
                     value={selectedDistrict}
                     onChange={setSelectedDistrict}
                     options={[
-                      "Pune",
+                      "All Districts",
                       ...districts
                         .slice(0, 10)
                         .map(
@@ -403,7 +527,7 @@ function EmployerDashboardContent() {
                     value={selectedSector}
                     onChange={setSelectedSector}
                     options={[
-                      "EV / Automotive",
+                      "All Sectors",
                       ...sectors
                         .slice(0, 10)
                         .map(
@@ -421,10 +545,15 @@ function EmployerDashboardContent() {
                     value={selectedRole}
                     onChange={setSelectedRole}
                     options={[
-                      "EV Technician",
-                      "Software Developer",
-                      "Data Analyst",
-                      "UI/UX Designer",
+                      "All Roles",
+                      ...jobRoles
+                        .slice(0, 10)
+                        .map(
+                          (r: any) =>
+                            r.title ||
+                            ""
+                        )
+                        .filter(Boolean),
                     ]}
                   />
 
@@ -478,30 +607,38 @@ function EmployerDashboardContent() {
                         Demand Trend
                       </p>
 
-                      <div className="mt-3 flex h-12 items-end gap-2">
-
-                        {[30, 42, 36, 55, 62, 78].map(
-                          (height, index) => (
-                            <div
-                              key={index}
-                              className="flex-1 rounded-t bg-[#2563eb]"
-                              style={{
-                                height: `${height}%`,
-                              }}
-                            />
-                          )
-                        )}
-
-                      </div>
-
-                      <div className="mt-1 flex justify-between text-[9px] text-slate-400">
-                        <span>Mar</span>
-                        <span>Apr</span>
-                        <span>May</span>
-                        <span>Jun</span>
-                        <span>Jul</span>
-                        <span>Aug</span>
-                      </div>
+                      {intelligenceData?.trends?.historical_data && intelligenceData.trends.historical_data.length > 0 ? (
+                        <>
+                          <div className="mt-3 flex h-12 items-end gap-2">
+                            {intelligenceData.trends.historical_data.slice(-6).map((data: any, index: number) => {
+                              const maxDemand = Math.max(...intelligenceData.trends.historical_data.map((d: any) => d.demand_value || 0));
+                              const height = maxDemand > 0 ? ((data.demand_value || 0) / maxDemand) * 100 : 0;
+                              return (
+                                <div
+                                  key={index}
+                                  className="flex-1 rounded-t bg-[#2563eb]"
+                                  style={{
+                                    height: `${Math.max(5, height)}%`,
+                                  }}
+                                />
+                              );
+                            })}
+                          </div>
+                          <div className="mt-1 flex justify-between text-[9px] text-slate-400">
+                            {intelligenceData.trends.historical_data.slice(-6).map((data: any, index: number) => (
+                              <span key={index}>
+                                {data.period_end ? new Date(data.period_end).toLocaleString('default', { month: 'short' }) : `M${index + 1}`}
+                              </span>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="mt-3 text-xs text-slate-400">
+                          {selectedDistrict || selectedSector || selectedRole 
+                            ? "No historical trend data available for this selection." 
+                            : "Select filters to view demand trends."}
+                        </div>
+                      )}
 
                     </div>
 
@@ -523,10 +660,14 @@ function EmployerDashboardContent() {
 
                   </div>
 
-                  {demandSkills.length === 0 ? (
+                  {loadingIntelligence ? (
+                    <EmptyState text="Loading skill requirements..." />
+                  ) : !selectedRole ? (
+                    <EmptyState text="Select a job role to view required skills." />
+                  ) : demandSkills.length === 0 ? (
 
                     <EmptyState
-                      text="Required skill demand will appear here from the labour-market intelligence API."
+                      text="No required skill demand data available for this selection."
                     />
 
                   ) : (
@@ -584,105 +725,121 @@ function EmployerDashboardContent() {
                   subtitle="Skill Gap in Your Hiring Pipeline"
                 />
 
-                {skillGaps.length === 0 ? (
-
-                  <EmptyState
-                    text="Skill gap data will be calculated from required job skills versus available candidate skills."
-                  />
-
+                {loadingIntelligence ? (
+                  <EmptyState text="Loading skill gap analysis..." />
+                ) : !selectedRole ? (
+                  <EmptyState text="Select a job role to view skill gap analysis." />
+                ) : skillGaps.length === 0 ? (
+                  <EmptyState text="No skill gap data available for the selected role and filters." />
                 ) : (
+                  <>
+                    <div className="overflow-x-auto">
 
-                  <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
 
-                    <table className="w-full text-left text-sm">
+                        <thead>
 
-                      <thead>
+                          <tr className="border-b border-slate-200 text-xs text-slate-500">
 
-                        <tr className="border-b border-slate-200 text-xs text-slate-500">
+                            <th className="pb-3">
+                              Skill
+                            </th>
 
-                          <th className="pb-3">
-                            Skill
-                          </th>
+                            <th className="pb-3">
+                              Importance
+                            </th>
 
-                          <th className="pb-3">
-                            Required
-                          </th>
+                            <th className="pb-3">
+                              Candidate Supply
+                            </th>
 
-                          <th className="pb-3">
-                            Candidate Supply
-                          </th>
-
-                          <th className="pb-3">
-                            Gap
-                          </th>
-
-                        </tr>
-
-                      </thead>
-
-                      <tbody>
-
-                        {skillGaps.map((gap) => (
-
-                          <tr
-                            key={gap.skill}
-                            className="border-b border-slate-100"
-                          >
-
-                            <td className="py-3 font-medium">
-                              {gap.skill}
-                            </td>
-
-                            <td>
-                              {gap.required}
-                            </td>
-
-                            <td>
-                              {gap.supply}
-                            </td>
-
-                            <td>
-
-                              <span className="rounded-full bg-red-50 px-2 py-1 text-xs font-semibold text-red-600">
-                                {gap.gap}
-                              </span>
-
-                            </td>
+                            <th className="pb-3">
+                              Gap Status
+                            </th>
 
                           </tr>
 
-                        ))}
+                        </thead>
 
-                      </tbody>
+                        <tbody>
 
-                    </table>
+                          {skillGaps.map((gap) => (
 
-                  </div>
+                            <tr
+                              key={gap.skill}
+                              className="border-b border-slate-100"
+                            >
 
+                              <td className="py-3 font-medium">
+                                {gap.skill}
+                              </td>
+
+                              <td>
+                                High
+                              </td>
+
+                              <td>
+                                {gap.supply}
+                              </td>
+
+                              <td>
+
+                                <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                                  gap.gap > 0 
+                                    ? 'bg-red-50 text-red-600' 
+                                    : 'bg-green-50 text-green-600'
+                                }`}>
+                                  {gap.gap > 0 ? 'Critical Gap' : 'Supply Available'}
+                                </span>
+
+                              </td>
+
+                            </tr>
+
+                          ))}
+
+                        </tbody>
+
+                      </table>
+
+                    </div>
+
+                    {/* Dynamic warning box based on actual gap status */}
+                    {skillGaps.some(g => g.gap > 0) ? (
+                      <div className="mt-5 rounded-xl border border-orange-200 bg-orange-50 p-4">
+
+                        <p className="font-semibold text-orange-800">
+                          ⚠ Critical skill gaps detected
+                        </p>
+
+                        <p className="mt-1 text-sm text-orange-700">
+                          {skillGaps.filter(g => g.gap > 0).length} skill(s) have insufficient candidate supply for the selected role.
+                        </p>
+
+                        <p className="mt-3 text-sm font-semibold text-orange-800">
+                          Recommended action:
+                        </p>
+
+                        <p className="mt-1 text-sm text-orange-700">
+                          Partner with training providers for identified skill-gap training programs.
+                        </p>
+
+                      </div>
+                    ) : (
+                      <div className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4">
+
+                        <p className="font-semibold text-green-800">
+                          ✓ No critical skill gaps
+                        </p>
+
+                        <p className="mt-1 text-sm text-green-700">
+                          Current candidate supply is sufficient for the selected requirements.
+                        </p>
+
+                      </div>
+                    )}
+                  </>
                 )}
-
-                <div className="mt-5 rounded-xl border border-orange-200 bg-orange-50 p-4">
-
-                  <p className="font-semibold text-orange-800">
-                    ⚠ Critical gap detection
-                  </p>
-
-                  <p className="mt-1 text-sm text-orange-700">
-                    The system will identify skills where
-                    employer demand is significantly higher
-                    than candidate supply.
-                  </p>
-
-                  <p className="mt-3 text-sm font-semibold text-orange-800">
-                    Recommended action:
-                  </p>
-
-                  <p className="mt-1 text-sm text-orange-700">
-                    Partner with training providers for
-                    identified skill-gap training.
-                  </p>
-
-                </div>
 
                 <button className="mt-5 w-full rounded-lg border border-orange-200 py-2.5 text-sm font-semibold text-orange-700 hover:bg-orange-50">
                   View Detailed Gap Report →
@@ -733,7 +890,7 @@ function EmployerDashboardContent() {
                   </h3>
 
                   <EmptyState
-                    text="Candidate supply and skill distribution will come from the candidate intelligence API."
+                    text="No candidate supply data available for the selected district."
                   />
 
                 </div>
@@ -780,7 +937,7 @@ function EmployerDashboardContent() {
                 <div className="mt-4">
 
                   <EmptyState
-                    text="Candidate match percentage will be calculated from job-required skills versus candidate skills."
+                    text="Select a job role to view candidate matching analysis."
                   />
 
                 </div>

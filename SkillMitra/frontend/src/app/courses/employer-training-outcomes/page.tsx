@@ -1,16 +1,69 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Building2,
   GraduationCap,
   BarChart3,
+  Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+
+interface EmployerTrainingOutcome {
+  course_id: string;
+  course_title: string;
+  employer_requirements: string[];
+  training_outcomes: string[];
+  alignment_score: number;
+  gaps: string[];
+}
 
 export default function EmployerTrainingOutcomesPage() {
   const router = useRouter();
+  const [outcomes, setOutcomes] = useState<EmployerTrainingOutcome[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await api.employerTrainingOutcomes();
+        if (!cancelled) {
+          setOutcomes(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load employer training outcomes:", err);
+          setError("Failed to load employer training outcomes data");
+          setOutcomes([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Calculate summary stats
+  const totalEmployerRequirements = outcomes.reduce((sum, o) => sum + o.employer_requirements.length, 0);
+  const totalTrainingOutcomes = outcomes.reduce((sum, o) => sum + o.training_outcomes.length, 0);
+  const averageAlignment = outcomes.length > 0 
+    ? outcomes.reduce((sum, o) => sum + o.alignment_score, 0) / outcomes.length 
+    : 0;
+  const alignmentGaps = outcomes.filter(o => o.alignment_score < 70).length;
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-[#1b2838]">
@@ -55,7 +108,7 @@ export default function EmployerTrainingOutcomesPage() {
               </p>
 
               <p className="mt-1 text-2xl font-bold text-[#123b68]">
-                —
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : totalEmployerRequirements}
               </p>
             </div>
 
@@ -67,7 +120,7 @@ export default function EmployerTrainingOutcomesPage() {
               </p>
 
               <p className="mt-1 text-2xl font-bold text-[#123b68]">
-                —
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : totalTrainingOutcomes}
               </p>
             </div>
 
@@ -79,7 +132,7 @@ export default function EmployerTrainingOutcomesPage() {
               </p>
 
               <p className="mt-1 text-2xl font-bold text-[#123b68]">
-                —
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : alignmentGaps}
               </p>
             </div>
 
@@ -105,37 +158,94 @@ export default function EmployerTrainingOutcomesPage() {
                 <thead className="bg-[#f0f4f8]">
                   <tr>
                     <th className="px-5 py-3 font-semibold text-[#123b68]">
-                      Industry Role
+                      Course
                     </th>
 
                     <th className="px-5 py-3 font-semibold text-[#123b68]">
-                      Employer Requirement
+                      Employer Requirements
                     </th>
 
                     <th className="px-5 py-3 font-semibold text-[#123b68]">
-                      Training Outcome
+                      Training Outcomes
                     </th>
 
                     <th className="px-5 py-3 font-semibold text-[#123b68]">
-                      Required Qualification
+                      Alignment Score
                     </th>
 
                     <th className="px-5 py-3 font-semibold text-[#123b68]">
-                      Alignment Status
+                      Gaps
                     </th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="px-5 py-12 text-center text-slate-500"
-                    >
-                      Employer and training outcome data will appear here
-                      when published data is available.
-                    </td>
-                  </tr>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                        Loading employer training outcomes...
+                      </td>
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
+                        {error}
+                      </td>
+                    </tr>
+                  ) : outcomes.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
+                        No employer training outcome data available.
+                      </td>
+                    </tr>
+                  ) : (
+                    outcomes.map((item, index) => (
+                      <tr key={index} className="border-b border-slate-100">
+                        <td className="px-5 py-3 font-medium text-[#123b68]">
+                          {item.course_title}
+                        </td>
+                        <td className="px-5 py-3 text-slate-600">
+                          <ul className="list-disc list-inside">
+                            {item.employer_requirements.map((req, i) => (
+                              <li key={i} className="text-xs">{req}</li>
+                            ))}
+                          </ul>
+                        </td>
+                        <td className="px-5 py-3 text-slate-600">
+                          <ul className="list-disc list-inside">
+                            {item.training_outcomes.map((outcome, i) => (
+                              <li key={i} className="text-xs">{outcome}</li>
+                            ))}
+                          </ul>
+                        </td>
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 rounded-full bg-slate-200">
+                              <div
+                                className="h-2 rounded-full bg-[#123b68]"
+                                style={{ width: `${item.alignment_score}%` }}
+                              />
+                            </div>
+                            <span className="text-sm font-semibold text-[#123b68]">
+                              {item.alignment_score.toFixed(1)}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3 text-slate-600">
+                          {item.gaps.length > 0 ? (
+                            <ul className="list-disc list-inside">
+                              {item.gaps.map((gap, i) => (
+                                <li key={i} className="text-xs text-red-600">{gap}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <span className="text-green-600">No gaps</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
 
               </table>

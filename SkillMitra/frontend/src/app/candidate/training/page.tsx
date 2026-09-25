@@ -109,6 +109,9 @@ export default function TrainingCoursesPage() {
   const [error, setError] = useState<string | null>(null);
   const [showRecommended, setShowRecommended] = useState(true);
   const [hasSkills, setHasSkills] = useState(false);
+  const [skillCoverage, setSkillCoverage] = useState<string>("--");
+  const [industryRelevance, setIndustryRelevance] = useState<string>("--");
+  const [recommendationReason, setRecommendationReason] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -125,6 +128,56 @@ export default function TrainingCoursesPage() {
         if (recData) {
           setRecommendedCourses(recData.recommended_courses || []);
           setMissingSkills(recData.missing_skills || []);
+          setRecommendationReason(recData.reason || null);
+          
+          // Calculate skill coverage based on courses available vs gaps
+          // Skill Coverage = percentage of missing skills covered by recommended courses
+          if (recData.reason && recData.reason.includes("career interests")) {
+            // No career interest set - cannot calculate coverage
+            setSkillCoverage("Not Available");
+          } else if (recData.reason && recData.reason.includes("No skill gaps")) {
+            // Candidate already has all required skills
+            setSkillCoverage("100% (Skills Match Role)");
+          } else if (recData.missing_skills && recData.missing_skills.length > 0) {
+            if (recData.recommended_courses && recData.recommended_courses.length > 0) {
+              // Calculate actual coverage: courses covering gaps / total gaps
+              // But this is a rough estimate since one course can cover multiple skills
+              const coverage = Math.min(100, Math.round((recData.recommended_courses.length / recData.missing_skills.length) * 100));
+              setSkillCoverage(`${coverage}%`);
+            } else {
+              // Gaps exist but no courses cover them
+              setSkillCoverage("0% (No Matching Courses)");
+            }
+          } else {
+            setSkillCoverage("Not Available");
+          }
+          
+          // Calculate industry relevance based on actual data availability
+          if (recData.reason && recData.reason.includes("career interests")) {
+            // No career interest - cannot determine relevance
+            setIndustryRelevance("Not Available");
+          } else if (recData.reason && recData.reason.includes("No skill gaps")) {
+            // Skills match role - high relevance to career
+            setIndustryRelevance("High (Skills Match)");
+          } else if (recData.recommended_courses && recData.recommended_courses.length > 0) {
+            // Recommendations available - base on relevance scores
+            const avgRelevance = recData.recommended_courses.reduce((sum, course) => sum + course.gap_relevance_score, 0) / recData.recommended_courses.length;
+            if (avgRelevance > 50) {
+              setIndustryRelevance("High");
+            } else if (avgRelevance > 25) {
+              setIndustryRelevance("Medium");
+            } else {
+              setIndustryRelevance("Low");
+            }
+          } else if (recData.missing_skills && recData.missing_skills.length > 0) {
+            // Gaps exist but no courses - low relevance
+            setIndustryRelevance("Low (No Courses)");
+          } else {
+            setIndustryRelevance("Not Available");
+          }
+        } else {
+          setSkillCoverage("--");
+          setIndustryRelevance("Not Available");
         }
         
         // Load all courses as fallback
@@ -133,6 +186,8 @@ export default function TrainingCoursesPage() {
       } catch (err) {
         console.error("Failed to load courses:", err);
         setError("Unable to load courses. Please try again.");
+        setSkillCoverage("--");
+        setIndustryRelevance("--");
       } finally {
         setLoading(false);
       }
@@ -242,14 +297,14 @@ export default function TrainingCoursesPage() {
 
               <SummaryCard
                 label="Skill Coverage"
-                value={hasSkills ? "Calculating..." : "--"}
-                description={hasSkills ? "Analyzing skill alignment" : "Add skills to calculate coverage"}
+                value={skillCoverage}
+                description={hasSkills ? "Skill alignment with courses" : "Add skills to calculate coverage"}
               />
 
               <SummaryCard
                 label="Industry Relevance"
-                value={hasSkills ? "Analyzing..." : "--"}
-                description={hasSkills ? "Checking demand alignment" : "Add skills to see relevance"}
+                value={industryRelevance}
+                description={hasSkills ? "Demand alignment with courses" : "Add skills to see relevance"}
               />
             </div>
 
@@ -416,15 +471,33 @@ export default function TrainingCoursesPage() {
                 </div>
               ) : recommendedCourses.length === 0 ? (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 px-6 py-12 text-center shadow-sm">
-                  <p className="text-amber-800">
-                    No specific recommendations available. View all courses below or set career interests for personalized recommendations.
+                  <p className="text-amber-800 font-medium mb-2">
+                    No personalized course recommendations available
                   </p>
-                  <button
-                    onClick={() => setShowRecommended(false)}
-                    className="mt-4 rounded-lg bg-[#123b68] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f3155]"
-                  >
-                    View All Courses
-                  </button>
+                  {recommendationReason && (
+                    <p className="text-amber-700 text-sm mb-4">
+                      {recommendationReason}
+                    </p>
+                  )}
+                  {!recommendationReason && (
+                    <p className="text-amber-700 text-sm mb-4">
+                      Update your skills and career interests to get personalized recommendations.
+                    </p>
+                  )}
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      onClick={() => setShowRecommended(false)}
+                      className="rounded-lg bg-[#123b68] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f3155]"
+                    >
+                      View All Courses
+                    </button>
+                    <Link
+                      href="/candidate/skills"
+                      className="rounded-lg border border-[#123b68] text-[#123b68] px-4 py-2 text-sm font-semibold hover:bg-[#123b68] hover:text-white"
+                    >
+                      Update Skills
+                    </Link>
+                  </div>
                 </div>
               ) : error ? (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-12 text-center shadow-sm">

@@ -1,16 +1,66 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
   TrendingDown,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+
+interface CourseDemandAnalysis {
+  course_id: string;
+  course_title: string;
+  demand_level: string;
+  demand_signals_count: number;
+  oversupply_indicators: string[];
+  recommendation: string;
+}
 
 export default function CourseDemandAnalysisPage() {
   const router = useRouter();
+  const [analysis, setAnalysis] = useState<CourseDemandAnalysis[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await api.courseDemandAnalysis();
+        if (!cancelled) {
+          setAnalysis(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load course demand analysis:", err);
+          setError("Failed to load course demand analysis data");
+          setAnalysis([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Calculate summary stats
+  const coursesAnalysed = analysis.length;
+  const lowerDemandCourses = analysis.filter(a => a.demand_level === "Low Demand").length;
+  const capacityReviewNeeded = analysis.filter(a => a.oversupply_indicators.length > 0).length;
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-[#1b2838]">
@@ -55,7 +105,7 @@ export default function CourseDemandAnalysisPage() {
               </p>
 
               <p className="mt-1 text-2xl font-bold text-[#123b68]">
-                —
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : coursesAnalysed}
               </p>
             </div>
 
@@ -67,7 +117,7 @@ export default function CourseDemandAnalysisPage() {
               </p>
 
               <p className="mt-1 text-2xl font-bold text-[#123b68]">
-                —
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : lowerDemandCourses}
               </p>
             </div>
 
@@ -79,7 +129,7 @@ export default function CourseDemandAnalysisPage() {
               </p>
 
               <p className="mt-1 text-2xl font-bold text-[#123b68]">
-                —
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : capacityReviewNeeded}
               </p>
             </div>
 
@@ -109,33 +159,82 @@ export default function CourseDemandAnalysisPage() {
                     </th>
 
                     <th className="px-5 py-3 font-semibold text-[#123b68]">
-                      District
+                      Demand Level
                     </th>
 
                     <th className="px-5 py-3 font-semibold text-[#123b68]">
-                      Training Availability
+                      Demand Signals
                     </th>
 
                     <th className="px-5 py-3 font-semibold text-[#123b68]">
-                      Industry Demand
+                      Oversupply Indicators
                     </th>
 
                     <th className="px-5 py-3 font-semibold text-[#123b68]">
-                      Supply-Demand Status
+                      Recommendation
                     </th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="px-5 py-12 text-center text-slate-500"
-                    >
-                      Course supply and demand data will appear here when
-                      published data is available.
-                    </td>
-                  </tr>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                        Loading course demand analysis...
+                      </td>
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
+                        {error}
+                      </td>
+                    </tr>
+                  ) : analysis.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
+                        No course demand analysis data available.
+                      </td>
+                    </tr>
+                  ) : (
+                    analysis.map((item, index) => (
+                      <tr key={index} className="border-b border-slate-100">
+                        <td className="px-5 py-3 font-medium text-[#123b68]">
+                          {item.course_title}
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
+                            item.demand_level === "High Demand"
+                              ? "bg-green-100 text-green-700"
+                              : item.demand_level === "Growing"
+                              ? "bg-blue-100 text-blue-700"
+                              : item.demand_level === "Moderate"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-red-100 text-red-700"
+                          }`}>
+                            {item.demand_level}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-slate-600">
+                          {item.demand_signals_count}
+                        </td>
+                        <td className="px-5 py-3 text-slate-600">
+                          {item.oversupply_indicators.length > 0 ? (
+                            <ul className="list-disc list-inside">
+                              {item.oversupply_indicators.map((indicator, i) => (
+                                <li key={i} className="text-xs">{indicator}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <span className="text-green-600">None</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3 text-slate-600">
+                          {item.recommendation}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
 
               </table>

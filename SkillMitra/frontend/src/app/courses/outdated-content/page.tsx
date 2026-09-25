@@ -1,11 +1,61 @@
 
 "use client";
 
-import { ArrowLeft, BookOpen, RefreshCw, AlertTriangle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, BookOpen, RefreshCw, AlertTriangle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+
+interface OutdatedContent {
+  course_id: string;
+  course_title: string;
+  current_content: string;
+  current_industry_skill: string;
+  review_status: string;
+  suggested_update: string;
+  last_updated: string | null;
+}
 
 export default function OutdatedContentPage() {
   const router = useRouter();
+  const [content, setContent] = useState<OutdatedContent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await api.outdatedContent();
+        if (!cancelled) {
+          setContent(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load outdated content:", err);
+          setError("Failed to load outdated content data");
+          setContent([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Calculate summary stats
+  const coursesReviewed = content.length;
+  const contentRequiringReview = content.filter(c => c.review_status === "Needs Review").length;
+  const recommendedUpdates = content.length;
 
   return (
     <main className="min-h-screen bg-[#f4f7fa] text-[#1b2838]">
@@ -52,7 +102,7 @@ export default function OutdatedContentPage() {
               </p>
 
               <p className="mt-1 text-2xl font-bold text-[#123b68]">
-                —
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : coursesReviewed}
               </p>
             </div>
 
@@ -64,7 +114,7 @@ export default function OutdatedContentPage() {
               </p>
 
               <p className="mt-1 text-2xl font-bold text-[#123b68]">
-                —
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : contentRequiringReview}
               </p>
             </div>
 
@@ -76,7 +126,7 @@ export default function OutdatedContentPage() {
               </p>
 
               <p className="mt-1 text-2xl font-bold text-[#123b68]">
-                —
+                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : recommendedUpdates}
               </p>
             </div>
 
@@ -124,15 +174,52 @@ export default function OutdatedContentPage() {
                 </thead>
 
                 <tbody>
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="px-5 py-12 text-center text-slate-500"
-                    >
-                      Course content review data will appear here when
-                      published data is available.
-                    </td>
-                  </tr>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                        Loading outdated content data...
+                      </td>
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
+                        {error}
+                      </td>
+                    </tr>
+                  ) : content.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
+                        All course content is up-to-date with current industry requirements.
+                      </td>
+                    </tr>
+                  ) : (
+                    content.map((item, index) => (
+                      <tr key={index} className="border-b border-slate-100">
+                        <td className="px-5 py-3 font-medium text-[#123b68]">
+                          {item.course_title}
+                        </td>
+                        <td className="px-5 py-3 text-slate-600">
+                          {item.current_content}
+                        </td>
+                        <td className="px-5 py-3 text-slate-600">
+                          {item.current_industry_skill}
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
+                            item.review_status === "Needs Review"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-green-100 text-green-700"
+                          }`}>
+                            {item.review_status}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-slate-600">
+                          {item.suggested_update}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
 
               </table>

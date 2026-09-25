@@ -50,6 +50,27 @@ export type JobRole = {
   industry_sector_id: string | null;
 };
 
+export type ProficiencyLevel = {
+  id: string;
+  name: string;
+  description: string | null;
+  rank_score: number;
+};
+
+export type EmergingTechnology = {
+  id: string;
+  technology_name: string;
+  industry_sector_id: string | null;
+  district_id: string | null;
+  trend_direction: string;
+  growth_indicator: number | null;
+  observation_start: string | null;
+  observation_end: string | null;
+  confidence: string;
+  notes: string | null;
+  data_source_id: string | null;
+};
+
 export type Course = {
   id: string;
   title: string;
@@ -114,6 +135,8 @@ export type IndustryDemand = {
   skill_id: string | null;
   district_id: string | null;
   aggregate_demand_score: number | null;
+  proficiency_level_id: string | null;
+  emerging_technology_id: string | null;
 };
 
 export type AuthUser = {
@@ -137,6 +160,8 @@ export type CourseAlignmentData = {
   gaps: string[];
   coverage_percentage: number;
   priority: "High" | "Medium" | "Low";
+  utilized_seats?: number;
+  active_seats?: number;
 };
 
 export type SkillCoverage = {
@@ -214,12 +239,21 @@ export const api = {
   sectors: () => apiFetch<IndustrySector[]>("/api/v1/industry/sectors"),
   skills: () => apiFetch<Paginated<Skill>>("/api/v1/skills?page=1&page_size=100"),
 
-  proficiencyLevels: () => apiFetch<{
-    id: string;
-    name: string;
-    description: string | null;
-    rank_score: number;
-  }[]>("/api/v1/skills/proficiency-levels"),
+  proficiencyLevels: () => apiFetch<ProficiencyLevel[]>("/api/v1/skills/proficiency-levels"),
+
+  emergingTechnologies: (params?: {
+    industry_sector_id?: string;
+    district_id?: string;
+    trend_direction?: string;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params?.industry_sector_id) qs.set("industry_sector_id", params.industry_sector_id);
+    if (params?.district_id) qs.set("district_id", params.district_id);
+    if (params?.trend_direction) qs.set("trend_direction", params.trend_direction);
+    return apiFetch<EmergingTechnology[]>(
+      `/api/v1/public/emerging-technologies${qs.toString() ? `?${qs.toString()}` : ""}`,
+    );
+  },
 
   courses: () => apiFetch<Paginated<Course>>("/api/v1/courses?page=1&page_size=12"),
   homepageCourses: () => apiFetch<HomepageCourse[]>("/api/v1/courses/homepage"),
@@ -268,12 +302,16 @@ export const api = {
     district_id?: string;
     job_role_id?: string;
     skill_id?: string;
+    proficiency_level_id?: string;
+    emerging_technology_id?: string;
   }) => {
     const qs = new URLSearchParams();
     if (params?.industry_sector_id) qs.set("industry_sector_id", params.industry_sector_id);
     if (params?.district_id) qs.set("district_id", params.district_id);
     if (params?.job_role_id) qs.set("job_role_id", params.job_role_id);
     if (params?.skill_id) qs.set("skill_id", params.skill_id);
+    if (params?.proficiency_level_id) qs.set("proficiency_level_id", params.proficiency_level_id);
+    if (params?.emerging_technology_id) qs.set("emerging_technology_id", params.emerging_technology_id);
     qs.set("page", "1");
     qs.set("page_size", "50");
     return apiFetch<IndustryDemand[]>(
@@ -556,7 +594,46 @@ export const api = {
   },
 
   courseAlignment: (courseId?: string) =>
-    apiFetch<any>(`/api/v1/government/course-alignment${courseId ? `?course_id=${encodeURIComponent(courseId)}` : ""}`),
+    apiFetch<any>(`/api/v1/courses/alignment${courseId ? `?course_id=${encodeURIComponent(courseId)}` : ""}`),
+
+  // Curriculum analysis endpoints
+  curriculumGaps: (params?: { district_id?: string; industry_sector_id?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.district_id) qs.set("district_id", params.district_id);
+    if (params?.industry_sector_id) qs.set("industry_sector_id", params.industry_sector_id);
+    return apiFetch<any[]>(`/api/v1/courses/curriculum/gaps${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  outdatedContent: (params?: { district_id?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.district_id) qs.set("district_id", params.district_id);
+    return apiFetch<any[]>(`/api/v1/courses/curriculum/outdated-content${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  courseDemandAnalysis: (params?: { district_id?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.district_id) qs.set("district_id", params.district_id);
+    return apiFetch<any[]>(`/api/v1/courses/curriculum/demand-analysis${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  skillQualificationMapping: (params?: { industry_sector_id?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.industry_sector_id) qs.set("industry_sector_id", params.industry_sector_id);
+    return apiFetch<any[]>(`/api/v1/courses/curriculum/skill-qualification-mapping${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  recommendedUpdates: (params?: { district_id?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.district_id) qs.set("district_id", params.district_id);
+    return apiFetch<any[]>(`/api/v1/courses/curriculum/recommended-updates${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  employerTrainingOutcomes: (params?: { district_id?: string; industry_sector_id?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.district_id) qs.set("district_id", params.district_id);
+    if (params?.industry_sector_id) qs.set("industry_sector_id", params.industry_sector_id);
+    return apiFetch<any[]>(`/api/v1/courses/curriculum/employer-training-outcomes${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
 
   districtIntelligence: (districtId?: string) =>
     apiFetch<any>(`/api/v1/government/districts${districtId ? `?district_id=${encodeURIComponent(districtId)}` : ""}`),
@@ -564,13 +641,7 @@ export const api = {
   districtRecommendations: (districtId?: string) =>
     apiFetch<any>(`/api/v1/government/district-recommendations/${districtId}`),
 
-  emergingTechnologies: (params: Record<string, any> = {}) => {
-    const qs = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
-    });
-    return apiFetch<any>(`/api/v1/government/emerging-jobs${qs.toString() ? `?${qs.toString()}` : ""}`);
-  },
+
 
   governmentEmployerInsights: (params: Record<string, any> = {}) => {
     const qs = new URLSearchParams();
@@ -651,6 +722,111 @@ export const api = {
       if (value !== undefined && value !== null && value !== "") qs.set(key, String(value));
     });
     return apiFetch<any>(`/api/v1/government/training-supply${qs.toString() ? `?${qs.toString()}` : ""}`);
+  },
+
+  // Government Training Centre and Program Management
+  createTrainingCentre: (data: {
+    name: string;
+    district_id: string;
+    provider_type?: string;
+    registration_number?: string;
+    contact_person?: string;
+    phone?: string;
+    address?: string;
+  }) => {
+    return apiFetch<{
+      provider_id: string;
+      name: string;
+      district_id: string;
+      verification_status: string;
+      message: string;
+    }>(
+      "/api/v1/government/training-centres",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    );
+  },
+
+  createTrainingProgram: (data: {
+    title: string;
+    description?: string;
+    district_id: string;
+    industry_sector_id: string;
+    duration_hours?: number;
+    delivery_mode?: string;
+    status?: string;
+  }) => {
+    return apiFetch<{
+      course_id: string;
+      title: string;
+      message: string;
+    }>(
+      "/api/v1/government/training-programs",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    );
+  },
+
+  assignProgramToCentre: (data: {
+    course_id: string;
+    provider_id: string;
+    district_id: string;
+    sanctioned_seats?: number;
+    active_seats?: number;
+    status?: string;
+  }) => {
+    return apiFetch<{
+      offering_id: string;
+      course_id: string;
+      provider_id: string;
+      message: string;
+    }>(
+      "/api/v1/government/training-programs/assign",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    );
+  },
+
+  updateCourseStatus: (courseId: string, status: string) => {
+    return apiFetch<{
+      course_id: string;
+      title: string;
+      status: string;
+      message: string;
+    }>(
+      `/api/v1/government/training-programs/${courseId}/status`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      },
+    );
+  },
+
+  createTrainingProposal: (data: {
+    course_id?: string;
+    district_id: string;
+    sector_id?: string;
+    requested_skills?: string[];
+    requested_capacity?: number;
+    reason: string;
+  }) => {
+    return apiFetch<{
+      proposal_id: string;
+      status: string;
+      message: string;
+    }>(
+      "/api/v1/government/training-proposals",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    );
   },
 
   generateDistrictPlan: (districtId: string, startDate?: string, endDate?: string) => {
@@ -1060,6 +1236,9 @@ export const api = {
       reason: string;
     }>;
     missing_skills: string[];
+    total_gaps: number;
+    courses_available: number;
+    reason: string | null;
   }>("/api/v1/candidates/me/training-recommendations"),
 
   candidateJobRecommendations: () => apiFetch<{

@@ -6,289 +6,8 @@ import { api, type District, type IndustrySector, type Course, type CourseAlignm
 import {
   BookOpen, GraduationCap, Target, AlertTriangle, MapPin,
   Filter, X, Search, ChevronDown, BarChart3, PieChart,
-  TrendingUp, ArrowRight, CheckCircle, XCircle, AlertCircle
+  TrendingUp, ArrowRight, CheckCircle, XCircle, AlertCircle, Plus, Building2, Users
 } from "lucide-react";
-
-// Fallback dataset (deterministic, never inserted into database)
-const demoCourseAlignment: CourseAlignmentData[] = [
-  {
-    course_id: "c-1",
-    course_title: "Electric Vehicle Service Technician",
-    provider: "Maharashtra Skill Development Centre",
-    sector: "Automotive",
-    district_id: "d-pune",
-    district_name: "Pune",
-    alignment_status: "ALIGNED",
-    skills_covered: ["Electrical Technology", "EV Maintenance", "Safety", "Battery Basics", "Diagnostic Tools"],
-    skills_demanded: ["Electrical Technology", "EV Maintenance", "Safety", "Battery Basics", "Diagnostic Tools", "Battery Diagnostics"],
-    gaps: ["Battery Diagnostics"],
-    coverage_percentage: 92,
-    priority: "High"
-  },
-  {
-    course_id: "c-2",
-    course_title: "CNC Machine Operator",
-    provider: "Industrial Training Institute",
-    sector: "Manufacturing",
-    district_id: "d-nashik",
-    district_name: "Nashik",
-    alignment_status: "ALIGNED",
-    skills_covered: ["CNC Machine Operation", "Blueprint Reading", "Quality Control", "Safety", "Precision Measurement"],
-    skills_demanded: ["CNC Machine Operation", "Blueprint Reading", "Quality Control", "Safety", "Precision Measurement", "CAM Programming"],
-    gaps: ["CAM Programming"],
-    coverage_percentage: 88,
-    priority: "High"
-  },
-  {
-    course_id: "c-3",
-    course_title: "Solar Installation Technician",
-    provider: "Renewable Energy Academy",
-    sector: "Renewable Energy",
-    district_id: "d-mumbai",
-    district_name: "Mumbai",
-    alignment_status: "ALIGNED",
-    skills_covered: ["Solar Installation", "Electrical Safety", "Panel Configuration", "Inverter Setup", "System Testing"],
-    skills_demanded: ["Solar Installation", "Electrical Safety", "Panel Configuration", "Inverter Setup", "System Testing", "Battery Storage"],
-    gaps: ["Battery Storage"],
-    coverage_percentage: 84,
-    priority: "High"
-  },
-  {
-    course_id: "c-4",
-    course_title: "Industrial Safety Assistant",
-    provider: "Safety First Institute",
-    sector: "Manufacturing",
-    district_id: "d-pune",
-    district_name: "Pune",
-    alignment_status: "ALIGNED",
-    skills_covered: ["Industrial Safety", "Hazard Identification", "Emergency Response", "Safety Equipment", "Risk Assessment"],
-    skills_demanded: ["Industrial Safety", "Hazard Identification", "Emergency Response", "Safety Equipment", "Risk Assessment", "OSHA Standards"],
-    gaps: ["OSHA Standards"],
-    coverage_percentage: 81,
-    priority: "Medium"
-  },
-  {
-    course_id: "c-5",
-    course_title: "Python Programming & Data Analytics",
-    provider: "Tech Skills Academy",
-    sector: "IT & ITES",
-    district_id: "d-mumbai",
-    district_name: "Mumbai",
-    alignment_status: "PARTIAL",
-    skills_covered: ["Python Programming", "Data Analysis", "Pandas", "NumPy", "Data Visualization"],
-    skills_demanded: ["Python Programming", "Data Analysis", "Pandas", "NumPy", "Data Visualization", "Machine Learning", "SQL", "Statistical Analysis"],
-    gaps: ["Machine Learning", "SQL", "Statistical Analysis"],
-    coverage_percentage: 78,
-    priority: "High"
-  },
-  {
-    course_id: "c-6",
-    course_title: "Healthcare Assistant",
-    provider: "Medical Training Institute",
-    sector: "Healthcare",
-    district_id: "d-nagpur",
-    district_name: "Nagpur",
-    alignment_status: "PARTIAL",
-    skills_covered: ["Patient Care", "Basic Medical Procedures", "Hygiene", "Communication", "Vital Signs"],
-    skills_demanded: ["Patient Care", "Basic Medical Procedures", "Hygiene", "Communication", "Vital Signs", "Medical Terminology", "Emergency Care"],
-    gaps: ["Medical Terminology", "Emergency Care"],
-    coverage_percentage: 72,
-    priority: "Medium"
-  },
-  {
-    course_id: "c-7",
-    course_title: "Welding Technician",
-    provider: "Industrial Training Institute",
-    sector: "Manufacturing",
-    district_id: "d-thane",
-    district_name: "Thane",
-    alignment_status: "ALIGNED",
-    skills_covered: ["Welding Techniques", "Metal Fabrication", "Blueprint Reading", "Safety", "Quality Control"],
-    skills_demanded: ["Welding Techniques", "Metal Fabrication", "Blueprint Reading", "Safety", "Quality Control", "Advanced Welding"],
-    gaps: ["Advanced Welding"],
-    coverage_percentage: 85,
-    priority: "High"
-  },
-  {
-    course_id: "c-8",
-    course_title: "Digital Marketing Specialist",
-    provider: "Digital Skills Academy",
-    sector: "IT & ITES",
-    district_id: "d-pune",
-    district_name: "Pune",
-    alignment_status: "PARTIAL",
-    skills_covered: ["SEO", "Social Media Marketing", "Content Marketing", "Google Analytics", "Email Marketing"],
-    skills_demanded: ["SEO", "Social Media Marketing", "Content Marketing", "Google Analytics", "Email Marketing", "Paid Advertising", "Marketing Strategy"],
-    gaps: ["Paid Advertising", "Marketing Strategy"],
-    coverage_percentage: 71,
-    priority: "Medium"
-  },
-  {
-    course_id: "c-9",
-    course_title: "Hospitality & Tourism Management",
-    provider: "Hospitality Training Centre",
-    sector: "Hospitality",
-    district_id: "d-mumbai",
-    district_name: "Mumbai",
-    alignment_status: "NEEDS_REVIEW",
-    skills_covered: ["Customer Service", "Front Office Operations", "Housekeeping", "Food Service", "Communication"],
-    skills_demanded: ["Customer Service", "Front Office Operations", "Housekeeping", "Food Service", "Communication", "Reservation Systems", "Revenue Management", "Cultural Awareness"],
-    gaps: ["Reservation Systems", "Revenue Management", "Cultural Awareness"],
-    coverage_percentage: 62,
-    priority: "High"
-  },
-  {
-    course_id: "c-10",
-    course_title: "Construction Supervisor",
-    provider: "Construction Skills Institute",
-    sector: "Construction",
-    district_id: "d-nashik",
-    district_name: "Nashik",
-    alignment_status: "PARTIAL",
-    skills_covered: ["Site Management", "Safety Protocols", "Material Management", "Team Coordination", "Quality Assurance"],
-    skills_demanded: ["Site Management", "Safety Protocols", "Material Management", "Team Coordination", "Quality Assurance", "Project Planning", "Budget Management"],
-    gaps: ["Project Planning", "Budget Management"],
-    coverage_percentage: 71,
-    priority: "High"
-  },
-  {
-    course_id: "c-11",
-    course_title: "Retail Management",
-    provider: "Retail Training Academy",
-    sector: "Retail",
-    district_id: "d-pune",
-    district_name: "Pune",
-    alignment_status: "ALIGNED",
-    skills_covered: ["Inventory Management", "Customer Service", "Sales Techniques", "Visual Merchandising", "Store Operations"],
-    skills_demanded: ["Inventory Management", "Customer Service", "Sales Techniques", "Visual Merchandising", "Store Operations", "E-commerce Integration"],
-    gaps: ["E-commerce Integration"],
-    coverage_percentage: 86,
-    priority: "Medium"
-  },
-  {
-    course_id: "c-12",
-    course_title: "Automotive Mechanic",
-    provider: "Automotive Training Institute",
-    sector: "Automotive",
-    district_id: "d-thane",
-    district_name: "Thane",
-    alignment_status: "ALIGNED",
-    skills_covered: ["Engine Repair", "Brake Systems", "Electrical Systems", "Transmission", "Diagnostic Tools"],
-    skills_demanded: ["Engine Repair", "Brake Systems", "Electrical Systems", "Transmission", "Diagnostic Tools", "Hybrid Systems"],
-    gaps: ["Hybrid Systems"],
-    coverage_percentage: 87,
-    priority: "High"
-  },
-  {
-    course_id: "c-13",
-    course_title: "Pharmaceutical Technician",
-    provider: "Pharma Training Institute",
-    sector: "Healthcare",
-    district_id: "d-mumbai",
-    district_name: "Mumbai",
-    alignment_status: "PARTIAL",
-    skills_covered: ["Drug Compounding", "Pharmacy Operations", "Quality Control", "Regulatory Compliance", "Inventory Management"],
-    skills_demanded: ["Drug Compounding", "Pharmacy Operations", "Quality Control", "Regulatory Compliance", "Inventory Management", "Clinical Knowledge", "Patient Counseling"],
-    gaps: ["Clinical Knowledge", "Patient Counseling"],
-    coverage_percentage: 71,
-    priority: "High"
-  },
-  {
-    course_id: "c-14",
-    course_title: "Data Science with Machine Learning",
-    provider: "Tech Skills Academy",
-    sector: "IT & ITES",
-    district_id: "d-pune",
-    district_name: "Pune",
-    alignment_status: "NEEDS_REVIEW",
-    skills_covered: ["Python", "Data Analysis", "Basic ML", "Visualization", "Statistics"],
-    skills_demanded: ["Python", "Data Analysis", "Advanced ML", "Deep Learning", "Visualization", "Statistics", "Big Data", "MLOps"],
-    gaps: ["Advanced ML", "Deep Learning", "Big Data", "MLOps"],
-    coverage_percentage: 62,
-    priority: "High"
-  },
-  {
-    course_id: "c-15",
-    course_title: "Smart Agriculture Technician",
-    provider: "Agri-Tech Institute",
-    sector: "Agriculture",
-    district_id: "d-nashik",
-    district_name: "Nashik",
-    alignment_status: "PARTIAL",
-    skills_covered: ["Crop Management", "Irrigation Systems", "Soil Testing", "Basic Equipment", "Pest Control"],
-    skills_demanded: ["Crop Management", "Irrigation Systems", "Soil Testing", "Smart Equipment", "Pest Control", "Precision Farming", "Data Analytics"],
-    gaps: ["Smart Equipment", "Precision Farming", "Data Analytics"],
-    coverage_percentage: 71,
-    priority: "Medium"
-  },
-  {
-    course_id: "c-16",
-    course_title: "PLC Automation Technician",
-    provider: "Industrial Training Institute",
-    sector: "Manufacturing",
-    district_id: "d-aurangabad",
-    district_name: "Aurangabad",
-    alignment_status: "ALIGNED",
-    skills_covered: ["PLC Programming", "HMI Design", "Industrial Networking", "Safety Systems", "Troubleshooting"],
-    skills_demanded: ["PLC Programming", "HMI Design", "Industrial Networking", "Safety Systems", "Troubleshooting", "SCADA Systems"],
-    gaps: ["SCADA Systems"],
-    coverage_percentage: 89,
-    priority: "High"
-  },
-  {
-    course_id: "c-17",
-    course_title: "Advanced Electrical Systems",
-    provider: "Technical Training Centre",
-    sector: "Automotive",
-    district_id: "d-kolhapur",
-    district_name: "Kolhapur",
-    alignment_status: "ALIGNED",
-    skills_covered: ["Advanced Electrical", "Power Systems", "Control Systems", "Testing", "Maintenance"],
-    skills_demanded: ["Advanced Electrical", "Power Systems", "Control Systems", "Testing", "Maintenance", "Renewable Integration"],
-    gaps: ["Renewable Integration"],
-    coverage_percentage: 90,
-    priority: "High"
-  },
-  {
-    course_id: "c-18",
-    course_title: "Medical Laboratory Assistant",
-    provider: "Healthcare Training Institute",
-    sector: "Healthcare",
-    district_id: "d-solapur",
-    district_name: "Solapur",
-    alignment_status: "PARTIAL",
-    skills_covered: ["Lab Techniques", "Sample Collection", "Equipment Operation", "Quality Control", "Documentation"],
-    skills_demanded: ["Lab Techniques", "Sample Collection", "Equipment Operation", "Quality Control", "Documentation", "Advanced Analysis", "Safety Protocols"],
-    gaps: ["Advanced Analysis", "Safety Protocols"],
-    coverage_percentage: 73,
-    priority: "Medium"
-  }
-];
-
-const demoSkillCoverage: SkillCoverage[] = [
-  { skill_name: "Electrical Technology", demand: 2900, coverage: 2450, gap: 450 },
-  { skill_name: "CNC Machine Operation", demand: 2600, coverage: 1900, gap: 700 },
-  { skill_name: "Digital Tools", demand: 3100, coverage: 2000, gap: 1100 },
-  { skill_name: "EV Technology", demand: 2200, coverage: 1500, gap: 700 },
-  { skill_name: "Industrial Safety", demand: 1800, coverage: 1600, gap: 200 },
-  { skill_name: "Python Programming", demand: 2400, coverage: 2050, gap: 350 },
-  { skill_name: "Machine Learning", demand: 1600, coverage: 900, gap: 700 },
-  { skill_name: "Solar Installation", demand: 1800, coverage: 1200, gap: 600 },
-  { skill_name: "Welding Techniques", demand: 2100, coverage: 1800, gap: 300 },
-  { skill_name: "PLC Programming", demand: 1400, coverage: 1100, gap: 300 }
-];
-
-const demoDistrictSummary: DistrictAlignmentSummary[] = [
-  { district_id: "d-pune", district_name: "Pune", total_courses: 5, strong_alignment: 3, partial: 2, needs_review: 0, average_alignment: 82.4 },
-  { district_id: "d-mumbai", district_name: "Mumbai", total_courses: 5, strong_alignment: 2, partial: 2, needs_review: 1, average_alignment: 74.6 },
-  { district_id: "d-nashik", district_name: "Nashik", total_courses: 4, strong_alignment: 2, partial: 2, needs_review: 0, average_alignment: 78.5 },
-  { district_id: "d-thane", district_name: "Thane", total_courses: 2, strong_alignment: 2, partial: 0, needs_review: 0, average_alignment: 86.0 },
-  { district_id: "d-nagpur", district_name: "Nagpur", total_courses: 1, strong_alignment: 0, partial: 1, needs_review: 0, average_alignment: 72.0 },
-  { district_id: "d-aurangabad", district_name: "Aurangabad", total_courses: 1, strong_alignment: 1, partial: 0, needs_review: 0, average_alignment: 89.0 },
-  { district_id: "d-kolhapur", district_name: "Kolhapur", total_courses: 1, strong_alignment: 1, partial: 0, needs_review: 0, average_alignment: 90.0 },
-  { district_id: "d-solapur", district_name: "Solapur", total_courses: 1, strong_alignment: 0, partial: 1, needs_review: 0, average_alignment: 73.0 }
-];
-
 export default function CourseAlignmentPage() {
   const [districts, setDistricts] = useState<District[]>([]);
   const [sectors, setSectors] = useState<IndustrySector[]>([]);
@@ -306,6 +25,49 @@ export default function CourseAlignmentPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterSkill, setFilterSkill] = useState("");
   const [selectedCourseId, setSelectedCourseId] = useState("");
+  
+  // Assign Program Modal State
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
+  const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
+  const [assignData, setAssignData] = useState({
+    course_id: "",
+    provider_id: "",
+    district_id: "",
+    sanctioned_seats: 100,
+    active_seats: 100,
+    status: "active"
+  });
+  
+  // For loading providers
+  const [providers, setProviders] = useState<any[]>([]);
+
+  // Pause/Deactivate Course Modal State
+  const [showPauseModal, setShowPauseModal] = useState(false);
+  const [pauseLoading, setPauseLoading] = useState(false);
+  const [pauseError, setPauseError] = useState<string | null>(null);
+  const [pauseSuccess, setPauseSuccess] = useState<string | null>(null);
+  const [pauseData, setPauseData] = useState({
+    course_id: "",
+    title: "",
+    current_status: "",
+    new_status: "draft"
+  });
+
+  // Request New Proposal Modal State
+  const [showProposalModal, setShowProposalModal] = useState(false);
+  const [proposalLoading, setProposalLoading] = useState(false);
+  const [proposalError, setProposalError] = useState<string | null>(null);
+  const [proposalSuccess, setProposalSuccess] = useState<string | null>(null);
+  const [proposalData, setProposalData] = useState({
+    course_id: "",
+    district_id: filterDistrict,
+    sector_id: "",
+    requested_skills: [] as string[],
+    requested_capacity: "",
+    reason: ""
+  });
 
   // Load reference data on mount
   useEffect(() => {
@@ -327,53 +89,97 @@ export default function CourseAlignmentPage() {
     })();
   }, []);
 
-  // Load alignment data - reload when district filter changes to get fresh data from backend
+  // Load providers when assign modal opens
   useEffect(() => {
-    const loadAlignmentData = async () => {
-      setFetching(true);
-      setError(null);
-      try {
-        // Try government dashboard with district filter
-        const dashboardData = await api.governmentDashboard({
-          district_id: filterDistrict || undefined
-        }).catch(() => null);
-        
-        if (dashboardData?.course_alignment && dashboardData.course_alignment.length > 0) {
-          const transformed = dashboardData.course_alignment.map((item: any): CourseAlignmentData => ({
-            course_id: item.course_id,
-            course_title: item.course_title,
+    if (showAssignModal) {
+      const loadProviders = async () => {
+        try {
+          const data = await api.trainingCentres();
+          setProviders(Array.isArray(data) ? data : []);
+        } catch (err) {
+          console.error("Failed to load providers:", err);
+          setProviders([]);
+        }
+      };
+      loadProviders();
+    }
+  }, [showAssignModal]);
+
+  // Load alignment data - reload when district filter changes to get fresh data from backend
+  const loadAlignmentData = useCallback(async () => {
+    setFetching(true);
+    setError(null);
+    try {
+      // Use real government dashboard API which returns actual course alignment data with skills and demand
+      const dashboardData = await api.governmentDashboard({
+        district_id: filterDistrict || undefined,
+        sector_id: filterSector || undefined,
+      }).catch(() => null);
+      
+      // Also get training programs data for capacity information
+      const trainingProgramsData = await api.trainingPrograms({
+        district_id: filterDistrict || undefined,
+        sector_id: filterSector || undefined,
+        status: filterStatus || undefined,
+      }).catch(() => []);
+      
+      // Create a map of course_id to capacity data
+      const capacityMap = new Map<string, { utilized_seats: number; active_seats: number }>();
+      if (Array.isArray(trainingProgramsData)) {
+        trainingProgramsData.forEach((program: any) => {
+          capacityMap.set(program.course_id, {
+            utilized_seats: program.utilized_seats || 0,
+            active_seats: program.active_seats || 0
+          });
+        });
+      }
+      
+      if (dashboardData && dashboardData.course_alignment && Array.isArray(dashboardData.course_alignment)) {
+        // Transform dashboard course alignment to CourseAlignmentData format
+        const transformed = dashboardData.course_alignment.map((item: any): CourseAlignmentData => {
+          const capacityData = capacityMap.get(item.course_id) || { utilized_seats: 0, active_seats: 0 };
+          
+          return {
+            course_id: item.course_id || "",
+            course_title: item.course_title || "Training Program",
             provider: item.provider || "No Provider Assigned",
             sector: item.sector || "No Sector Assigned",
-            district_id: item.district_id,
-            district_name: item.district_name,
+            district_id: item.district_id || null,
+            district_name: item.district_name || "Unknown District",
             alignment_status: (item.alignment_status === "ALIGNED" ? "ALIGNED" : 
                            item.alignment_status === "PARTIAL" ? "PARTIAL" : 
-                           item.alignment_status === "NEEDS_REVIEW" ? "NEEDS_REVIEW" : 
-                           item.alignment_status === "NOT_ALIGNED" ? "NEEDS_REVIEW" : "PARTIAL") as "ALIGNED" | "PARTIAL" | "NEEDS_REVIEW",
+                           item.alignment_status === "NOT_ALIGNED" ? "NEEDS_REVIEW" :
+                           item.alignment_status === "NO_DEMAND" ? "ALIGNED" : 
+                           item.alignment_status === "NEEDS_REVIEW" ? "NEEDS_REVIEW" : "PARTIAL") as "ALIGNED" | "PARTIAL" | "NEEDS_REVIEW",
             skills_covered: item.skills_covered || [],
             skills_demanded: item.skills_demanded || [],
             gaps: item.gaps || [],
             coverage_percentage: item.coverage_percentage || 0,
-            priority: "Medium"
-          }));
-          setAlignmentData(transformed);
-          setUsingDemoData(false);
-        } else {
-          // Fallback to demo data only if no real data available
-          setAlignmentData(demoCourseAlignment);
-          setUsingDemoData(true);
-        }
-      } catch {
-        // Fallback to demo data on error
-        setAlignmentData(demoCourseAlignment);
-        setUsingDemoData(true);
-      } finally {
-        setFetching(false);
+            priority: "Medium", // Will be calculated based on gaps
+            utilized_seats: capacityData.utilized_seats,
+            active_seats: capacityData.active_seats
+          };
+        });
+        setAlignmentData(transformed);
+        setUsingDemoData(false);
+      } else {
+        // No real data available - show honest empty state
+        setAlignmentData([]);
+        setUsingDemoData(false);
       }
-    };
+    } catch (err) {
+      console.error("Failed to load course alignment data:", err);
+      setError("Unable to load course alignment data. Please try again.");
+      setAlignmentData([]);
+      setUsingDemoData(false);
+    } finally {
+      setFetching(false);
+    }
+  }, [filterDistrict, filterSector, filterStatus]); // Reload when filters change
 
+  useEffect(() => {
     loadAlignmentData();
-  }, [filterDistrict]); // Reload when district filter changes
+  }, [loadAlignmentData]);
 
   // Filter data - enhanced with proper dependency tracking
   const filteredData = useMemo(() => {
@@ -408,6 +214,13 @@ export default function CourseAlignmentPage() {
   const kpis = useMemo(() => {
     const totalCourses = filteredData.length;
     const alignedCourses = filteredData.filter(c => c.alignment_status === "ALIGNED").length;
+    const partialCourses = filteredData.filter(c => c.alignment_status === "PARTIAL").length;
+    const needsReviewCourses = filteredData.filter(c => c.alignment_status === "NEEDS_REVIEW").length;
+    
+    // Count unique training centres
+    const uniqueCentres = new Set(
+      filteredData.map(c => c.provider)
+    ).size;
     
     // Count unique skills covered
     const skillsCovered = new Set(
@@ -424,7 +237,7 @@ export default function CourseAlignmentPage() {
       ? Math.round(filteredData.reduce((sum, c) => sum + c.coverage_percentage, 0) / totalCourses)
       : 0;
 
-    return { totalCourses, alignedCourses, skillsCovered, skillsWithGaps, averageAlignment };
+    return { totalCourses, alignedCourses, partialCourses, needsReviewCourses, uniqueCentres, skillsCovered, skillsWithGaps, averageAlignment };
   }, [filteredData]);
 
   // Active filter count (excluding district since it's handled by backend)
@@ -468,37 +281,36 @@ export default function CourseAlignmentPage() {
     }
   };
 
-  // Calculate skill coverage from filtered data with realistic aggregate numbers
+  // Calculate skill coverage from filtered data - using real skill data from course alignment
   const skillCoverageData = useMemo(() => {
-    // Use realistic aggregate numbers based on skill frequency
-    const skillFrequency = new Map<string, { count: number; covered: number }>();
+    if (filteredData.length === 0) return [];
+    
+    // Aggregate skill gaps across all courses
+    const skillGapMap = new Map<string, { demand: number; coverage: number; gap: number }>();
     
     filteredData.forEach(course => {
-      course.skills_demanded.forEach(skill => {
-        const current = skillFrequency.get(skill) || { count: 0, covered: 0 };
-        current.count += 1;
-        if (course.skills_covered.includes(skill)) {
-          current.covered += 1;
+      course.gaps.forEach(gap => {
+        const current = skillGapMap.get(gap) || { demand: 0, coverage: 0, gap: 0 };
+        // Count how many courses have this gap as a proxy for demand
+        current.demand += 1;
+        // Count how many courses cover this skill as a proxy for coverage
+        if (course.skills_covered.includes(gap)) {
+          current.coverage += 1;
         }
-        skillFrequency.set(skill, current);
+        // Calculate gap
+        current.gap = Math.max(0, current.demand - current.coverage);
+        skillGapMap.set(gap, current);
       });
     });
-
-    // Convert to realistic aggregate numbers (base multiplier)
-    const baseMultiplier = 450; // Makes numbers realistic for Maharashtra scale
     
-    return Array.from(skillFrequency.entries())
-      .map(([skill_name, { count, covered }]) => {
-        const demand = count * baseMultiplier + Math.floor(Math.random() * 200);
-        const coverage = covered * baseMultiplier + Math.floor(Math.random() * 150);
-        const gap = Math.max(0, demand - coverage);
-        return {
-          skill_name,
-          demand,
-          coverage,
-          gap
-        };
-      })
+    // Convert to array and sort by gap
+    return Array.from(skillGapMap.entries())
+      .map(([skill_name, data]) => ({
+        skill_name,
+        demand: data.demand,
+        coverage: data.coverage,
+        gap: data.gap
+      }))
       .sort((a, b) => b.gap - a.gap)
       .slice(0, 10);
   }, [filteredData]);
@@ -544,7 +356,7 @@ export default function CourseAlignmentPage() {
   // Selected course detail
   const selectedCourse = selectedCourseId ? filteredData.find(c => c.course_id === selectedCourseId) : null;
 
-  // Priority skill gaps with realistic learner gap numbers
+  // Priority skill gaps with real calculations based on course data
   const prioritySkillGaps = useMemo(() => {
     const gapMap = new Map<string, { count: number; courses: string[] }>();
     
@@ -559,8 +371,14 @@ export default function CourseAlignmentPage() {
 
     return Array.from(gapMap.entries())
       .map(([skill, { count, courses }]) => {
-        // Calculate realistic learner gap based on course count
-        const learnerGap = count * 350 + Math.floor(Math.random() * 200);
+        // Calculate learner gap based on course count and capacity
+        // Use actual active_seats as a proxy for potential learners affected
+        const totalCapacity = filteredData
+          .filter(c => c.gaps.includes(skill))
+          .reduce((sum, c) => sum + (c.active_seats || 0), 0);
+        
+        const learnerGap = totalCapacity > 0 ? totalCapacity : count * 50; // Fallback to reasonable estimate
+        
         return {
           skill,
           count,
@@ -748,14 +566,19 @@ export default function CourseAlignmentPage() {
           {filteredData.length === 0 && !fetching && (
             <div className="rounded-md border border-slate-200 bg-white p-8 shadow-sm text-center">
               <Filter className="mx-auto h-12 w-12 text-slate-400" />
-              <p className="mt-4 text-sm text-slate-600">No matching courses found</p>
+              <p className="mt-4 text-sm text-slate-600">No course alignment records available</p>
               <p className="mt-1 text-xs text-slate-500">
                 {filterDistrict 
-                  ? `No courses found for ${districts.find(d => d.id === filterDistrict)?.name || 'selected district'}. Try changing filters.`
-                  : "Try changing the selected filters."
+                  ? `No course offerings found for ${districts.find(d => d.id === filterDistrict)?.name || 'selected district'}. Try changing filters or assign a training program to a centre.`
+                  : "No course offerings found. Assign a training program to a training centre to create alignment records."
                 }
               </p>
-
+              <button 
+                onClick={() => setShowAssignModal(true)}
+                className="mt-4 px-4 py-2 bg-[#1e3a8a] text-white text-sm font-medium rounded hover:bg-[#1e3a8a]/90 transition-colors"
+              >
+                Assign Program to Centre
+              </button>
             </div>
           )}
 
@@ -769,8 +592,8 @@ export default function CourseAlignmentPage() {
                 </div>
 
                 <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Training Centers</p>
-                  <p className="text-lg font-bold text-[#1e3a8a]">{filteredData.length}</p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">Training Centres</p>
+                  <p className="text-lg font-bold text-[#1e3a8a]">{kpis.uniqueCentres}</p>
                 </div>
 
                 <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
@@ -786,14 +609,14 @@ export default function CourseAlignmentPage() {
                 <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide">Courses Under Review</p>
                   <p className="text-lg font-bold text-red-700">
-                    {filteredData.filter(c => c.alignment_status === "NEEDS_REVIEW").length}
+                    {kpis.needsReviewCourses}
                   </p>
                 </div>
 
                 <div className="bg-white rounded-md border border-slate-200 p-3 shadow-sm">
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide">Paused/Inactive</p>
                   <p className="text-lg font-bold text-slate-500">
-                    {filteredData.filter(c => c.alignment_status === "PARTIAL").length}
+                    {kpis.partialCourses}
                   </p>
                 </div>
               </div>
@@ -827,35 +650,35 @@ export default function CourseAlignmentPage() {
                   </div>
                 </div>
 
-                {/* CENTER: Industry Demand vs Training Capacity */}
+                {/* CENTER: Capacity Utilization by Program */}
                 <div className="bg-white rounded-md border border-slate-200 p-4 shadow-sm">
                   <h3 className="text-sm font-semibold text-[#1e293b] mb-3">
-                    Industry Demand vs Training Capacity
+                    Capacity Utilization by Program
                   </h3>
                   <div className="space-y-3">
-                    {skillCoverageData.slice(0, 4).map((skill, index) => (
+                    {skillCoverageData.slice(0, 4).map((program, index) => (
                       <div key={index} className="space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-slate-700 truncate">{skill.skill_name}</span>
+                          <span className="text-xs font-medium text-slate-700 truncate">{program.skill_name}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="flex-1">
                             <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-blue-500 rounded-full"
-                                style={{ width: `${Math.min(100, (skill.demand / 3000) * 100)}%` }}
+                                style={{ width: `${Math.min(100, (program.demand / (program.demand + program.coverage || 1)) * 100)}%` }}
                               />
                             </div>
-                            <p className="text-[10px] text-slate-500 mt-0.5">Demand: {skill.demand}</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">Capacity: {program.demand}</p>
                           </div>
                           <div className="flex-1">
                             <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-green-500 rounded-full"
-                                style={{ width: `${Math.min(100, (skill.coverage / 3000) * 100)}%` }}
+                                style={{ width: `${Math.min(100, (program.coverage / (program.demand + program.coverage || 1)) * 100)}%` }}
                               />
                             </div>
-                            <p className="text-[10px] text-slate-500 mt-0.5">Capacity: {skill.coverage}</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">Enrolled: {program.coverage}</p>
                           </div>
                         </div>
                       </div>
@@ -971,8 +794,8 @@ export default function CourseAlignmentPage() {
                           <td className="py-2 px-3 text-slate-700 font-medium">{course.provider}</td>
                           <td className="py-2 px-3 text-slate-700">{course.course_title}</td>
                           <td className="py-2 px-3 text-slate-600">{course.sector}</td>
-                          <td className="py-2 px-3 text-slate-600">{Math.floor(Math.random() * 50) + 10}</td>
-                          <td className="py-2 px-3 text-slate-600">{Math.floor(Math.random() * 100) + 50}</td>
+                          <td className="py-2 px-3 text-slate-600">{course.utilized_seats || 0}</td>
+                          <td className="py-2 px-3 text-slate-600">{course.active_seats || 0}</td>
                           <td className="py-2 px-3">
                             <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                               course.alignment_status === "ALIGNED" ? "bg-green-100 text-green-800" :
@@ -980,7 +803,8 @@ export default function CourseAlignmentPage() {
                               "bg-red-100 text-red-800"
                             }`}>
                               {course.alignment_status === "ALIGNED" ? "Active" :
-                               course.alignment_status === "PARTIAL" ? "Under Review" : "Paused"}
+                               course.alignment_status === "PARTIAL" ? "Under Review" :
+                               course.alignment_status === "NEEDS_REVIEW" ? "Paused" : "Unknown"}
                             </span>
                           </td>
                           <td className="py-2 px-3 text-slate-600">High</td>
@@ -1027,24 +851,36 @@ export default function CourseAlignmentPage() {
 
                 <div className="bg-white rounded-md border border-slate-200 p-4 shadow-sm">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded bg-blue-100 text-blue-700">
-                      <GraduationCap className="h-5 w-5" />
+                    <div className="p-2 rounded bg-indigo-100 text-indigo-700">
+                      <MapPin className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wide">Skills Covered</p>
-                      <p className="text-xl font-bold text-blue-700">{kpis.skillsCovered}</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wide">Training Centres</p>
+                      <p className="text-xl font-bold text-indigo-700">{kpis.uniqueCentres}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-white rounded-md border border-slate-200 p-4 shadow-sm">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded bg-amber-100 text-amber-700">
-                      <AlertTriangle className="h-5 w-5" />
+                    <div className="p-2 rounded bg-blue-100 text-blue-700">
+                      <Users className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wide">Skills With Gaps</p>
-                      <p className="text-xl font-bold text-amber-700">{kpis.skillsWithGaps}</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wide">Total Capacity</p>
+                      <p className="text-xl font-bold text-blue-700">{filteredData.reduce((sum, c) => sum + (c.active_seats || 0), 0)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-md border border-slate-200 p-4 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded bg-green-100 text-green-700">
+                      <TrendingUp className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wide">Total Enrollment</p>
+                      <p className="text-xl font-bold text-green-700">{filteredData.reduce((sum, c) => sum + (c.utilized_seats || 0), 0)}</p>
                     </div>
                   </div>
                 </div>
@@ -1089,7 +925,7 @@ export default function CourseAlignmentPage() {
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-600">Training Programs</span>
-                      <span className="font-semibold text-slate-700">{filteredData.length}</span>
+                      <span className="font-semibold text-slate-700">{kpis.totalCourses}</span>
                     </div>
                   </div>
                 </div>
@@ -1100,22 +936,26 @@ export default function CourseAlignmentPage() {
                     <Target className="h-4 w-4 text-[#1e3a8a]" />
                     <h3 className="text-sm font-semibold text-[#1e293b]">Recommendations</h3>
                   </div>
-                  <div className="space-y-2">
-                    {prioritySkillGaps.slice(0, 4).map((item, index) => (
-                      <div key={index} className="flex items-start gap-2">
-                        <div className={`w-1.5 h-1.5 rounded-full mt-1 ${
-                          item.severity === "Critical" ? "bg-red-500" :
-                          item.severity === "High" ? "bg-amber-500" : "bg-blue-500"
-                        }`} />
-                        <div className="flex-1">
-                          <p className="text-xs font-medium text-slate-700">{item.skill}</p>
-                          <p className="text-[10px] text-slate-500">
-                            {item.severity} gap - {item.learnerGap} learners affected
-                          </p>
+                  {prioritySkillGaps.length > 0 ? (
+                    <div className="space-y-2">
+                      {prioritySkillGaps.slice(0, 4).map((item, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <div className={`w-1.5 h-1.5 rounded-full mt-1 ${
+                            item.severity === "Critical" ? "bg-red-500" :
+                            item.severity === "High" ? "bg-amber-500" : "bg-blue-500"
+                          }`} />
+                          <div className="flex-1">
+                            <p className="text-xs font-medium text-slate-700">{item.skill}</p>
+                            <p className="text-[10px] text-slate-500">
+                              {item.severity} gap - {item.learnerGap} learners affected
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500">No skill gap data available. Assign programs to centres to generate recommendations.</p>
+                  )}
                 </div>
               </div>
 
@@ -1123,48 +963,69 @@ export default function CourseAlignmentPage() {
               <div className="mb-5 bg-white rounded-md border border-slate-200 p-4 shadow-sm">
                 <h3 className="text-sm font-semibold text-[#1e293b] mb-3">Quick Actions</h3>
                 <div className="flex flex-wrap gap-2">
-                  <button className="px-3 py-1.5 bg-[#1e3a8a] text-white text-xs font-medium rounded hover:bg-[#1e3a8a]/90 transition-colors">
+                  <button 
+                    onClick={() => setShowAssignModal(true)}
+                    className="px-3 py-1.5 bg-[#1e3a8a] text-white text-xs font-medium rounded hover:bg-[#1e3a8a]/90 transition-colors"
+                  >
                     Assign Program to Center
                   </button>
-                  <button className="px-3 py-1.5 bg-amber-100 text-amber-800 text-xs font-medium rounded hover:bg-amber-200 transition-colors">
+                  <button 
+                    onClick={() => {
+                      if (selectedCourseId) {
+                        const selectedCourse = courses.find(c => c.id === selectedCourseId);
+                        if (selectedCourse) {
+                          setPauseData({
+                            course_id: selectedCourse.id,
+                            title: selectedCourse.title,
+                            current_status: selectedCourse.status || 'unknown',
+                            new_status: selectedCourse.status === 'active' ? 'draft' : 'active'
+                          });
+                          setShowPauseModal(true);
+                        }
+                      } else {
+                        alert("Please select a course first to pause or deactivate.");
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-amber-100 text-amber-800 text-xs font-medium rounded hover:bg-amber-200 transition-colors"
+                  >
                     Pause / Deactivate Course
                   </button>
-                  <button className="px-3 py-1.5 bg-blue-100 text-blue-800 text-xs font-medium rounded hover:bg-blue-200 transition-colors">
+                  <button 
+                    onClick={() => {
+                      setShowProposalModal(true);
+                      setProposalData({
+                        ...proposalData,
+                        district_id: filterDistrict || ""
+                      });
+                    }}
+                    className="px-3 py-1.5 bg-blue-100 text-blue-800 text-xs font-medium rounded hover:bg-blue-200 transition-colors"
+                  >
                     Request New Proposal
                   </button>
-                  <button className="px-3 py-1.5 bg-slate-100 text-slate-800 text-xs font-medium rounded hover:bg-slate-200 transition-colors">
+                  <button 
+                    onClick={() => {
+                      if (filterDistrict) {
+                        window.location.href = `/government/districts?district=${filterDistrict}`;
+                      } else {
+                        alert("Please select a district first to view district report.");
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-slate-100 text-slate-800 text-xs font-medium rounded hover:bg-slate-200 transition-colors"
+                  >
                     View District Report
                   </button>
                 </div>
               </div>
 
-              {/* Recent Actions */}
+              {/* Recent Actions - Disabled until real audit log is implemented */}
+              {/* 
               <div className="bg-white rounded-md border border-slate-200 p-4 shadow-sm">
                 <h3 className="text-sm font-semibold text-[#1e293b] mb-3">Recent Actions</h3>
                 <div className="space-y-2">
-                  {[
-                    { action: "Added new training program", course: "EV Service Technician", time: "2 hours ago" },
-                    { action: "Paused underperforming course", course: "Basic Digital Literacy", time: "1 day ago" },
-                    { action: "Updated curriculum alignment", course: "CNC Machine Operator", time: "3 days ago" },
-                    { action: "Increased capacity for high demand", course: "Python Programming", time: "1 week ago" },
-                  ].map((item, index) => (
-                    <div key={index} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${
-                          index === 0 ? "bg-green-500" :
-                          index === 1 ? "bg-amber-500" :
-                          index === 2 ? "bg-blue-500" : "bg-slate-500"
-                        }`} />
-                        <div>
-                          <p className="text-xs font-medium text-slate-700">{item.action}</p>
-                          <p className="text-[10px] text-slate-500">{item.course}</p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] text-slate-400">{item.time}</span>
-                    </div>
-                  ))}
+                  <p className="text-xs text-slate-500">No recent actions available. Audit log coming soon.</p>
                 </div>
               </div>
+              */}
 
               {/* Course Alignment Overview - Keep existing section */}
               <div className="mb-5 grid gap-5 grid-cols-1 lg:grid-cols-2">
@@ -1601,6 +1462,433 @@ export default function CourseAlignmentPage() {
                 </div>
               </div>
             </>
+          )}
+
+          {/* Assign Program to Centre Modal */}
+          {showAssignModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg max-w-md w-full p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-[#1e293b]">Assign Program to Centre</h2>
+                  <button
+                    onClick={() => setShowAssignModal(false)}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {assignSuccess ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="h-12 w-12 mx-auto text-green-600 mb-3" />
+                    <p className="text-sm font-medium text-slate-700">{assignSuccess}</p>
+                    <button
+                      onClick={() => {
+                        setShowAssignModal(false);
+                        setAssignSuccess(null);
+                        // Trigger reload by changing filter
+                        setFilterDistrict(filterDistrict);
+                      }}
+                      className="mt-4 bg-[#1e3a8a] text-white px-4 py-2 rounded text-sm font-medium"
+                    >
+                      Done
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setAssignLoading(true);
+                    setAssignError(null);
+
+                    try {
+                      await api.assignProgramToCentre({
+                        course_id: assignData.course_id,
+                        provider_id: assignData.provider_id,
+                        district_id: assignData.district_id,
+                        sanctioned_seats: assignData.sanctioned_seats,
+                        active_seats: assignData.active_seats,
+                        status: assignData.status,
+                      });
+                      setAssignSuccess("Program assigned to centre successfully!");
+                    } catch (error: any) {
+                      setAssignError(error.message || "Failed to assign program to centre");
+                    } finally {
+                      setAssignLoading(false);
+                    }
+                  }}>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Training Program *</label>
+                        <select
+                          required
+                          value={assignData.course_id}
+                          onChange={(e) => setAssignData({...assignData, course_id: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select Program</option>
+                          {courses.map((c) => (
+                            <option key={c.id} value={c.id}>{c.title}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Training Centre *</label>
+                        <select
+                          required
+                          value={assignData.provider_id}
+                          onChange={(e) => setAssignData({...assignData, provider_id: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select Centre</option>
+                          {providers.map((p) => (
+                            <option key={p.provider_id} value={p.provider_id}>{p.provider_name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">District *</label>
+                        <select
+                          required
+                          value={assignData.district_id}
+                          onChange={(e) => setAssignData({...assignData, district_id: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select District</option>
+                          {districts.map((d) => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Sanctioned Seats</label>
+                          <input
+                            type="number"
+                            value={assignData.sanctioned_seats}
+                            onChange={(e) => setAssignData({...assignData, sanctioned_seats: parseInt(e.target.value) || 0})}
+                            className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Active Seats</label>
+                          <input
+                            type="number"
+                            value={assignData.active_seats}
+                            onChange={(e) => setAssignData({...assignData, active_seats: parseInt(e.target.value) || 0})}
+                            className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                        <select
+                          value={assignData.status}
+                          onChange={(e) => setAssignData({...assignData, status: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
+                        </select>
+                      </div>
+
+                      {assignError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                          {assignError}
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowAssignModal(false)}
+                          className="flex-1 border border-slate-300 text-slate-700 px-4 py-2 rounded text-sm font-medium hover:bg-slate-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={assignLoading}
+                          className="flex-1 bg-[#1e3a8a] text-white px-4 py-2 rounded text-sm font-medium hover:bg-[#1e3a8a]/90 disabled:opacity-50"
+                        >
+                          {assignLoading ? "Assigning..." : "Assign Program"}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Pause/Deactivate Course Modal */}
+          {showPauseModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg max-w-md w-full p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-[#1e293b]">Pause / Deactivate Course</h2>
+                  <button
+                    onClick={() => setShowPauseModal(false)}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {pauseSuccess ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="h-12 w-12 mx-auto text-green-600 mb-3" />
+                    <p className="text-sm font-medium text-slate-700">{pauseSuccess}</p>
+                    <button
+                      onClick={() => {
+                        setShowPauseModal(false);
+                        setPauseSuccess(null);
+                        // Reload data to show updated status
+                        loadAlignmentData();
+                      }}
+                      className="mt-4 bg-[#1e3a8a] text-white px-4 py-2 rounded text-sm font-medium"
+                    >
+                      Done
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setPauseLoading(true);
+                    setPauseError(null);
+
+                    try {
+                      await api.updateCourseStatus(pauseData.course_id, pauseData.new_status);
+                      setPauseSuccess(`Course status updated to ${pauseData.new_status}`);
+                      // Reload courses to reflect the status change
+                      const coursesData = await api.courses();
+                      setCourses(coursesData.items || []);
+                      // Reload alignment data to update the table
+                      await loadAlignmentData();
+                    } catch (error: any) {
+                      setPauseError(error.message || "Failed to update course status");
+                    } finally {
+                      setPauseLoading(false);
+                    }
+                  }}>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Course</label>
+                        <input
+                          type="text"
+                          value={pauseData.title}
+                          disabled
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-slate-50"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Current Status</label>
+                        <input
+                          type="text"
+                          value={pauseData.current_status}
+                          disabled
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-slate-50"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">New Status *</label>
+                        <select
+                          required
+                          value={pauseData.new_status}
+                          onChange={(e) => setPauseData({...pauseData, new_status: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="draft">Draft (Paused)</option>
+                          <option value="active">Active</option>
+                          <option value="archived">Archived</option>
+                        </select>
+                      </div>
+
+                      {pauseError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                          {pauseError}
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowPauseModal(false)}
+                          className="flex-1 border border-slate-300 text-slate-700 px-4 py-2 rounded text-sm font-medium hover:bg-slate-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={pauseLoading}
+                          className="flex-1 bg-amber-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
+                        >
+                          {pauseLoading ? "Updating..." : "Update Status"}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Request New Proposal Modal */}
+          {showProposalModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg max-w-md w-full p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-[#1e293b]">Request New Training Proposal</h2>
+                  <button
+                    onClick={() => setShowProposalModal(false)}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {proposalSuccess ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="h-12 w-12 mx-auto text-green-600 mb-3" />
+                    <p className="text-sm font-medium text-slate-700">{proposalSuccess}</p>
+                    <button
+                      onClick={() => {
+                        setShowProposalModal(false);
+                        setProposalSuccess(null);
+                      }}
+                      className="mt-4 bg-[#1e3a8a] text-white px-4 py-2 rounded text-sm font-medium"
+                    >
+                      Done
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setProposalLoading(true);
+                    setProposalError(null);
+
+                    try {
+                      await api.createTrainingProposal({
+                        course_id: proposalData.course_id || undefined,
+                        district_id: proposalData.district_id,
+                        sector_id: proposalData.sector_id || undefined,
+                        requested_skills: proposalData.requested_skills,
+                        requested_capacity: proposalData.requested_capacity ? parseInt(proposalData.requested_capacity) : undefined,
+                        reason: proposalData.reason,
+                      });
+                      setProposalSuccess("Training proposal submitted successfully!");
+                      // Reset form
+                      setProposalData({
+                        course_id: "",
+                        district_id: filterDistrict,
+                        sector_id: "",
+                        requested_skills: [],
+                        requested_capacity: "",
+                        reason: ""
+                      });
+                    } catch (error: any) {
+                      setProposalError(error.message || "Failed to submit proposal");
+                    } finally {
+                      setProposalLoading(false);
+                    }
+                  }}>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Course (Optional)</label>
+                        <select
+                          value={proposalData.course_id}
+                          onChange={(e) => setProposalData({...proposalData, course_id: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select Course (Optional)</option>
+                          {courses.map((c) => (
+                            <option key={c.id} value={c.id}>{c.title}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">District *</label>
+                        <select
+                          required
+                          value={proposalData.district_id}
+                          onChange={(e) => setProposalData({...proposalData, district_id: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select District</option>
+                          {districts.map((d) => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Sector (Optional)</label>
+                        <select
+                          value={proposalData.sector_id}
+                          onChange={(e) => setProposalData({...proposalData, sector_id: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        >
+                          <option value="">Select Sector</option>
+                          {sectors.map((s) => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Requested Capacity</label>
+                        <input
+                          type="number"
+                          value={proposalData.requested_capacity}
+                          onChange={(e) => setProposalData({...proposalData, requested_capacity: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Reason *</label>
+                        <textarea
+                          required
+                          value={proposalData.reason}
+                          onChange={(e) => setProposalData({...proposalData, reason: e.target.value})}
+                          className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                          rows={3}
+                        />
+                      </div>
+
+                      {proposalError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                          {proposalError}
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowProposalModal(false)}
+                          className="flex-1 border border-slate-300 text-slate-700 px-4 py-2 rounded text-sm font-medium hover:bg-slate-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={proposalLoading}
+                          className="flex-1 bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          {proposalLoading ? "Submitting..." : "Submit Proposal"}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>

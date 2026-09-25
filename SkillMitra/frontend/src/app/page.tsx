@@ -219,8 +219,7 @@ const DEMO_DISTRICT_DATA: Record<string, { industries: string[]; roles: string[]
 
 const NAV = [
   { href: "#home", label: "nav.home" },
-  { href: "#demand", label: "nav.jobMarketIntelligence" },
- 
+  { href: "/demand", label: "nav.jobMarketIntelligence" },
   { href: "#gaps", label: "nav.skillGaps" },
   { href: "/future-demand", label: "nav.futureDemand" },
   { href: "#capacity", label: "nav.trainingCapacity" },
@@ -623,9 +622,16 @@ export default function Home() {
           ]
         : ["Capacity-gap figures are shown in authorised district intelligence views."]
     : [];
-  const statewideDemandSectors = uniqueNames(
-    industryDemand.map((row) => sectorById[row.industry_sector_id]).filter(Boolean),
-  );
+  const statewideDemandSectors = useMemo(() => {
+    const sectorMap: Record<string, string> = {};
+    industryDemand.forEach((row) => {
+      const sectorName = sectorById[row.industry_sector_id];
+      if (sectorName && row.industry_sector_id) {
+        sectorMap[sectorName] = row.industry_sector_id;
+      }
+    });
+    return Object.entries(sectorMap).map(([name, id]) => ({ name, id }));
+  }, [industryDemand, sectorById]);
 
   const diverseJobs = useMemo(() => {
     if (!jobs.length) return [];
@@ -830,13 +836,13 @@ export default function Home() {
                 {t("home.flow")}
               </p>
               <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                <a
-                  href="#demand"
+                <Link
+                  href="/demand"
                   className="w-full sm:w-auto text-center bg-[#123b68] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0c2d51] sm:px-6 sm:py-3"
                   style={{ minHeight: '44px' }}
                 >
                   {t("home.exploreIntelligence")}
-                </a>
+                </Link>
                 <a
                   href="#planning"
                   className="w-full sm:w-auto text-center border border-[#123b68] bg-white px-4 py-2.5 text-sm font-semibold text-[#123b68] hover:bg-slate-50 sm:px-6 sm:py-3"
@@ -893,10 +899,61 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ================= CAREER PLANNING ================= */}
+        <section id="career-explorer" className="mx-auto max-w-7xl px-5 py-14">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+            <div>
+              <p className="font-bold text-blue-700">CAREER PLANNING</p>
+              <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Which option best describes you?</h2>
+              <p className="mt-2 text-slate-600">Explore career options according to your education and goals.</p>
+            </div>
+            <div className="text-sm font-semibold text-blue-700">Explore. Learn. Grow.</div>
+          </div>
+          <div className="mt-8 grid gap-5 md:grid-cols-4">
+            <article 
+              className="rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md cursor-pointer"
+              onClick={() => router.push('/career/10th')}
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-3xl">🎓</div>
+              <h3 className="mt-4 text-xl font-bold text-[#123b68]">Class 10</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Explore career options after Class 10 and build a strong foundation.</p>
+              <button className="mt-5 font-semibold text-blue-700">Explore →</button>
+            </article>
+            <article 
+              className="rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md cursor-pointer"
+              onClick={() => router.push('/career/12th')}
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-3xl">🎓</div>
+              <h3 className="mt-4 text-xl font-bold text-[#123b68]">Class 12</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Discover career paths after Class 12 and plan your future.</p>
+              <button className="mt-5 font-semibold text-blue-700">Explore →</button>
+            </article>
+            <article 
+              className="rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md cursor-pointer"
+              onClick={() => router.push('/career/graduation')}
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-3xl">👨‍🎓</div>
+              <h3 className="mt-4 text-xl font-bold text-[#123b68]">Graduate</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Explore opportunities after graduation and advance your career.</p>
+              <button className="mt-5 font-semibold text-blue-700">Explore →</button>
+            </article>
+            <article 
+              className="rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md cursor-pointer"
+              onClick={() => window.open('https://roleiq.in/app#home', '_blank')}
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-3xl">💼</div>
+              <h3 className="mt-4 text-xl font-bold text-[#123b68]">Job Seeker</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Find skill gaps and relevant employment opportunities.</p>
+              <button className="mt-5 font-semibold text-blue-700">Explore →</button>
+            </article>
+          </div>
+        </section>
+
         {/* ================= DEMAND-TO-CAREER RECOMMENDATION ENGINE ================= */}
         <section id="recommendation" className="border-b border-slate-200 bg-[#eef3f8]">
           <div className="mx-auto max-w-7xl px-5 py-8 lg:py-10">
             <div className="border-t-2 border-[#c2410c] pt-6">
+              <p className="text-xs font-semibold tracking-wide text-[#c2410c]">{t("home.recommendationEyebrow")}</p>
               <h2 className="mt-2 font-serif text-3xl font-semibold text-[#123b68]">
                 {t("home.recommendationTitle")}
               </h2>
@@ -1087,152 +1144,15 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ================= CAREER EXPLORER ================= */}
-        <section id="career-explorer" className="mx-auto max-w-7xl px-5 py-14">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div>
-              <p className="font-bold text-blue-700">{t("home.careerExplorer")}</p>
-              <h2 className="mt-2 text-3xl font-bold text-[#123b68]">{t("home.careerQuestion")}</h2>
-              <p className="mt-2 text-slate-600">{t("home.careerDescription")}</p>
-            </div>
-            <div className="text-sm font-semibold text-blue-700">Explore. Learn. Grow.</div>
-          </div>
-          <div className="mt-8 grid gap-5 md:grid-cols-4">
-            <article 
-              className="rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md cursor-pointer"
-              onClick={() => router.push('/career/10th')}
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-3xl">🎓</div>
-              <h3 className="mt-4 text-xl font-bold text-[#123b68]">Class 10</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Explore career options after Class 10 and build a strong foundation.</p>
-              <button className="mt-5 font-semibold text-blue-700">Explore →</button>
-            </article>
-            <article 
-              className="rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md cursor-pointer"
-              onClick={() => router.push('/career/12th')}
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-3xl">🎓</div>
-              <h3 className="mt-4 text-xl font-bold text-[#123b68]">Class 12</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Discover career paths after Class 12 and plan your future.</p>
-              <button className="mt-5 font-semibold text-blue-700">Explore →</button>
-            </article>
-            <article 
-              className="rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md cursor-pointer"
-              onClick={() => router.push('/career/graduation')}
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-3xl">👨‍🎓</div>
-              <h3 className="mt-4 text-xl font-bold text-[#123b68]">Graduate</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Explore opportunities after graduation and advance your career.</p>
-              <button className="mt-5 font-semibold text-blue-700">Explore →</button>
-            </article>
-            <article 
-              className="rounded-xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md cursor-pointer"
-              onClick={() => window.open('https://roleiq.in/app#home', '_blank')}
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-3xl">💼</div>
-              <h3 className="mt-4 text-xl font-bold text-[#123b68]">Job Seeker</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Find skill gaps and relevant employment opportunities.</p>
-              <button className="mt-5 font-semibold text-blue-700">Explore →</button>
-            </article>
-          </div>
-        </section>
-
-        {/* ================= PERSONALIZED CAREER SUGGESTIONS ================= */}
-        <section className="mx-auto max-w-7xl px-5 pb-14">
-          <div className="rounded-xl border border-blue-100 bg-[#f1f7ff] p-7 shadow-sm">
-            <div className="grid gap-8 md:grid-cols-[1fr_1.2fr] md:items-center">
-              <div>
-                <p className="font-bold text-blue-700">PERSONALIZED CAREER SUGGESTIONS</p>
-                <h2 className="mt-2 text-2xl font-bold text-[#123b68]">Find careers according to your interests</h2>
-                <p className="mt-3 leading-7 text-slate-600">Select your area of interest and get suitable career options, required skills and learning paths.</p>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">What are you interested in?</label>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <select value={interest} onChange={(e) => setInterest(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-600">
-                    <option value="">Select your interest</option>
-                    {sectors.map((sector) => (
-                      <option key={sector.id} value={sector.id}>
-                        {sector.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button onClick={getCareerSuggestions} disabled={suggestionLoading} className="whitespace-nowrap rounded-lg bg-[#123b68] px-6 py-3 font-semibold text-white hover:bg-[#0d2d52] disabled:opacity-60">Get Career Suggestions →</button>
-                </div>
-                {suggestionLoading && (
-                  <div className="mt-4 rounded-lg border border-blue-100 bg-white p-4">
-                    <p className="text-sm font-semibold text-blue-700">Loading career suggestions...</p>
-                  </div>
-                )}
-                {!suggestionLoading && suggestionResult.length > 0 && (
-                  <div className="mt-4 rounded-lg border border-blue-100 bg-white p-4">
-                    <p className="text-sm font-semibold text-blue-700">Suggested Career Paths</p>
-                    <div className="mt-3 space-y-3">
-                      {suggestionResult.map((s, i) => (
-                        <div key={i} className="border-b pb-3 last:border-0">
-                          <p className="font-semibold text-[#123b68]">{s.job_role_title}</p>
-                          <p className="text-xs text-slate-500 mt-1">Demand signals: {s.demand_signal_count} | Relevant courses: {s.relevant_course_count}</p>
-                          {s.required_skill_ids.length > 0 && (
-                            <p className="text-xs text-slate-600 mt-1">Required skills: {s.required_skill_ids.length}</p>
-                          )}
-                          {s.reasons.map((r, ri) => <p key={ri} className="text-xs text-slate-500">• {r}</p>)}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {!suggestionLoading && interest && suggestionResult.length === 0 && (
-                  <div className="mt-4 rounded-lg border border-blue-100 bg-white p-4">
-                    <p className="text-sm font-semibold text-blue-700">Suggested Career Paths</p>
-                    <p className="mt-2 text-sm leading-6 text-slate-700">
-                      {selectedSector 
-                        ? `No career paths found for "${selectedSector.name}". This sector may not have demand data yet. Try another sector.`
-                        : "No matching career paths found. Try another sector."
-                      }
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ================= QUICK SERVICES ================= */}
-        <section className="mx-auto max-w-7xl px-5 pb-14">
-          <div className="grid gap-5 md:grid-cols-4">
-            <article className="rounded-xl border border-green-100 bg-green-50 p-6">
-              <div className="text-3xl">📈</div>
-              <h3 className="mt-4 text-lg font-bold text-[#123b68]">{t("sections.skillGapAnalysis")}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Identify skills you have and skills you need.</p>
-            </article>
-            <article className="rounded-xl border border-blue-100 bg-blue-50 p-6">
-              <div className="text-3xl">📚</div>
-              <h3 className="mt-4 text-lg font-bold text-[#123b68]">{t("sections.coursesTraining")}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Explore government and partner training opportunities.</p>
-            </article>
-            <article className="rounded-xl border border-orange-100 bg-orange-50 p-6">
-              <div className="text-3xl">💼</div>
-              <h3 className="mt-4 text-lg font-bold text-[#123b68]">{t("sections.jobsOpportunities")}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Find relevant job openings based on your skills.</p>
-            </article>
-            <article className="rounded-xl border border-pink-100 bg-pink-50 p-6">
-              <div className="text-3xl">📊</div>
-              <h3 className="mt-4 text-lg font-bold text-[#123b68]">{t("sections.jobMarketIntelligence")}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Discover in-demand skills and future job trends.</p>
-            </article>
-          </div>
-        </section>
-
-        {/* ================= SKILL GAP ANALYSIS ================= */}
+        {/* ================= FROM SKILL TO CAREER OPPORTUNITIES ================= */}
         <section id="skill-gap-analysis" className="border-y bg-white">
           <div className="mx-auto max-w-7xl px-5 py-14">
             <div className="grid gap-10 md:grid-cols-2 md:items-center">
               <div>
-                <p className="font-bold text-green-600">SKILL GAP ANALYSIS</p>
+                <p className="font-bold text-green-600">FROM SKILL TO CAREER OPPORTUNITIES</p>
                 <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Learn what the industry actually needs</h2>
                 <p className="mt-4 leading-7 text-slate-600">Do not choose a course just because it is popular. SkillMitra compares your target job with your current skills and shows exactly what you need to learn.</p>
-                <button onClick={checkSkillGap} disabled={skillGapLoading} className="mt-6 rounded bg-[#123b68] px-6 py-3 font-semibold text-white disabled:opacity-60">Check My Skill Gap →</button>
-                {skillGapLoading && <p className="mt-2 text-sm text-slate-600">Loading skill gap analysis...</p>}
+                <Link href="/login" className="mt-6 inline-block rounded bg-[#123b68] px-6 py-3 font-semibold text-white hover:bg-[#0d2d52]">Check My Skill Gap →</Link>
               </div>
               <div className="rounded-xl border bg-white p-6 shadow-sm">
                 {skillGapResult ? (
@@ -1299,7 +1219,221 @@ export default function Home() {
           </div>
         </section>
 
+<<<<<<< HEAD
         
+=======
+        {/* ================= PERSONALIZED CAREER SUGGESTIONS ================= */}
+        <section className="mx-auto max-w-7xl px-5 pb-14">
+          <div className="rounded-xl border border-blue-100 bg-[#f1f7ff] p-7 shadow-sm">
+            <div className="grid gap-8 md:grid-cols-[1fr_1.2fr] md:items-center">
+              <div>
+                <p className="font-bold text-blue-700">PERSONALIZED CAREER SUGGESTIONS</p>
+                <h2 className="mt-2 text-2xl font-bold text-[#123b68]">Find careers according to your interests</h2>
+                <p className="mt-3 leading-7 text-slate-600">Select your area of interest and get suitable career options, required skills and learning paths.</p>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">What are you interested in?</label>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <select value={interest} onChange={(e) => setInterest(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-600">
+                    <option value="">Select your interest</option>
+                    {sectors.map((sector) => (
+                      <option key={sector.id} value={sector.id}>
+                        {sector.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button onClick={getCareerSuggestions} disabled={suggestionLoading} className="whitespace-nowrap rounded-lg bg-[#123b68] px-6 py-3 font-semibold text-white hover:bg-[#0d2d52] disabled:opacity-60">Get Career Suggestions →</button>
+                </div>
+                {suggestionLoading && (
+                  <div className="mt-4 rounded-lg border border-blue-100 bg-white p-4">
+                    <p className="text-sm font-semibold text-blue-700">Loading career suggestions...</p>
+                  </div>
+                )}
+                {!suggestionLoading && suggestionResult.length > 0 && (
+                  <div className="mt-4 rounded-lg border border-blue-100 bg-white p-4">
+                    <p className="text-sm font-semibold text-blue-700">Suggested Career Paths</p>
+                    <div className="mt-3 space-y-3">
+                      {suggestionResult.map((s, i) => (
+                        <div key={i} className="border-b pb-3 last:border-0">
+                          <p className="font-semibold text-[#123b68]">{s.job_role_title}</p>
+                          <p className="text-xs text-slate-500 mt-1">Demand signals: {s.demand_signal_count} | Relevant courses: {s.relevant_course_count}</p>
+                          {s.required_skill_ids.length > 0 && (
+                            <p className="text-xs text-slate-600 mt-1">Required skills: {s.required_skill_ids.length}</p>
+                          )}
+                          {s.reasons.map((r, ri) => <p key={ri} className="text-xs text-slate-500">• {r}</p>)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {!suggestionLoading && interest && suggestionResult.length === 0 && (
+                  <div className="mt-4 rounded-lg border border-blue-100 bg-white p-4">
+                    <p className="text-sm font-semibold text-blue-700">Suggested Career Paths</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-700">
+                      {selectedSector 
+                        ? `No career paths found for "${selectedSector.name}". This sector may not have demand data yet. Try another sector.`
+                        : "No matching career paths found. Try another sector."
+                      }
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================= COURSES ALIGNED WITH DEMAND ================= */}
+        <section id="courses-training" className="border-y bg-slate-50">
+          <div className="mx-auto max-w-7xl px-5 py-14">
+            <p className="font-bold text-blue-700">COURSES ALIGNED WITH DEMAND</p>
+            <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Courses & Training aligned with demand</h2>
+            <p className="mt-2 text-slate-600">Courses recommended according to industry demand and skill gaps.</p>
+            
+            {homepageCoursesLoading ? (
+              <div className="mt-8 text-center py-12">
+                <p className="text-slate-600">Loading courses...</p>
+              </div>
+            ) : homepageCourses.length > 0 ? (
+              <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+                {homepageCourses.map((course) => (
+                  <article 
+                    key={course.id} 
+                    className="rounded-xl border bg-white p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => router.push(`/courses/${course.id}`)}
+                  >
+                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${
+                      course.demandLevel === "High Demand" 
+                        ? "bg-green-100 text-green-700" 
+                        : course.demandLevel === "Growing"
+                        ? "bg-blue-100 text-blue-700"
+                        : course.demandLevel === "Moderate"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-slate-100 text-slate-700"
+                    }`}>
+                      {course.demandLevel}
+                    </span>
+                    <h3 className="mt-5 text-xl font-bold text-[#123b68]">{course.title}</h3>
+                    {course.district && (
+                      <p className="mt-2 text-sm text-slate-500">📍 {course.district}</p>
+                    )}
+                    {course.skills.length > 0 && (
+                      <p className="mt-3 text-sm text-slate-600">
+                        {course.skills.slice(0, 3).join(' • ')}
+                        {course.skills.length > 3 && ' • ...'}
+                      </p>
+                    )}
+                    {course.durationHours && (
+                      <p className="mt-2 text-sm text-slate-500">
+                        Duration: {course.durationHours} hours
+                      </p>
+                    )}
+                    {course.isRelatedProgramme && course.relatedProgrammeName ? (
+                      <p className="mt-2 text-sm text-slate-600">
+                        Related Programme: {course.relatedProgrammeName}
+                      </p>
+                    ) : course.providerName && (
+                      <p className="mt-2 text-sm text-slate-600">
+                        Provider: {course.providerName}
+                      </p>
+                    )}
+                    <div className="mt-5 flex flex-col gap-2">
+                      <button className="inline-flex items-center justify-center gap-2 rounded border border-[#123b68] px-4 py-2 text-sm font-semibold text-[#123b68] hover:bg-[#123b68] hover:text-white transition-colors">
+                        View Course →
+                      </button>
+                      {(course.courseUrl || course.providerUrl) && (
+                        <a
+                          href={course.courseUrl || course.providerUrl || '#'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Original Source
+                        </a>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-8 text-center py-12">
+                <p className="text-slate-600">No courses currently available with official URLs.</p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ================= JOBS ALIGNED WITH DEMAND ================= */}
+        <section id="jobs-opportunities" className="border-y bg-white">
+          <div className="mx-auto max-w-7xl px-5 py-14">
+            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+              <div>
+                <p className="font-bold text-blue-600">JOBS ALIGNED WITH DEMAND</p>
+                <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Jobs matching industry demand</h2>
+                <p className="mt-2 text-slate-600">Connect training and skills with real employment opportunities.</p>
+              </div>
+              <Link href="/candidate" className="font-semibold text-[#123b68]">View All Jobs →</Link>
+            </div>
+            <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+              {diverseJobs.length > 0 ? (
+                diverseJobs.map((job) => (
+                  <article key={job.id} className="rounded-xl border bg-white p-6 shadow-sm">
+                    <p className="text-sm text-slate-500">{job.employer_name || job.company_name || 'Company'}</p>
+                    <h3 className="mt-2 text-xl font-bold text-[#123b68]">{job.title}</h3>
+                    <p className="mt-2 text-sm">📍 {job.district_name || 'Location'}</p>
+                    <p className="mt-3 text-sm text-slate-600">
+                      Skills: {job.job_posting_skills && job.job_posting_skills.length > 0 
+                        ? job.job_posting_skills.map((js: any) => js.skill?.name).filter(Boolean).slice(0, 3).join(' • ') 
+                        : job.skills && job.skills.length > 0 
+                        ? job.skills.slice(0, 3).join(' • ')
+                        : 'Not specified'}
+                    </p>
+                    <a
+                      href={job.job_url || job.employer_careers_url || job.employer_website || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-5 inline-block rounded border border-[#123b68] px-4 py-2 text-sm font-semibold text-[#123b68] hover:bg-[#123b68] hover:text-white transition-colors"
+                    >
+                      View Job
+                    </a>
+                  </article>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-slate-600">No current employment opportunities available.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+>>>>>>> main
+
+        {/* ================= QUICK SERVICES ================= */}
+        <section className="mx-auto max-w-7xl px-5 pb-14">
+          <div className="grid gap-5 md:grid-cols-4">
+            <article className="rounded-xl border border-green-100 bg-green-50 p-6">
+              <div className="text-3xl">📈</div>
+              <h3 className="mt-4 text-lg font-bold text-[#123b68]">{t("sections.skillGapAnalysis")}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Identify skills you have and skills you need.</p>
+            </article>
+            <article className="rounded-xl border border-blue-100 bg-blue-50 p-6">
+              <div className="text-3xl">📚</div>
+              <h3 className="mt-4 text-lg font-bold text-[#123b68]">{t("sections.coursesTraining")}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Explore government and partner training opportunities.</p>
+            </article>
+            <article className="rounded-xl border border-orange-100 bg-orange-50 p-6">
+              <div className="text-3xl">💼</div>
+              <h3 className="mt-4 text-lg font-bold text-[#123b68]">{t("sections.jobsOpportunities")}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Find relevant job openings based on your skills.</p>
+            </article>
+            <article className="rounded-xl border border-pink-100 bg-pink-50 p-6">
+              <div className="text-3xl">📊</div>
+              <h3 className="mt-4 text-lg font-bold text-[#123b68]">{t("sections.jobMarketIntelligence")}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Discover in-demand skills and future job trends.</p>
+            </article>
+          </div>
+        </section>
 
         {/* ================= TRAINING CAPACITY ================= */}
         <section className="mx-auto max-w-7xl px-5 py-14">
@@ -1391,7 +1525,7 @@ export default function Home() {
             </ul>
             <h3 className="mt-8 text-lg font-semibold text-[#123b68]">Demand can be analysed by</h3>
             <ul className="mt-4 flex flex-wrap gap-2">
-              {["Job Role", "Skill", "District", "Industry Sector", "Proficiency Level", "Emerging Technology"].map(
+              {["Skill", "District", "Emerging Technology", "Industry Sector", "Job Role", "Proficiency Level"].map(
                 (item) => (
                   <li key={item} className="border border-[#123b68] bg-white px-3 py-1.5 text-sm font-medium text-[#123b68]">
                     {item}
@@ -1409,9 +1543,14 @@ export default function Home() {
                   public page.
                 </p>
                 <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {statewideDemandSectors.slice(0, 9).map((name) => (
-                    <li key={name} className="text-sm text-slate-700">
-                      {name}
+                  {statewideDemandSectors.slice(0, 9).map(({ name, id }) => (
+                    <li key={id} className="text-sm text-slate-700">
+                      <Link 
+                        href={`/demand?industry_sector_id=${id}`}
+                        className="text-[#123b68] hover:underline hover:text-[#0c2d51] font-medium"
+                      >
+                        {name}
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -1423,7 +1562,12 @@ export default function Home() {
                 <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {sectors.slice(0, 9).map((sector) => (
                     <li key={sector.id} className="text-sm text-slate-700">
-                      {sector.name}
+                      <Link 
+                        href={`/demand?industry_sector_id=${sector.id}`}
+                        className="text-[#123b68] hover:underline hover:text-[#0c2d51] font-medium"
+                      >
+                        {sector.name}
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -1439,6 +1583,42 @@ export default function Home() {
           </div>
         </section>
 
+<<<<<<< HEAD
+=======
+        {/* ================= DEMAND INTELLIGENCE CTA ================= */}
+        <section className="border-b border-slate-200 bg-[#f0f4f8]">
+          <div className="mx-auto max-w-7xl px-5 py-8 lg:py-10">
+            <div className="border-t-2 border-[#c2410c] pt-6">
+              <p className="text-xs font-semibold tracking-wide text-[#c2410c]">02.5 DEMAND INTELLIGENCE</p>
+              <h2 className="mt-2 font-serif text-3xl font-semibold text-[#123b68]">
+                Explore Labour-Market Demand
+              </h2>
+            </div>
+            <p className="mt-3 max-w-3xl leading-7 text-slate-600">
+              Analyse demand across skills, districts, sectors, job roles, emerging technologies and proficiency levels.
+            </p>
+            
+            <div className="mt-8 rounded-lg border border-slate-200 bg-white p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-[#123b68]">
+                    Demand Intelligence
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Explore current labour-market demand, skill requirements, and emerging technology trends across Maharashtra.
+                  </p>
+                </div>
+                <Link 
+                  href="/demand"
+                  className="inline-flex items-center gap-2 bg-[#123b68] px-6 py-3 text-sm font-semibold text-white hover:bg-[#0c2d51] rounded-lg transition-colors"
+                >
+                  Explore Demand Intelligence →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+>>>>>>> main
 
         <section className="border-b border-slate-200 bg-[#eef3f8]" aria-labelledby="engine-heading">
           <div className="mx-auto max-w-7xl px-5 py-8 lg:py-10">

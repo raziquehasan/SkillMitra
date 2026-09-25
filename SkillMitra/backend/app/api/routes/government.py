@@ -14,6 +14,7 @@ from app.models.phase4 import (
     CourseEquipmentRequirement, Equipment, Trainer, TrainerSkill, CandidateSkill,
 )
 from app.models.phase8 import GovernmentOfficial
+from app.models.phase9 import CurriculumProposal, AuditLog
 from app.models.geography import District
 from app.models.demand import DataSource, IndustryDemand, IndustrySector
 from app.models.skills import Skill
@@ -258,392 +259,396 @@ def get_government_dashboard(
     
     All filters are applied at the Supabase/PostgreSQL level.
     """
-    
-    from sqlalchemy import text
-    
-    # Create filter object
-    filters = GovernmentFilterParams(
-        district_id=district_id,
-        sector_id=sector_id,
-        job_role_id=job_role_id,
-        start_date=start_date,
-        end_date=end_date
-    )
-    
-    # Always use real Supabase data
-    # Build filter conditions for Supabase queries
-    district_filter = build_district_filter(district_id)
-    sector_filter = build_sector_filter(sector_id)
-    job_role_filter = build_job_role_filter(job_role_id)
-    date_filter = build_date_filter(start_date, end_date)
-    
-    # Build industry demand query with filters
-    demand_query = select(IndustryDemand)
-    
-    # Apply district filter
-    if district_filter["condition"]:
-        demand_query = demand_query.where(
-            text(district_filter["condition"])
-        ).params(**district_filter["params"])
-    
-    # Apply sector filter
-    if sector_filter["condition"]:
-        demand_query = demand_query.where(
-            text(sector_filter["condition"])
-        ).params(**sector_filter["params"])
-    
-    # Apply job role filter
-    if job_role_filter["condition"]:
-        demand_query = demand_query.where(
-            text(job_role_filter["condition"])
-        ).params(**job_role_filter["params"])
-    
-    # Apply date filter
-    if date_filter["conditions"]:
-        for condition in date_filter["conditions"]:
-            demand_query = demand_query.where(text(condition))
-        demand_query = demand_query.params(**date_filter["params"])
-    
-    # Execute filtered demand query
-    filtered_demand = db.scalars(demand_query).all()
-    
-    # Calculate KPIs from filtered data
-    total_demand_observations = len(filtered_demand)
-    
-    # Get skill demand ranking from filtered data
-    skill_demand_scores = {}
-    for demand in filtered_demand:
-        if demand.skill_id:
-            skill_demand_scores[demand.skill_id] = skill_demand_scores.get(demand.skill_id, 0) + (demand.aggregate_demand_score or 0)
-    
-    # High demand skills (top 20% by demand score)
-    high_demand_threshold = 0
-    if skill_demand_scores:
-        sorted_scores = sorted(skill_demand_scores.values(), reverse=True)
-        if sorted_scores:
-            high_demand_threshold = sorted_scores[len(sorted_scores) // 5] if len(sorted_scores) >= 5 else sorted_scores[0]
-    
-    high_demand_skills_count = sum(1 for score in skill_demand_scores.values() if score >= high_demand_threshold)
-    
-    # Get districts covered
-    if district_id:
-        districts_covered = 1
-    else:
-        total_districts = db.scalar(select(func.count()).select_from(District)) or 0
-        districts_with_demand = len(set(d.district_id for d in filtered_demand if d.district_id))
-        districts_covered = districts_with_demand
-    
-    # Training capacity from course offerings with filters
-    capacity_query = select(CourseOffering)
-    
-    # Apply district filter to capacity
-    if district_id:
-        capacity_query = capacity_query.where(CourseOffering.district_id == district_id)
-    
-    # Apply sector filter to capacity (through courses)
-    if sector_id:
-        capacity_query = capacity_query.join(Course).where(Course.industry_sector_id == sector_id)
-    
-    course_offerings = db.scalars(capacity_query).all()
-    total_capacity = sum(co.active_seats or 0 for co in course_offerings)
-    
-    # Calculate critical skill gaps (skills with demand but no candidate supply)
-    critical_skill_gaps_query = (
-        select(func.count(func.distinct(IndustryDemand.skill_id)))
-        .select_from(IndustryDemand)
-        .where(
-            ~IndustryDemand.skill_id.in_(
-                select(CandidateSkill.skill_id)
+    try:
+        from sqlalchemy import text
+        
+        # Initialize variables that will be used in response
+        placement_outcomes_count = 0
+        
+        # Create filter object
+        filters = GovernmentFilterParams(
+            district_id=district_id,
+            sector_id=sector_id,
+            job_role_id=job_role_id,
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        # Always use real Supabase data
+        # Build filter conditions for Supabase queries
+        district_filter = build_district_filter(district_id)
+        sector_filter = build_sector_filter(sector_id)
+        job_role_filter = build_job_role_filter(job_role_id)
+        date_filter = build_date_filter(start_date, end_date)
+        
+        # Build industry demand query with filters
+        demand_query = select(IndustryDemand)
+        
+        # Apply district filter
+        if district_filter["condition"]:
+            demand_query = demand_query.where(
+                text(district_filter["condition"])
+            ).params(**district_filter["params"])
+        
+        # Apply sector filter
+        if sector_filter["condition"]:
+            demand_query = demand_query.where(
+                text(sector_filter["condition"])
+            ).params(**sector_filter["params"])
+        
+        # Apply job role filter
+        if job_role_filter["condition"]:
+            demand_query = demand_query.where(
+                text(job_role_filter["condition"])
+            ).params(**job_role_filter["params"])
+        
+        # Apply date filter
+        if date_filter["conditions"]:
+            for condition in date_filter["conditions"]:
+                demand_query = demand_query.where(text(condition))
+            demand_query = demand_query.params(**date_filter["params"])
+        
+        # Execute filtered demand query
+        filtered_demand = db.scalars(demand_query).all()
+        
+        # Calculate KPIs from filtered data
+        total_demand_observations = len(filtered_demand)
+        
+        # Get skill demand ranking from filtered data
+        skill_demand_scores = {}
+        for demand in filtered_demand:
+            if demand.skill_id:
+                skill_demand_scores[demand.skill_id] = skill_demand_scores.get(demand.skill_id, 0) + (demand.aggregate_demand_score or 0)
+        
+        # High demand skills (top 20% by demand score)
+        high_demand_threshold = 0
+        if skill_demand_scores:
+            sorted_scores = sorted(skill_demand_scores.values(), reverse=True)
+            if sorted_scores:
+                high_demand_threshold = sorted_scores[len(sorted_scores) // 5] if len(sorted_scores) >= 5 else sorted_scores[0]
+        
+        high_demand_skills_count = sum(1 for score in skill_demand_scores.values() if score >= high_demand_threshold)
+        
+        # Get districts covered
+        if district_id:
+            districts_covered = 1
+        else:
+            total_districts = db.scalar(select(func.count()).select_from(District)) or 0
+            districts_with_demand = len(set(d.district_id for d in filtered_demand if d.district_id))
+            districts_covered = districts_with_demand
+        
+        # Training capacity from course offerings with filters
+        capacity_query = select(CourseOffering)
+        
+        # Apply district filter to capacity
+        if district_id:
+            capacity_query = capacity_query.where(CourseOffering.district_id == district_id)
+        
+        # Apply sector filter to capacity (through courses)
+        if sector_id:
+            capacity_query = capacity_query.join(Course).where(Course.industry_sector_id == sector_id)
+        
+        course_offerings = db.scalars(capacity_query).all()
+        total_capacity = sum(co.active_seats or 0 for co in course_offerings)
+        
+        # Calculate critical skill gaps (skills with demand but no candidate supply)
+        critical_skill_gaps_query = (
+            select(func.count(func.distinct(IndustryDemand.skill_id)))
+            .select_from(IndustryDemand)
+            .where(
+                ~IndustryDemand.skill_id.in_(
+                    select(CandidateSkill.skill_id)
+                )
             )
         )
-    )
-    
-    # Apply same filters to critical skill gaps calculation
-    if district_id:
-        critical_skill_gaps_query = critical_skill_gaps_query.where(IndustryDemand.district_id == district_id)
-    if sector_id:
-        critical_skill_gaps_query = critical_skill_gaps_query.where(IndustryDemand.industry_sector_id == sector_id)
-    if date_filter["conditions"]:
-        for condition in date_filter["conditions"]:
-            critical_skill_gaps_query = critical_skill_gaps_query.where(text(condition))
-        critical_skill_gaps_query = critical_skill_gaps_query.params(**date_filter["params"])
-    
-    critical_skill_gaps = db.scalar(critical_skill_gaps_query) or 0
-    
-    # Calculate gap demand records (demand for skills with no candidate supply)
-    gap_demand_query = (
-        select(func.count())
-        .select_from(IndustryDemand)
-        .where(
-            ~IndustryDemand.skill_id.in_(
-                select(CandidateSkill.skill_id)
+        
+        # Apply same filters to critical skill gaps calculation
+        if district_id:
+            critical_skill_gaps_query = critical_skill_gaps_query.where(IndustryDemand.district_id == district_id)
+        if sector_id:
+            critical_skill_gaps_query = critical_skill_gaps_query.where(IndustryDemand.industry_sector_id == sector_id)
+        if date_filter["conditions"]:
+            for condition in date_filter["conditions"]:
+                critical_skill_gaps_query = critical_skill_gaps_query.where(text(condition))
+            critical_skill_gaps_query = critical_skill_gaps_query.params(**date_filter["params"])
+        
+        critical_skill_gaps = db.scalar(critical_skill_gaps_query) or 0
+        
+        # Calculate gap demand records (demand for skills with no candidate supply)
+        gap_demand_query = (
+            select(func.count())
+            .select_from(IndustryDemand)
+            .where(
+                ~IndustryDemand.skill_id.in_(
+                    select(CandidateSkill.skill_id)
+                )
             )
         )
-    )
-    
-    # Apply same filters to gap demand records
-    if district_id:
-        gap_demand_query = gap_demand_query.where(IndustryDemand.district_id == district_id)
-    if sector_id:
-        gap_demand_query = gap_demand_query.where(IndustryDemand.industry_sector_id == sector_id)
-    if date_filter["conditions"]:
-        for condition in date_filter["conditions"]:
-            gap_demand_query = gap_demand_query.where(text(condition))
-        gap_demand_query = gap_demand_query.params(**date_filter["params"])
-    
-    gap_demand_records = db.scalar(gap_demand_query) or 0
-    
-    # Training capacity: honest calculation
-    # Compare demand for skills with available training capacity
-    # If insufficient data, return neutral status
-    training_capacity_status = "insufficient_data"
-    if total_capacity > 0 and total_demand_observations > 0:
-        # Demand-to-capacity ratio for monitoring (not a direct gap)
-        demand_capacity_ratio = total_demand_observations / total_capacity
-        training_capacity_status = "sufficient" if demand_capacity_ratio <= 1.0 else "insufficient"
-    elif total_capacity == 0:
-        training_capacity_status = "no_capacity_data"
-    elif total_demand_observations == 0:
-        training_capacity_status = "no_demand_data"
-    
-    # Training capacity gaps: only report if we have meaningful comparison
-    # Otherwise return honest neutral value
-    if total_capacity > 0 and total_demand_observations > 0:
-        training_capacity_gaps = max(0, total_demand_observations - total_capacity)
-    else:
-        training_capacity_gaps = 0  # Neutral when insufficient data
-    
-    # Calculate KPIs
-    kpis = DashboardKPIs(
-        districts_covered=districts_covered,
-        active_demand_signals=total_demand_observations,
-        high_demand_skills=high_demand_skills_count,
-        critical_skill_gaps=critical_skill_gaps,  # Skills with demand but no candidate supply
-        critical_gap_demand_records=gap_demand_records,  # Demand records for skills with no candidate supply
-        training_capacity_gaps=training_capacity_gaps,
-        courses_requiring_review=0,  # Will be calculated from quality report
-    )
-    
-    # Get district intelligence
-    district_intelligence = None
-    if district_id:
-        district = db.scalar(select(District).where(District.id == district_id))
-        if district:
+        
+        # Apply same filters to gap demand records
+        if district_id:
+            gap_demand_query = gap_demand_query.where(IndustryDemand.district_id == district_id)
+        if sector_id:
+            gap_demand_query = gap_demand_query.where(IndustryDemand.industry_sector_id == sector_id)
+        if date_filter["conditions"]:
+            for condition in date_filter["conditions"]:
+                gap_demand_query = gap_demand_query.where(text(condition))
+            gap_demand_query = gap_demand_query.params(**date_filter["params"])
+        
+        gap_demand_records = db.scalar(gap_demand_query) or 0
+        
+        # Training capacity: honest calculation
+        # Compare demand for skills with available training capacity
+        # If insufficient data, return neutral status
+        training_capacity_status = "insufficient_data"
+        if total_capacity > 0 and total_demand_observations > 0:
+            # Demand-to-capacity ratio for monitoring (not a direct gap)
+            demand_capacity_ratio = total_demand_observations / total_capacity
+            training_capacity_status = "sufficient" if demand_capacity_ratio <= 1.0 else "insufficient"
+        elif total_capacity == 0:
+            training_capacity_status = "no_capacity_data"
+        elif total_demand_observations == 0:
+            training_capacity_status = "no_demand_data"
+        
+        # Training capacity gaps: only report if we have meaningful comparison
+        # Otherwise return honest neutral value
+        if total_capacity > 0 and total_demand_observations > 0:
+            training_capacity_gaps = max(0, total_demand_observations - total_capacity)
+        else:
+            training_capacity_gaps = 0  # Neutral when insufficient data
+        
+        # Calculate KPIs
+        kpis = DashboardKPIs(
+            districts_covered=districts_covered,
+            active_demand_signals=total_demand_observations,
+            high_demand_skills=high_demand_skills_count,
+            critical_skill_gaps=critical_skill_gaps,  # Skills with demand but no candidate supply
+            critical_gap_demand_records=gap_demand_records,  # Demand records for skills with no candidate supply
+            training_capacity_gaps=training_capacity_gaps,
+            courses_requiring_review=0,  # Will be calculated from quality report
+            placement_outcomes_count=placement_outcomes_count,
+        )
+        
+        # Get district intelligence
+        district_intelligence = None
+        if district_id:
+            district = db.scalar(select(District).where(District.id == district_id))
+            if district:
+                district_intelligence = DashboardDistrictIntelligence(
+                    district_id=str(district.id),
+                    district_name=district.name,
+                    source_type="Supabase",
+                    total_demand=total_demand_observations,
+                    verified_providers=len(set(co.provider_id for co in course_offerings if co.provider_id)),
+                    total_capacity=total_capacity,
+                    capacity_status=training_capacity_status,
+                )
+        else:
             district_intelligence = DashboardDistrictIntelligence(
-                district_id=str(district.id),
-                district_name=district.name,
+                district_id="aggregate",
+                district_name="All Maharashtra" if not sector_id else f"All Maharashtra - {sector_id}",
                 source_type="Supabase",
                 total_demand=total_demand_observations,
                 verified_providers=len(set(co.provider_id for co in course_offerings if co.provider_id)),
                 total_capacity=total_capacity,
                 capacity_status=training_capacity_status,
             )
-    else:
-        district_intelligence = DashboardDistrictIntelligence(
-            district_id="aggregate",
-            district_name="All Maharashtra" if not sector_id else f"All Maharashtra - {sector_id}",
-            source_type="Supabase",
-            total_demand=total_demand_observations,
-            verified_providers=len(set(co.provider_id for co in course_offerings if co.provider_id)),
-            total_capacity=total_capacity,
-            capacity_status=training_capacity_status,
-        )
-    
-    # Get skill gaps from filtered demand (optimized to avoid N+1 queries)
-    skill_gaps = []
-    
-    # Get top skills by demand score
-    top_skill_ids = sorted(skill_demand_scores.items(), key=lambda x: x[1], reverse=True)[:8]
-    
-    if top_skill_ids:
-        # Batch load skills to avoid N+1 queries
-        skill_ids_list = [skill_id for skill_id, _ in top_skill_ids]
-        skills = db.scalars(select(Skill).where(Skill.id.in_(skill_ids_list))).all()
-        skill_map = {s.id: s for s in skills}
         
-        # Batch load course counts to avoid N+1 queries
-        course_counts = db.execute(
-            select(CourseSkill.skill_id, func.count())
-            .where(CourseSkill.skill_id.in_(skill_ids_list))
-            .group_by(CourseSkill.skill_id)
-        ).all()
-        course_count_map = {skill_id: count for skill_id, count in course_counts}
+        # Get skill gaps from filtered demand (optimized to avoid N+1 queries)
+        skill_gaps = []
         
-        # Build skill gaps with batch-loaded data
-        for skill_id, demand_score in top_skill_ids:
-            skill = skill_map.get(skill_id)
-            if skill:
-                skill_courses = course_count_map.get(skill_id, 0)
+        # Get top skills by demand score
+        top_skill_ids = sorted(skill_demand_scores.items(), key=lambda x: x[1], reverse=True)[:8]
+        
+        if top_skill_ids:
+            # Batch load skills to avoid N+1 queries
+            skill_ids_list = [skill_id for skill_id, _ in top_skill_ids]
+            skills = db.scalars(select(Skill).where(Skill.id.in_(skill_ids_list))).all()
+            skill_map = {s.id: s for s in skills}
+            
+            # Batch load course counts to avoid N+1 queries
+            course_counts = db.execute(
+                select(CourseSkill.skill_id, func.count())
+                .where(CourseSkill.skill_id.in_(skill_ids_list))
+                .group_by(CourseSkill.skill_id)
+            ).all()
+            course_count_map = {skill_id: count for skill_id, count in course_counts}
+            
+            # Build skill gaps with batch-loaded data
+            for skill_id, demand_score in top_skill_ids:
+                skill = skill_map.get(skill_id)
+                if skill:
+                    skill_courses = course_count_map.get(skill_id, 0)
 
-                skill_gaps.append(
-                    DashboardSkillGap(
-                        skill_id=str(skill_id),
-                        skill_name=skill.name,
-                        demand_count=demand_score,
-                        training_coverage="Available" if skill_courses > 0 else "Limited",
-                        gap_signal="High" if demand_score > high_demand_threshold else "Moderate",
-                        course_count=skill_courses,
+                    skill_gaps.append(
+                        DashboardSkillGap(
+                            skill_id=str(skill_id),
+                            skill_name=skill.name,
+                            demand_count=demand_score,
+                            training_coverage="Available" if skill_courses > 0 else "Limited",
+                            gap_signal="High" if demand_score > high_demand_threshold else "Moderate",
+                            course_count=skill_courses,
+                        )
                     )
-                )
-    
-    # Training capacity
-    training_capacity = DashboardTrainingCapacity(
-        district_id=str(district_id) if district_id else "aggregate",
-        district_name=district_intelligence.district_name,
-        total_demand=total_demand_observations,
-        verified_providers=district_intelligence.verified_providers,
-        course_offerings=len(course_offerings),
-        total_capacity=total_capacity,
-        capacity_status=district_intelligence.capacity_status,
-    )
-    
-    # Placement outcomes (for pipeline stage 5)
-    placement_outcomes_count = 0
-    try:
-        # Get actual placement count if available
-        placement_query = select(func.count()).select_from(Placement)
-        if district_id:
-            placement_query = placement_query.where(Placement.district_id == district_id)
-        if sector_id:
-            # Filter by sector through job postings if possible
-            pass  # Complex join, keeping simple for now
-        placement_outcomes_count = db.scalar(placement_query) or 0
-    except Exception:
-        placement_outcomes_count = 0  # Fallback if table doesn't exist or query fails
-    
-    # Get course alignment data with optimized queries to avoid N+1 problem
-    course_alignment = []
-    
-    from sqlalchemy.orm import selectinload
-    
-    # Step 1: Get courses with basic relationships loaded
-    courses_query = select(Course).options(
-        selectinload(Course.district),
-        selectinload(Course.course_skills).selectinload(CourseSkill.skill),
-        selectinload(Course.industry_sector)
-    )
-    
-    if district_id:
-        # Filter courses that either have the district_id directly OR have offerings in that district
-        offering_course_ids = db.scalars(
-            select(CourseOffering.course_id).where(CourseOffering.district_id == district_id)
-        ).all()
         
-        courses_query = courses_query.where(
-            or_(
-                Course.district_id == district_id,
-                Course.id.in_(offering_course_ids)
-            )
+        # Training capacity
+        training_capacity = DashboardTrainingCapacity(
+            district_id=str(district_id) if district_id else "aggregate",
+            district_name=district_intelligence.district_name,
+            total_demand=total_demand_observations,
+            verified_providers=district_intelligence.verified_providers,
+            course_offerings=len(course_offerings),
+            total_capacity=total_capacity,
+            capacity_status=district_intelligence.capacity_status,
         )
-    
-    if sector_id:
-        courses_query = courses_query.where(Course.industry_sector_id == sector_id)
-    
-    courses_query = courses_query.limit(50)
-    courses = db.scalars(courses_query).unique().all()
-    
-    if not courses:
-        # No courses found, return empty list
-        course_alignment = []
-    else:
-        # Step 2: Batch load all related data to avoid N+1 queries
-        course_ids = [course.id for course in courses]
         
-        # Get all course offerings for these courses in one query
-        offerings_query = select(CourseOffering).where(CourseOffering.course_id.in_(course_ids))
-        if district_id:
-            offerings_query = offerings_query.where(CourseOffering.district_id == district_id)
-        
-        all_offerings = db.scalars(offerings_query).all()
-        
-        # Build mapping: course_id -> list of offerings
-        course_offerings_map = {}
-        for offering in all_offerings:
-            if offering.course_id not in course_offerings_map:
-                course_offerings_map[offering.course_id] = []
-            course_offerings_map[offering.course_id].append(offering)
-        
-        # Get all unique provider IDs from offerings
-        provider_ids = list(set(offering.provider_id for offering in all_offerings if offering.provider_id))
-        
-        # Batch load all providers
-        providers_map = {}
-        if provider_ids:
-            providers = db.scalars(select(TrainingProvider).where(TrainingProvider.id.in_(provider_ids))).all()
-            providers_map = {provider.id: provider for provider in providers}
-        
-        # Get all unique district IDs from offerings
-        district_ids_from_offerings = list(set(offering.district_id for offering in all_offerings if offering.district_id))
-        
-        # Batch load all districts
-        districts_map = {}
-        if district_ids_from_offerings:
-            districts = db.scalars(select(District).where(District.id.in_(district_ids_from_offerings))).all()
-            districts_map = {district.id: district for district in districts}
-        
-        # Also load the filter district if specified
-        if district_id and district_id not in districts_map:
-            filter_district = db.get(District, district_id)
-            if filter_district:
-                districts_map[district_id] = filter_district
-        
-        # Get all unique sector IDs from courses
-        sector_ids = list(set(course.industry_sector_id for course in courses if course.industry_sector_id))
-        
-        # Batch load demanded skills for all sectors
-        demanded_skills_map = {}
-        if sector_ids:
-            demanded_skills_query = select(
-                IndustryDemand.industry_sector_id,
-                Skill.name
-            ).join(
-                Skill, IndustryDemand.skill_id == Skill.id
-            ).where(
-                IndustryDemand.industry_sector_id.in_(sector_ids)
-            )
-            
+        # Placement outcomes (for pipeline stage 5)
+        placement_outcomes_count = 0
+        try:
+            # Get actual placement count if available
+            placement_query = select(func.count()).select_from(Placement)
             if district_id:
-                demanded_skills_query = demanded_skills_query.where(IndustryDemand.district_id == district_id)
-            
-            demanded_skills_results = db.execute(demanded_skills_query).all()
-            
-            for sector_id_key, skill_name in demanded_skills_results:
-                if sector_id_key not in demanded_skills_map:
-                    demanded_skills_map[sector_id_key] = []
-                demanded_skills_map[sector_id_key].append(skill_name)
+                placement_query = placement_query.where(Placement.district_id == district_id)
+            if sector_id:
+                # Filter by sector through job postings if possible
+                pass  # Complex join, keeping simple for now
+            placement_outcomes_count = db.scalar(placement_query) or 0
+        except Exception:
+            placement_outcomes_count = 0  # Fallback if table doesn't exist or query fails
         
-        # Step 3: Build response with already loaded data
-        for course in courses:
-            # Get course skills from loaded relationship
-            course_skills = [cs.skill.name for cs in course.course_skills if cs.skill]
+        # Get course alignment data with optimized queries to avoid N+1 problem
+        course_alignment = []
+        
+        from sqlalchemy.orm import selectinload
+        
+        # Step 1: Get courses with basic relationships loaded
+        courses_query = select(Course).options(
+            selectinload(Course.district),
+            selectinload(Course.course_skills).selectinload(CourseSkill.skill),
+            selectinload(Course.industry_sector)
+        )
+        
+        if district_id:
+            # Filter courses that either have the district_id directly OR have offerings in that district
+            offering_course_ids = db.scalars(
+                select(CourseOffering.course_id).where(CourseOffering.district_id == district_id)
+            ).all()
             
-            # Get demanded skills from pre-loaded map
-            demanded_skills = []
-            if course.industry_sector_id and course.industry_sector_id in demanded_skills_map:
-                demanded_skills = demanded_skills_map[course.industry_sector_id]
+            courses_query = courses_query.where(
+                or_(
+                    Course.district_id == district_id,
+                    Course.id.in_(offering_course_ids)
+                )
+            )
+        
+        if sector_id:
+            courses_query = courses_query.where(Course.industry_sector_id == sector_id)
+        
+        courses_query = courses_query.limit(50)
+        courses = db.scalars(courses_query).unique().all()
+        
+        if not courses:
+            # No courses found, return empty list
+            course_alignment = []
+        else:
+            # Step 2: Batch load all related data to avoid N+1 queries
+            course_ids = [course.id for course in courses]
             
-            # Get provider info from pre-loaded offerings map
-            provider_name = None
-            provider_id = None
-            offering_district_id = None
+            # Get all course offerings for these courses in one query
+            offerings_query = select(CourseOffering).where(CourseOffering.course_id.in_(course_ids))
+            if district_id:
+                offerings_query = offerings_query.where(CourseOffering.district_id == district_id)
             
-            course_offerings = course_offerings_map.get(course.id, [])
-            if course_offerings:
-                # Use the first available offering
-                offering = course_offerings[0]
-                offering_district_id = offering.district_id
+            all_offerings = db.scalars(offerings_query).all()
+            
+            # Build mapping: course_id -> list of offerings
+            course_offerings_map = {}
+            for offering in all_offerings:
+                if offering.course_id not in course_offerings_map:
+                    course_offerings_map[offering.course_id] = []
+                course_offerings_map[offering.course_id].append(offering)
+            
+            # Get all unique provider IDs from offerings
+            provider_ids = list(set(offering.provider_id for offering in all_offerings if offering.provider_id))
+            
+            # Batch load all providers
+            providers_map = {}
+            if provider_ids:
+                providers = db.scalars(select(TrainingProvider).where(TrainingProvider.id.in_(provider_ids))).all()
+                providers_map = {provider.id: provider for provider in providers}
+            
+            # Get all unique district IDs from offerings
+            district_ids_from_offerings = list(set(offering.district_id for offering in all_offerings if offering.district_id))
+            
+            # Batch load all districts
+            districts_map = {}
+            if district_ids_from_offerings:
+                districts = db.scalars(select(District).where(District.id.in_(district_ids_from_offerings))).all()
+                districts_map = {district.id: district for district in districts}
+            
+            # Also load the filter district if specified
+            if district_id and district_id not in districts_map:
+                filter_district = db.get(District, district_id)
+                if filter_district:
+                    districts_map[district_id] = filter_district
+            
+            # Get all unique sector IDs from courses
+            sector_ids = list(set(course.industry_sector_id for course in courses if course.industry_sector_id))
+            
+            # Batch load demanded skills for all sectors
+            demanded_skills_map = {}
+            if sector_ids:
+                demanded_skills_query = select(
+                    IndustryDemand.industry_sector_id,
+                    Skill.name
+                ).join(
+                    Skill, IndustryDemand.skill_id == Skill.id
+                ).where(
+                    IndustryDemand.industry_sector_id.in_(sector_ids)
+                )
                 
-                if offering.provider_id and offering.provider_id in providers_map:
-                    provider = providers_map[offering.provider_id]
-                    provider_name = provider.name
-                    provider_id = str(provider.id)
+                if district_id:
+                    demanded_skills_query = demanded_skills_query.where(IndustryDemand.district_id == district_id)
+                
+                demanded_skills_results = db.execute(demanded_skills_query).all()
+                
+                for sector_id_key, skill_name in demanded_skills_results:
+                    if sector_id_key not in demanded_skills_map:
+                        demanded_skills_map[sector_id_key] = []
+                    demanded_skills_map[sector_id_key].append(skill_name)
             
-            # Get sector name from loaded relationship
-            sector_name = None
-            actual_sector_id = None
-            if course.industry_sector:
-                sector_name = course.industry_sector.name
-                actual_sector_id = str(course.industry_sector.id)
+            # Step 3: Build response with already loaded data
+            for course in courses:
+                # Get course skills from loaded relationship
+                course_skills = [cs.skill.name for cs in course.course_skills if cs.skill]
+                
+                # Get demanded skills from pre-loaded map
+                demanded_skills = []
+                if course.industry_sector_id and course.industry_sector_id in demanded_skills_map:
+                    demanded_skills = demanded_skills_map[course.industry_sector_id]
+                
+                # Get provider info from pre-loaded offerings map
+                provider_name = None
+                provider_id = None
+                offering_district_id = None
+                
+                course_offerings = course_offerings_map.get(course.id, [])
+                if course_offerings:
+                    # Use the first available offering
+                    offering = course_offerings[0]
+                    offering_district_id = offering.district_id
+                    
+                    if offering.provider_id and offering.provider_id in providers_map:
+                        provider = providers_map[offering.provider_id]
+                        provider_name = provider.name
+                        provider_id = str(provider.id)
+                
+                # Get sector name from loaded relationship
+                sector_name = None
+                actual_sector_id = None
+                if course.industry_sector:
+                    sector_name = course.industry_sector.name
+                    actual_sector_id = str(course.industry_sector.id)
             
             # Get district name - prioritize course.district, then offering district
             district_name = None
@@ -698,80 +703,86 @@ def get_government_dashboard(
                 "gaps": list(gaps),
                 "coverage_percentage": coverage_percentage
             })
-    
-    # Get employer demand data - TEMPORARILY DISABLED FOR DEBUGGING
-    employer_demand = []
-    # TODO: Re-enable after fixing the 500 error
-    # The complex join query below may be causing the Internal Server Error
-    """
-    from app.models.market import JobPosting
-    from app.models.career import JobRole
-    from app.models.identity import Employer
-    from app.models.demand import IndustrySector
-    
-    employer_query = select(
-        JobPosting,
-        JobRole.title.label("job_role_title"),
-        IndustrySector.name.label("sector_name")
-    ).join(
-        JobRole, JobPosting.job_role_id == JobRole.id
-    ).join(
-        Employer, JobPosting.employer_id == Employer.id
-    ).join(
-        IndustrySector, Employer.industry_sector_id == IndustrySector.id
-    ).options(
-        selectinload(JobPosting.job_posting_skills).selectinload(JobPostingSkill.skill)
-    )
-    
-    if district_id:
-        employer_query = employer_query.where(JobPosting.district_id == district_id)
-    if sector_id:
-        employer_query = employer_query.where(IndustrySector.id == sector_id)
-    
-    employer_results = db.execute(employer_query).all()
-    
-    # Group by sector and job role
-    employer_demand_map = {}
-    for posting, job_role_title, sector_name in employer_results:
-        key = f"{sector_name}:{job_role_title}"
         
-        if key not in employer_demand_map:
-            employer_demand_map[key] = {
-                "sector": sector_name,
-                "job_role": job_role_title,
-                "required_skills": set(),
-                "posting_count": 0
-            }
+        # Get employer demand data - TEMPORARILY DISABLED FOR DEBUGGING
+        employer_demand = []
+        # TODO: Re-enable after fixing the 500 error
+        # The complex join query below may be causing the Internal Server Error
+        """
+        from app.models.market import JobPosting
+        from app.models.career import JobRole
+        from app.models.identity import Employer
+        from app.models.demand import IndustrySector
         
-        employer_demand_map[key]["posting_count"] += 1
+        employer_query = select(
+            JobPosting,
+            JobRole.title.label("job_role_title"),
+            IndustrySector.name.label("sector_name")
+        ).join(
+            JobRole, JobPosting.job_role_id == JobRole.id
+        ).join(
+            Employer, JobPosting.employer_id == Employer.id
+        ).join(
+            IndustrySector, Employer.industry_sector_id == IndustrySector.id
+        ).options(
+            selectinload(JobPosting.job_posting_skills).selectinload(JobPostingSkill.skill)
+        )
         
-        # Add required skills
-        if posting.job_posting_skills:
-            for jps in posting.job_posting_skills:
-                if jps.skill:
-                    employer_demand_map[key]["required_skills"].add(jps.skill.name)
-    
-    # Convert to response format
-    for data in employer_demand_map.values():
-        employer_demand.append({
-            "sector": data["sector"],
-            "job_role": data["job_role"],
-            "required_skills": list(data["required_skills"]),
-            "posting_count": data["posting_count"]
-        })
-    """
-    
-    return {
-        "kpis": kpis,
-        "district_intelligence": district_intelligence,
-        "skill_gaps": skill_gaps,
-        "training_capacity": training_capacity,
-        "course_alignment": course_alignment,
-        "employer_demand": employer_demand,
-        "placement_outcomes_count": placement_outcomes_count,
-        "district_training_plan": None,  # Will be implemented separately
-        "mode": "live"
-    }
+        if district_id:
+            employer_query = employer_query.where(JobPosting.district_id == district_id)
+        if sector_id:
+            employer_query = employer_query.where(IndustrySector.id == sector_id)
+        
+        employer_results = db.execute(employer_query).all()
+        
+        # Group by sector and job role
+        employer_demand_map = {}
+        for posting, job_role_title, sector_name in employer_results:
+            key = f"{sector_name}:{job_role_title}"
+            
+            if key not in employer_demand_map:
+                employer_demand_map[key] = {
+                    "sector": sector_name,
+                    "job_role": job_role_title,
+                    "required_skills": set(),
+                    "posting_count": 0
+                }
+            
+            employer_demand_map[key]["posting_count"] += 1
+            
+            # Add required skills
+            if posting.job_posting_skills:
+                for jps in posting.job_posting_skills:
+                    if jps.skill:
+                        employer_demand_map[key]["required_skills"].add(jps.skill.name)
+        
+        # Convert to response format
+        for data in employer_demand_map.values():
+            employer_demand.append({
+                "sector": data["sector"],
+                "job_role": data["job_role"],
+                "required_skills": list(data["required_skills"]),
+                "posting_count": data["posting_count"]
+            })
+        """
+        
+        return {
+            "kpis": kpis,
+            "district_intelligence": district_intelligence,
+            "skill_gaps": skill_gaps,
+            "training_capacity": training_capacity,
+            "course_alignment": course_alignment,
+            "employer_demand": employer_demand,
+            "placement_outcomes_count": placement_outcomes_count,
+            "district_training_plan": None,  # Will be implemented separately
+        }
+        
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"Government dashboard error: {str(e)}")
+        print(f"Traceback: {error_detail}")
+        raise HTTPException(status_code=500, detail=f"Dashboard error: {str(e)}")
 
 class PlacementOut(BaseModel):
     id: uuid.UUID
@@ -1336,6 +1347,333 @@ def get_training_centres(
         )
     
     return centres
+
+
+class CreateTrainingCentreIn(BaseModel):
+    name: str
+    district_id: uuid.UUID
+    provider_type: str | None = None
+    registration_number: str | None = None
+    contact_person: str | None = None
+    phone: str | None = None
+    address: str | None = None
+
+
+class CreateTrainingCentreOut(BaseModel):
+    provider_id: str
+    name: str
+    district_id: str
+    verification_status: str
+    message: str
+
+
+@router.post("/training-centres", response_model=CreateTrainingCentreOut, status_code=201)
+def create_training_centre(
+    data: CreateTrainingCentreIn,
+    current_user: User = Depends(require_government_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Create a new training centre for government users.
+    
+    This creates a TrainingProvider record which appears in the training centres list.
+    Government users can create centres to assign training programs.
+    """
+    from app.models.phase4 import TrainingProvider
+    from app.models.identity import User
+    
+    # Check if user already has a training provider profile
+    existing_provider = db.scalar(
+        select(TrainingProvider).where(TrainingProvider.user_id == current_user.id)
+    )
+    
+    if existing_provider:
+        raise HTTPException(
+            status_code=400, 
+            detail="You already have a training provider profile. Use the Training Provider portal to manage your centre."
+        )
+    
+    # Create the training provider
+    provider = TrainingProvider(
+        user_id=current_user.id,
+        district_id=data.district_id,
+        name=data.name,
+        provider_type=data.provider_type,
+        registration_number=data.registration_number,
+        contact_person=data.contact_person,
+        phone=data.phone,
+        status="active",
+        verification_status="verified",  # Government-created centres are auto-verified
+    )
+    
+    db.add(provider)
+    db.commit()
+    db.refresh(provider)
+    
+    return CreateTrainingCentreOut(
+        provider_id=str(provider.id),
+        name=provider.name,
+        district_id=str(provider.district_id),
+        verification_status=provider.verification_status,
+        message="Training centre created successfully"
+    )
+
+
+class CreateTrainingProgramIn(BaseModel):
+    title: str
+    description: str | None = None
+    district_id: uuid.UUID
+    industry_sector_id: uuid.UUID
+    duration_hours: int | None = None
+    delivery_mode: str | None = None
+    status: str = "active"
+
+
+class CreateTrainingProgramOut(BaseModel):
+    course_id: str
+    title: str
+    message: str
+
+
+@router.post("/training-programs", response_model=CreateTrainingProgramOut, status_code=201)
+def create_training_program(
+    data: CreateTrainingProgramIn,
+    current_user: User = Depends(require_government_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Create a new training program/course for government users.
+    
+    This creates a Course record that can be assigned to training centres.
+    """
+    from app.models.career import Course
+    
+    course = Course(
+        title=data.title,
+        description=data.description,
+        district_id=data.district_id,
+        industry_sector_id=data.industry_sector_id,
+        duration_hours=data.duration_hours,
+        delivery_mode=data.delivery_mode,
+        status=data.status,
+    )
+    
+    db.add(course)
+    db.commit()
+    db.refresh(course)
+    
+    return CreateTrainingProgramOut(
+        course_id=str(course.id),
+        title=course.title,
+        message="Training program created successfully"
+    )
+
+
+class AssignProgramToCentreIn(BaseModel):
+    course_id: uuid.UUID
+    provider_id: uuid.UUID
+    district_id: uuid.UUID
+    sanctioned_seats: int = 100
+    active_seats: int = 100
+    status: str = "active"
+
+
+class AssignProgramToCentreOut(BaseModel):
+    offering_id: str
+    course_id: str
+    provider_id: str
+    message: str
+
+
+@router.post("/training-programs/assign", response_model=AssignProgramToCentreOut, status_code=201)
+def assign_program_to_centre(
+    data: AssignProgramToCentreIn,
+    current_user: User = Depends(require_government_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Assign a training program to a training centre.
+    
+    This creates a CourseOffering record linking a course to a provider in a district.
+    """
+    from app.models.phase4 import CourseOffering
+    from app.models.career import Course
+    
+    # Verify course exists
+    course = db.scalar(select(Course).where(Course.id == data.course_id))
+    if not course:
+        raise HTTPException(status_code=404, detail="Training program not found")
+    
+    # Check if offering already exists
+    existing = db.scalar(
+        select(CourseOffering).where(
+            CourseOffering.provider_id == data.provider_id,
+            CourseOffering.course_id == data.course_id,
+            CourseOffering.district_id == data.district_id
+        )
+    )
+    
+    if existing:
+        raise HTTPException(
+            status_code=400, 
+            detail="This program is already assigned to this centre in the specified district"
+        )
+    
+    # Create the course offering
+    offering = CourseOffering(
+        provider_id=data.provider_id,
+        course_id=data.course_id,
+        district_id=data.district_id,
+        sanctioned_seats=data.sanctioned_seats,
+        active_seats=data.active_seats,
+        utilized_seats=0,
+        status=data.status,
+    )
+    
+    db.add(offering)
+    db.commit()
+    db.refresh(offering)
+    
+    return AssignProgramToCentreOut(
+        offering_id=str(offering.id),
+        course_id=str(offering.course_id),
+        provider_id=str(offering.provider_id),
+        message="Training program assigned to centre successfully"
+    )
+
+
+class UpdateCourseStatusIn(BaseModel):
+    status: str
+
+
+class UpdateCourseStatusOut(BaseModel):
+    course_id: str
+    title: str
+    status: str
+    message: str
+
+
+@router.patch("/training-programs/{course_id}/status", response_model=UpdateCourseStatusOut)
+def update_course_status(
+    course_id: uuid.UUID,
+    data: UpdateCourseStatusIn,
+    current_user: User = Depends(require_government_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Update training program/course status (pause/deactivate).
+    
+    Valid statuses: active, draft, archived
+    """
+    from app.models.career import Course
+    
+    # Verify course exists
+    course = db.scalar(select(Course).where(Course.id == course_id))
+    if not course:
+        raise HTTPException(status_code=404, detail="Training program not found")
+    
+    # Validate status
+    valid_statuses = ['active', 'draft', 'archived']
+    if data.status not in valid_statuses:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
+        )
+    
+    # Update status
+    course.status = data.status
+    db.commit()
+    db.refresh(course)
+    
+    return UpdateCourseStatusOut(
+        course_id=str(course.id),
+        title=course.title,
+        status=course.status,
+        message=f"Course status updated to {data.status}"
+    )
+
+
+class CreateTrainingProposalIn(BaseModel):
+    course_id: uuid.UUID | None = None
+    district_id: uuid.UUID
+    sector_id: uuid.UUID | None = None
+    requested_skills: list[str] = []
+    requested_capacity: int | None = None
+    reason: str
+
+
+class CreateTrainingProposalOut(BaseModel):
+    proposal_id: str
+    status: str
+    message: str
+
+
+@router.post("/training-proposals", response_model=CreateTrainingProposalOut, status_code=201)
+def create_training_proposal(
+    data: CreateTrainingProposalIn,
+    current_user: User = Depends(require_government_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Create a training program proposal for government officers.
+    
+    This creates a proposal record that can be tracked and approved.
+    """
+    from app.models.phase9 import CurriculumProposal, AuditLog
+    
+    # For simplicity, create a proposal linked to a course if provided
+    # If no course, create a general proposal stored in audit log
+    if data.course_id:
+        course = db.scalar(select(Course).where(Course.id == data.course_id))
+        if not course:
+            raise HTTPException(status_code=404, detail="Course not found")
+        
+        # Create curriculum proposal
+        proposal = CurriculumProposal(
+            course_id=data.course_id,
+            curriculum_version_id=None,  # Will be linked when curriculum exists
+            proposed_by_user_id=current_user.id,
+            proposed_changes={
+                "district_id": str(data.district_id),
+                "sector_id": str(data.sector_id) if data.sector_id else None,
+                "requested_skills": data.requested_skills,
+                "requested_capacity": data.requested_capacity,
+            },
+            reason=data.reason,
+            status="proposed"
+        )
+        db.add(proposal)
+        db.commit()
+        db.refresh(proposal)
+        
+        return CreateTrainingProposalOut(
+            proposal_id=str(proposal.id),
+            status=proposal.status,
+            message="Training proposal created successfully"
+        )
+    else:
+        # Create audit log entry for general proposal
+        audit_log = AuditLog(
+            actor_user_id=current_user.id,
+            action="training_proposal",
+            target_type="district",
+            target_id=data.district_id,
+            reason=data.reason,
+            log_metadata={
+                "sector_id": str(data.sector_id) if data.sector_id else None,
+                "requested_skills": data.requested_skills,
+                "requested_capacity": data.requested_capacity,
+            }
+        )
+        db.add(audit_log)
+        db.commit()
+        db.refresh(audit_log)
+        
+        return CreateTrainingProposalOut(
+            proposal_id=str(audit_log.id),
+            status="proposed",
+            message="Training proposal submitted successfully"
+        )
 
 
 class GovernmentCandidateOut(BaseModel):
