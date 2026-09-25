@@ -1219,9 +1219,6 @@ export default function Home() {
           </div>
         </section>
 
-<<<<<<< HEAD
-        
-=======
         {/* ================= PERSONALIZED CAREER SUGGESTIONS ================= */}
         <section className="mx-auto max-w-7xl px-5 pb-14">
           <div className="rounded-xl border border-blue-100 bg-[#f1f7ff] p-7 shadow-sm">
@@ -1407,7 +1404,6 @@ export default function Home() {
             </div>
           </div>
         </section>
->>>>>>> main
 
         {/* ================= QUICK SERVICES ================= */}
         <section className="mx-auto max-w-7xl px-5 pb-14">
@@ -1583,8 +1579,6 @@ export default function Home() {
           </div>
         </section>
 
-<<<<<<< HEAD
-=======
         {/* ================= DEMAND INTELLIGENCE CTA ================= */}
         <section className="border-b border-slate-200 bg-[#f0f4f8]">
           <div className="mx-auto max-w-7xl px-5 py-8 lg:py-10">
@@ -1618,7 +1612,6 @@ export default function Home() {
             </div>
           </div>
         </section>
->>>>>>> main
 
         <section className="border-b border-slate-200 bg-[#eef3f8]" aria-labelledby="engine-heading">
           <div className="mx-auto max-w-7xl px-5 py-8 lg:py-10">
