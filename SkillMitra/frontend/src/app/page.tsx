@@ -842,13 +842,13 @@ export default function Home() {
                 >
                   {t("home.exploreIntelligence")}
                 </Link>
-                <a
-                  href="#planning"
+                <Link
+                  href="/district-planning"
                   className="w-full sm:w-auto text-center border border-[#123b68] bg-white px-4 py-2.5 text-sm font-semibold text-[#123b68] hover:bg-slate-50 sm:px-6 sm:py-3"
                   style={{ minHeight: '44px' }}
                 >
                   {t("home.exploreDistrictPlanning")}
-                </a>
+                </Link>
                 <Link
                   href="/login"
                   className="w-full sm:w-auto text-center border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:px-6 sm:py-3"
