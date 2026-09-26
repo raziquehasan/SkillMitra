@@ -726,8 +726,6 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="h-1 bg-[#c2410c]" aria-hidden />
-
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-5">
           <div className="flex min-w-0 items-center gap-2 sm:gap-4">
@@ -902,7 +900,7 @@ export default function Home() {
         <section id="career-explorer" className="mx-auto max-w-7xl px-5 py-14">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
-              <p className="font-bold text-blue-700">CAREER PLANNING</p>
+              <p className="text-xs font-semibold tracking-wide text-slate-500">CAREER PLANNING</p>
               <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Which option best describes you?</h2>
               <p className="mt-2 text-slate-600">Explore career options according to your education and goals.</p>
             </div>
@@ -948,12 +946,16 @@ export default function Home() {
           </div>
         </section>
 
+        <div className="mx-auto max-w-7xl px-5">
+          <div className="border-t border-slate-300"></div>
+        </div>
+
         {/* ================= DEMAND-TO-CAREER RECOMMENDATION ENGINE ================= */}
         <section id="recommendation" className="border-b border-slate-200 bg-[#eef3f8]">
           <div className="mx-auto max-w-7xl px-5 py-8 lg:py-10">
-            <div className="border-t-2 border-[#c2410c] pt-6">
-              <p className="text-xs font-semibold tracking-wide text-[#c2410c]">{t("home.recommendationEyebrow")}</p>
-              <h2 className="mt-2 font-serif text-3xl font-semibold text-[#123b68]">
+            <div>
+              <p className="text-xs font-semibold tracking-wide text-slate-500">{t("home.recommendationEyebrow")}</p>
+              <h2 className="mt-2 text-3xl font-bold text-[#123b68]">
                 {t("home.recommendationTitle")}
               </h2>
               <p className="mt-3 max-w-3xl leading-7 text-slate-600">
@@ -1148,8 +1150,8 @@ export default function Home() {
           <div className="rounded-xl border border-blue-100 bg-[#f1f7ff] p-7 shadow-sm">
             <div className="grid gap-8 md:grid-cols-[1fr_1.2fr] md:items-center">
               <div>
-                <p className="font-bold text-blue-700">PERSONALIZED CAREER SUGGESTIONS</p>
-                <h2 className="mt-2 text-2xl font-bold text-[#123b68]">Find careers according to your interests</h2>
+                <p className="text-xs font-semibold tracking-wide text-slate-500">PERSONALIZED CAREER SUGGESTIONS</p>
+                <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Find careers according to your interests</h2>
                 <p className="mt-3 leading-7 text-slate-600">Select your area of interest and get suitable career options, required skills and learning paths.</p>
               </div>
               <div>
@@ -1203,13 +1205,17 @@ export default function Home() {
           </div>
         </section>
 
+        <div className="mx-auto max-w-7xl px-5">
+          <div className="border-t border-slate-300"></div>
+        </div>
+
         {/* ================= FROM SKILL TO CAREER OPPORTUNITIES ================= */}
         <section className="mx-auto max-w-7xl px-5 py-8">
           <div className="rounded-xl border border-slate-200 bg-white p-7 shadow-sm">
             <div className="grid gap-8 md:grid-cols-[1fr_1.2fr] md:items-center">
               <div>
-                <p className="font-bold text-blue-700">FROM SKILL TO CAREER OPPORTUNITIES</p>
-                <h2 className="mt-2 text-2xl font-bold text-[#123b68]">Learn what the industry actually needs</h2>
+                <p className="text-xs font-semibold tracking-wide text-slate-500">FROM SKILL TO CAREER OPPORTUNITIES</p>
+                <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Learn what the industry actually needs</h2>
                 <p className="mt-3 leading-7 text-slate-600">Do not choose a course just because it is popular. SkillMitra compares your target job with your current skills and shows exactly what you need to learn.</p>
               </div>
               <div>
@@ -1251,7 +1257,7 @@ export default function Home() {
           <div className="mx-auto max-w-7xl px-5 py-14">
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
               <div>
-                <p className="font-bold text-blue-700">COURSES ALIGNED WITH DEMAND</p>
+                <p className="text-xs font-semibold tracking-wide text-slate-500">COURSES ALIGNED WITH DEMAND</p>
                 <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Courses & Training aligned with demand</h2>
                 <p className="mt-2 text-slate-600">Courses recommended according to industry demand and skill gaps.</p>
               </div>
@@ -1333,12 +1339,16 @@ export default function Home() {
           </div>
         </section>
 
+        <div className="mx-auto max-w-7xl px-5">
+          <div className="border-t border-slate-300"></div>
+        </div>
+
         {/* ================= JOBS ALIGNED WITH DEMAND ================= */}
         <section id="jobs-opportunities" className="border-y bg-white">
           <div className="mx-auto max-w-7xl px-5 py-14">
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
               <div>
-                <p className="font-bold text-blue-600">JOBS ALIGNED WITH DEMAND</p>
+                <p className="text-xs font-semibold tracking-wide text-slate-500">JOBS ALIGNED WITH DEMAND</p>
                 <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Jobs matching industry demand</h2>
                 <p className="mt-2 text-slate-600">Connect training and skills with real employment opportunities.</p>
               </div>
@@ -1377,6 +1387,10 @@ export default function Home() {
           </div>
         </section>
 
+        <div className="mx-auto max-w-7xl px-5">
+          <div className="border-t border-slate-300"></div>
+        </div>
+
         {/* ================= QUICK SERVICES ================= */}
         <section className="mx-auto max-w-7xl px-5 pb-14">
           <div className="grid gap-5 md:grid-cols-4">
@@ -1408,7 +1422,7 @@ export default function Home() {
         {/* ================= TRAINING CAPACITY ================= */}
         <section className="mx-auto max-w-7xl px-5 py-14">
           <div className="rounded-xl border bg-white p-7 shadow-sm">
-            <p className="font-bold text-purple-700">TRAINING CAPACITY</p>
+            <p className="text-xs font-semibold tracking-wide text-slate-500">TRAINING CAPACITY</p>
             <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Are training opportunities available where they are needed?</h2>
             <p className="mt-3 max-w-3xl leading-7 text-slate-600">Compare industry demand with available training centres, seats and courses to identify capacity gaps across districts.</p>
             <div className="mt-8 grid gap-5 md:grid-cols-4">
