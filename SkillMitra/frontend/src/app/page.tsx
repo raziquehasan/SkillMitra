@@ -220,7 +220,7 @@ const DEMO_DISTRICT_DATA: Record<string, { industries: string[]; roles: string[]
 const NAV = [
   { href: "#home", label: "nav.home" },
   { href: "/demand", label: "nav.jobMarketIntelligence" },
-  { href: "#gaps", label: "nav.skillGaps" },
+  { href: "/login", label: "nav.skillGaps" },
   { href: "/future-demand", label: "nav.futureDemand" },
   { href: "#capacity", label: "nav.trainingCapacity" },
   { href: "/courses", label: "nav.courses" },
