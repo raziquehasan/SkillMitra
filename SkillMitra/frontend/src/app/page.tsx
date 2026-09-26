@@ -1405,6 +1405,33 @@ export default function Home() {
 
       </div>
 
+        {/* ================= TRAINING CAPACITY ================= */}
+        <section className="mx-auto max-w-7xl px-5 py-14">
+          <div className="rounded-xl border bg-white p-7 shadow-sm">
+            <p className="font-bold text-purple-700">TRAINING CAPACITY</p>
+            <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Are training opportunities available where they are needed?</h2>
+            <p className="mt-3 max-w-3xl leading-7 text-slate-600">Compare industry demand with available training centres, seats and courses to identify capacity gaps across districts.</p>
+            <div className="mt-8 grid gap-5 md:grid-cols-4">
+              <div className="rounded-lg border bg-slate-50 p-5 text-center">
+                <p className="text-3xl font-bold text-[#123b68]">320+</p>
+                <p className="mt-2 text-sm text-slate-600">Training Centres</p>
+              </div>
+              <div className="rounded-lg border bg-slate-50 p-5 text-center">
+                <p className="text-3xl font-bold text-[#123b68]">18,500+</p>
+                <p className="mt-2 text-sm text-slate-600">Training Seats</p>
+              </div>
+              <div className="rounded-lg border bg-slate-50 p-5 text-center">
+                <p className="text-3xl font-bold text-[#123b68]">145+</p>
+                <p className="mt-2 text-sm text-slate-600">Active Courses</p>
+              </div>
+              <div className="rounded-lg border bg-slate-50 p-5 text-center">
+                <p className="text-3xl font-bold text-[#123b68]">72%</p>
+                <p className="mt-2 text-sm text-slate-600">Average Placement</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
       <section className="border-b border-slate-200 bg-[#f8fafc]" aria-labelledby="leadership-heading">
           <div className="mx-auto max-w-7xl px-5 py-8">
             <p className="text-xs font-semibold tracking-wide text-slate-500">INSTITUTIONAL LEADERSHIP</p>
