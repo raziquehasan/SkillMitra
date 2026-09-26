@@ -424,7 +424,7 @@ export default function RegisterPage() {
                         className="accent-[#123b63]"
                       />
                       <span className="capitalize">
-                        {role.replace('_', ' ')}
+                        {role === 'employer' ? 'Industry' : role.replace('_', ' ')}
                       </span>
                     </label>
                   ))}
