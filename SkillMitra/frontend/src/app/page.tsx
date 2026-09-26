@@ -222,7 +222,7 @@ const NAV = [
   { href: "/demand", label: "nav.jobMarketIntelligence" },
   { href: "/login", label: "nav.skillGaps" },
   { href: "/future-demand", label: "nav.futureDemand" },
-  { href: "#capacity", label: "nav.trainingCapacity" },
+  { href: "/training-capacity", label: "nav.trainingCapacity" },
   { href: "/courses", label: "nav.courses" },
   { href: "/outcomes", label: "nav.jobsOutcomes" },
   { href: "#employers", label: "nav.employerInsights" },
