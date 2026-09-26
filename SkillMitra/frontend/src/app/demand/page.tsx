@@ -3,20 +3,16 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, type District, type IndustrySector, type Skill, type JobRole, type ProficiencyLevel, type EmergingTechnology } from "@/lib/api";
+import { api, type District, type IndustrySector } from "@/lib/api";
 
 export const dynamic = 'force-dynamic';
 
 export default function DemandIntelligencePage() {
   const router = useRouter();
   
-  // Filter states
+  // Filter states - only District and Industry Sector for public UI
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedSector, setSelectedSector] = useState("");
-  const [selectedSkill, setSelectedSkill] = useState("");
-  const [selectedJobRole, setSelectedJobRole] = useState("");
-  const [selectedProficiency, setSelectedProficiency] = useState("");
-  const [selectedEmergingTech, setSelectedEmergingTech] = useState("");
   
   // Initialize filters from URL parameters
   useEffect(() => {
@@ -32,14 +28,10 @@ export default function DemandIntelligencePage() {
   // Data states
   const [districts, setDistricts] = useState<District[]>([]);
   const [sectors, setSectors] = useState<IndustrySector[]>([]);
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [jobRoles, setJobRoles] = useState<JobRole[]>([]);
-  const [proficiencyLevels, setProficiencyLevels] = useState<ProficiencyLevel[]>([]);
-  const [emergingTechnologies, setEmergingTechnologies] = useState<EmergingTechnology[]>([]);
-  
   const [demandData, setDemandData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
 
   // Helper function to convert demand score to demand level (matching backend semantics)
   const getDemandLevel = (score: number) => {
@@ -60,21 +52,13 @@ export default function DemandIntelligencePage() {
   useEffect(() => {
     (async () => {
       try {
-        const [dRes, sRes, skillRes, roleRes, profRes, techRes] = await Promise.all([
+        const [dRes, sRes] = await Promise.all([
           api.districts().catch(() => []),
           api.sectors().catch(() => []),
-          api.skills().catch(() => ({ items: [], total: 0 })),
-          api.jobRoles().catch(() => []),
-          api.proficiencyLevels().catch(() => []),
-          api.emergingTechnologies().catch(() => []),
         ]);
         
         setDistricts(dRes);
         setSectors(sRes);
-        setSkills(skillRes.items ?? []);
-        setJobRoles(roleRes);
-        setProficiencyLevels(profRes);
-        setEmergingTechnologies(techRes);
       } catch (err) {
         console.error("Failed to load reference data:", err);
         setError("Failed to load reference data");
@@ -84,18 +68,11 @@ export default function DemandIntelligencePage() {
     })();
   }, []);
 
-  // Load demand data when filters change
+  // Load initial demand data on page load (no filters applied)
   useEffect(() => {
     (async () => {
       try {
-        const demandRes = await api.industryDemand({
-          district_id: selectedDistrict || undefined,
-          industry_sector_id: selectedSector || undefined,
-          skill_id: selectedSkill || undefined,
-          job_role_id: selectedJobRole || undefined,
-          proficiency_level_id: selectedProficiency || undefined,
-          emerging_technology_id: selectedEmergingTech || undefined,
-        });
+        const demandRes = await api.industryDemand({});
         
         if (Array.isArray(demandRes)) {
           setDemandData(demandRes);
@@ -107,7 +84,29 @@ export default function DemandIntelligencePage() {
         setDemandData([]);
       }
     })();
-  }, [selectedDistrict, selectedSector, selectedSkill, selectedJobRole, selectedProficiency, selectedEmergingTech]);
+  }, []);
+
+  // Handle analyze button click
+  const handleAnalyze = async () => {
+    setAnalyzing(true);
+    try {
+      const demandRes = await api.industryDemand({
+        district_id: selectedDistrict || undefined,
+        industry_sector_id: selectedSector || undefined,
+      });
+      
+      if (Array.isArray(demandRes)) {
+        setDemandData(demandRes);
+      } else {
+        setDemandData([]);
+      }
+    } catch (err) {
+      console.error("Failed to load demand data:", err);
+      setDemandData([]);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -180,14 +179,14 @@ export default function DemandIntelligencePage() {
               Explore Labour-Market Demand
             </h1>
             <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
-              Analyse demand across skills, districts, sectors, job roles, emerging technologies and proficiency levels.
+              Analyse labour-market demand across Maharashtra districts and industry sectors.
             </p>
           </div>
 
           {/* Filters */}
           <div className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900 mb-4">Demand Analysis Filters</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               
               <div>
                 <label className="mb-2 block text-xs font-semibold text-slate-500">DISTRICT</label>
@@ -217,62 +216,16 @@ export default function DemandIntelligencePage() {
                 </select>
               </div>
 
-              <div>
-                <label className="mb-2 block text-xs font-semibold text-slate-500">SKILL</label>
-                <select
-                  value={selectedSkill}
-                  onChange={(e) => setSelectedSkill(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-                >
-                  <option value="">All Skills</option>
-                  {skills.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-xs font-semibold text-slate-500">JOB ROLE</label>
-                <select
-                  value={selectedJobRole}
-                  onChange={(e) => setSelectedJobRole(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-                >
-                  <option value="">All Roles</option>
-                  {jobRoles.map((r) => (
-                    <option key={r.id} value={r.id}>{r.title}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-xs font-semibold text-slate-500">PROFICIENCY LEVEL</label>
-                <select
-                  value={selectedProficiency}
-                  onChange={(e) => setSelectedProficiency(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-                >
-                  <option value="">All Levels</option>
-                  {proficiencyLevels.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-xs font-semibold text-slate-500">EMERGING TECHNOLOGY</label>
-                <select
-                  value={selectedEmergingTech}
-                  onChange={(e) => setSelectedEmergingTech(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-                >
-                  <option value="">All Technologies</option>
-                  {emergingTechnologies.map((t) => (
-                    <option key={t.id} value={t.id}>{t.technology_name}</option>
-                  ))}
-                </select>
-              </div>
-
+            </div>
+            
+            <div className="mt-6">
+              <button
+                onClick={handleAnalyze}
+                disabled={analyzing}
+                className="w-full md:w-auto rounded-lg bg-[#123b68] px-6 py-3 font-semibold text-white hover:bg-[#0d2d52] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {analyzing ? "Analyzing..." : "Analyze Demand"}
+              </button>
             </div>
           </div>
 
@@ -316,13 +269,11 @@ export default function DemandIntelligencePage() {
             <h2 className="text-lg font-bold text-slate-900 mb-4">Current Workforce Demand</h2>
             
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px]">
+              <table className="w-full min-w-[600px]">
                 <thead>
                   <tr className="border-b border-slate-200 text-left">
                     <th className="px-4 py-3 text-xs font-bold text-slate-400">SECTOR</th>
-                    <th className="px-4 py-3 text-xs font-bold text-slate-400">JOB ROLE</th>
                     <th className="px-4 py-3 text-xs font-bold text-slate-400">DISTRICT</th>
-                    <th className="px-4 py-3 text-xs font-bold text-slate-400">PROFICIENCY</th>
                     <th className="px-4 py-3 text-xs font-bold text-slate-400">DEMAND LEVEL</th>
                     <th className="px-4 py-3 text-xs font-bold text-slate-400">DEMAND SCORE</th>
                   </tr>
@@ -334,14 +285,8 @@ export default function DemandIntelligencePage() {
                         <td className="px-4 py-4 text-sm text-slate-600">
                           {sectors.find(s => s.id === item.industry_sector_id)?.name || "Unknown Sector"}
                         </td>
-                        <td className="px-4 py-4 font-semibold text-slate-700">
-                          {jobRoles.find(r => r.id === item.job_role_id)?.title || "Unknown Role"}
-                        </td>
                         <td className="px-4 py-4 text-sm text-slate-500">
                           {districts.find(d => d.id === item.district_id)?.name || "Unknown District"}
-                        </td>
-                        <td className="px-4 py-4 text-sm text-slate-600">
-                          {proficiencyLevels.find(p => p.id === item.proficiency_level_id)?.name || "Unknown"}
                         </td>
                         <td className="px-4 py-4">
                           <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getDemandLevelColor(item.aggregate_demand_score || 0)}`}>
@@ -355,26 +300,13 @@ export default function DemandIntelligencePage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-400">
+                      <td colSpan={4} className="px-4 py-8 text-center text-sm text-slate-400">
                         No demand data available for this selection.
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
-            </div>
-          </div>
-
-          {/* Future Demand Forecast Section */}
-          <div className="mt-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">Future Demand Forecast</h2>
-            <p className="text-sm text-slate-600 mb-4">
-              Future demand forecasts are not available yet. Forecasts will appear when sufficient historical labour-market evidence and trend data are available.
-            </p>
-            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-              <p className="text-sm text-slate-500">
-                Forecasts require historical demand analysis, job posting signals, and trend data from the SkillMitra platform.
-              </p>
             </div>
           </div>
 
