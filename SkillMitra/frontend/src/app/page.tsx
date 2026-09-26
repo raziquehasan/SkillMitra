@@ -1213,7 +1213,7 @@ export default function Home() {
                 <p className="mt-3 leading-7 text-slate-600">Do not choose a course just because it is popular. SkillMitra compares your target job with your current skills and shows exactly what you need to learn.</p>
               </div>
               <div>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-5">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
                   <p className="text-sm font-semibold text-[#123b68]">TARGET ROLE</p>
                   <div className="mt-3">
                     <select
@@ -1236,7 +1236,7 @@ export default function Home() {
                   </p>
                   <Link
                     href="/candidate/skill-gap"
-                    className="mt-4 inline-block rounded-lg bg-[#123b68] px-6 py-3 font-semibold text-white hover:bg-[#0d2d52]"
+                    className="mt-4 inline-block w-full rounded-lg bg-[#123b68] px-6 py-3 font-semibold text-white hover:bg-[#0d2d52] text-center"
                   >
                     Check My Skill Gap →
                   </Link>
