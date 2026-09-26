@@ -1144,7 +1144,7 @@ export default function Home() {
         </section>
 
         {/* ================= PERSONALIZED CAREER SUGGESTIONS ================= */}
-        <section className="mx-auto max-w-7xl px-5 py-14">
+        <section className="mx-auto max-w-7xl px-5 py-8">
           <div className="rounded-xl border border-blue-100 bg-[#f1f7ff] p-7 shadow-sm">
             <div className="grid gap-8 md:grid-cols-[1fr_1.2fr] md:items-center">
               <div>
@@ -1204,7 +1204,7 @@ export default function Home() {
         </section>
 
         {/* ================= FROM SKILL TO CAREER OPPORTUNITIES ================= */}
-        <section className="mx-auto max-w-7xl px-5 py-14">
+        <section className="mx-auto max-w-7xl px-5 py-8">
           <div className="rounded-xl border border-slate-200 bg-white p-7 shadow-sm">
             <div className="grid gap-8 md:grid-cols-[1fr_1.2fr] md:items-center">
               <div>
