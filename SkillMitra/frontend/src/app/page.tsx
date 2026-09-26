@@ -850,13 +850,13 @@ export default function Home() {
                 >
                   {t("home.exploreDistrictPlanning")}
                 </a>
-                <a
-                  href="#career"
+                <Link
+                  href="/login"
                   className="w-full sm:w-auto text-center border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:px-6 sm:py-3"
                   style={{ minHeight: '44px' }}
                 >
                   {t("home.exploreCareer")}
-                </a>
+                </Link>
               </div>
               <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-slate-300 pt-4 sm:mt-8 sm:gap-4 sm:pt-6">
                 <div>
