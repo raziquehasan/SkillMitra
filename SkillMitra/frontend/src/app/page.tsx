@@ -290,6 +290,7 @@ export default function Home() {
   } | null>(null);
   const [suggestionLoading, setSuggestionLoading] = useState(false);
   const [suggestionResult, setSuggestionResult] = useState<Array<{ job_role_title: string; required_skill_ids: string[]; matched_skill_ids: string[]; missing_skill_ids: string[]; demand_signal_count: number; relevant_course_count: number; reasons: string[] }>>([]);
+  const [skillGapRole, setSkillGapRole] = useState("");
   const [skillGapLoading, setSkillGapLoading] = useState(false);
   const [skillGapResult, setSkillGapResult] = useState<{ job_role_title: string; required_skills: Array<{ id: string; name: string }>; matched_skills: Array<{ id: string; name: string }>; missing_skills: Array<{ id: string; name: string }>; skill_match_percentage: number; recommended_courses: Array<{ title: string; covers: string[]; why: string; addresses_missing?: string; covers_details?: string }> } | null>(null);
 
@@ -1142,83 +1143,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ================= FROM SKILL TO CAREER OPPORTUNITIES ================= */}
-        <section id="skill-gap-analysis" className="border-y bg-white">
-          <div className="mx-auto max-w-7xl px-5 py-14">
-            <div className="grid gap-10 md:grid-cols-2 md:items-center">
-              <div>
-                <p className="font-bold text-green-600">FROM SKILL TO CAREER OPPORTUNITIES</p>
-                <h2 className="mt-2 text-3xl font-bold text-[#123b68]">Learn what the industry actually needs</h2>
-                <p className="mt-4 leading-7 text-slate-600">Do not choose a course just because it is popular. SkillMitra compares your target job with your current skills and shows exactly what you need to learn.</p>
-                <Link href="/login" className="mt-6 inline-block rounded bg-[#123b68] px-6 py-3 font-semibold text-white hover:bg-[#0d2d52]">Check My Skill Gap →</Link>
-              </div>
-              <div className="rounded-xl border bg-white p-6 shadow-sm">
-                {skillGapResult ? (
-                  <>
-                    <div className="flex items-center justify-between border-b pb-4">
-                      <div>
-                        <p className="text-xs text-slate-500">TARGET ROLE</p>
-                        <h3 className="text-xl font-bold text-[#123b68]">{skillGapResult.job_role_title}</h3>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-blue-600">{skillGapResult.skill_match_percentage.toFixed(0)}%</p>
-                        <p className="text-xs text-slate-500">Job Readiness</p>
-                      </div>
-                    </div>
-                    <div className="mt-4 space-y-3">
-                      {skillGapResult.required_skills.map((s) => {
-                        const isMatched = skillGapResult.matched_skills.some((ms) => ms.id === s.id);
-                        return (
-                          <div key={s.id} className="flex items-center justify-between border-b py-3">
-                            <span className="font-medium">{s.name}</span>
-                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${isMatched ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
-                              {isMatched ? "✓ Ready" : "⚠ Needs improvement"}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {skillGapResult.recommended_courses.length > 0 && (
-                      <div className="mt-4 border-t pt-4">
-                        <p className="text-sm font-semibold text-[#123b68]">Recommended Courses</p>
-                        <ul className="mt-2 space-y-2">
-                          {skillGapResult.recommended_courses.map((c, i) => (
-                            <li key={i} className="text-sm text-slate-700">
-                              <span className="font-semibold">{c.title}</span>
-                              {c.addresses_missing && (
-                                <span className="text-slate-500"> — {c.addresses_missing}</span>
-                              )}
-                              {c.covers_details && (
-                                <p className="text-xs text-slate-600 mt-1">{c.covers_details}</p>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between border-b pb-4">
-                      <div>
-                        <p className="text-xs text-slate-500">TARGET ROLE</p>
-                        <h3 className="text-xl font-bold text-[#123b68]">Select a role</h3>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-blue-600">—</p>
-                        <p className="text-xs text-slate-500">Job Readiness</p>
-                      </div>
-                    </div>
-                    <p className="mt-4 text-sm text-slate-600">Click "Check My Skill Gap" to analyze your skills against a target role.</p>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* ================= PERSONALIZED CAREER SUGGESTIONS ================= */}
-        <section className="mx-auto max-w-7xl px-5 pb-14">
+        <section className="mx-auto max-w-7xl px-5 py-14">
           <div className="rounded-xl border border-blue-100 bg-[#f1f7ff] p-7 shadow-sm">
             <div className="grid gap-8 md:grid-cols-[1fr_1.2fr] md:items-center">
               <div>
@@ -1272,6 +1198,49 @@ export default function Home() {
                     </p>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================= FROM SKILL TO CAREER OPPORTUNITIES ================= */}
+        <section className="mx-auto max-w-7xl px-5 py-14">
+          <div className="rounded-xl border border-slate-200 bg-white p-7 shadow-sm">
+            <div className="grid gap-8 md:grid-cols-[1fr_1.2fr] md:items-center">
+              <div>
+                <p className="font-bold text-blue-700">FROM SKILL TO CAREER OPPORTUNITIES</p>
+                <h2 className="mt-2 text-2xl font-bold text-[#123b68]">Learn what the industry actually needs</h2>
+                <p className="mt-3 leading-7 text-slate-600">Do not choose a course just because it is popular. SkillMitra compares your target job with your current skills and shows exactly what you need to learn.</p>
+              </div>
+              <div>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-5">
+                  <p className="text-sm font-semibold text-[#123b68]">TARGET ROLE</p>
+                  <div className="mt-3">
+                    <select
+                      value={skillGapRole}
+                      onChange={(e) => setSkillGapRole(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-600"
+                    >
+                      <option value="">Select a role</option>
+                      {recRoles.map((r) => (
+                        <option key={r.id} value={r.id}>{r.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mt-4">
+                    <p className="text-sm font-semibold text-[#123b68]">Job Readiness</p>
+                    <p className="mt-1 text-lg font-bold text-[#123b68]">—</p>
+                  </div>
+                  <p className="mt-3 text-sm text-slate-600">
+                    Click "Check My Skill Gap" to analyze your skills against a target role.
+                  </p>
+                  <Link
+                    href="/candidate/skill-gap"
+                    className="mt-4 inline-block rounded-lg bg-[#123b68] px-6 py-3 font-semibold text-white hover:bg-[#0d2d52]"
+                  >
+                    Check My Skill Gap →
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
